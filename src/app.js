@@ -26,7 +26,7 @@ const state = {
   muteMask: 0, // bit 0=V1, bit 1=V2, bit 2=V3, bit 3=Digi
   soloVoice: -1,
 
-  followPc: false,
+  followPc: true,
   isEditingSource: false,
   prevHighlightedLines: [],
 };
@@ -318,6 +318,11 @@ function renderSidHexStripSkeleton() {
 
 function renderHudGuideOverlay() {
   const overlay = document.getElementById("hud-guide-overlay");
+  if (!overlay) return;
+  const chkHud = document.getElementById("chk-hud-overlay");
+  if (chkHud) {
+    overlay.classList.toggle("hidden", !chkHud.checked);
+  }
   const rows = [
     { row: 0, text: "ROW 0: ZER0 ($10-$2F) PC0..2, CLOCK0..2" },
     { row: 0, text: "SPEED (Refsp) & CH (YYY)", right: true },
@@ -988,6 +993,34 @@ function setupUIHandlers() {
   document.getElementById("chk-follow-pc").addEventListener("change", (e) => {
     state.followPc = e.target.checked;
   });
+
+  // Synchronize initial state of checkboxes & sliders with DOM (handles browser form autofill/restores)
+  const syncUiControls = () => {
+    const chkFollow = document.getElementById("chk-follow-pc");
+    if (chkFollow) {
+      state.followPc = chkFollow.checked;
+    }
+
+    const chkHud = document.getElementById("chk-hud-overlay");
+    const hudOverlay = document.getElementById("hud-guide-overlay");
+    if (chkHud && hudOverlay) {
+      hudOverlay.classList.toggle("hidden", !chkHud.checked);
+    }
+
+    const chkCrt = document.getElementById("chk-crt-scanlines");
+    const crtOverlay = document.getElementById("crt-overlay");
+    if (chkCrt && crtOverlay) {
+      crtOverlay.classList.toggle("hidden", !chkCrt.checked);
+    }
+
+    const sliderDigi = document.getElementById("slider-digi-boost");
+    if (sliderDigi) {
+      state.digiBoost = parseFloat(sliderDigi.value) || 1.3;
+      const digiVal = document.getElementById("digi-boost-val");
+      if (digiVal) digiVal.textContent = `${state.digiBoost.toFixed(1)}x`;
+    }
+  };
+  syncUiControls();
 
   document.getElementById("select-symbol-jump").addEventListener("change", (e) => {
     const symName = e.target.value;

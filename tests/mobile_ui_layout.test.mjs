@@ -246,7 +246,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       this.textContent = "";
       this._innerHTML = "";
       this.value = "";
-      this.checked = id === "chk-hud-overlay" || id === "chk-crt-scanlines";
+      this.checked = id === "chk-crt-scanlines" || id === "chk-follow-pc";
       this.style = {};
       this.dataset = {};
       this.children = [];
@@ -448,4 +448,131 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     globalThis.fetch = prevGlobals.fetch;
     globalThis.requestAnimationFrame = prevGlobals.requestAnimationFrame;
   }
+});
+
+test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, prevent C64 monitor crushing, preserve Panel 2 tunes visibility, and span .ASM source", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const laptop = { width: 1024, height: 768 };
+
+  const bodyStyle = computeStyleForSelector(rules, ["html", "body"], laptop);
+  assert.equal(bodyStyle["overflow-y"], "auto", "Laptop html/body must allow vertical page scrolling");
+
+  const gridStyle = computeStyleForSelector(rules, [".workbench-grid"], laptop);
+  assert.match(gridStyle["grid-template-columns"], /310px/);
+
+  const panelCenter = computeStyleForSelector(rules, [".panel-center"], laptop);
+  assert.ok(
+    parseInt(panelCenter["min-height"] || "0", 10) >= 500,
+    "Laptop .panel-center must have min-height >= 500px to prevent C64 monitor squashing"
+  );
+
+  const panelLeft = computeStyleForSelector(rules, [".panel-left"], laptop);
+  assert.ok(
+    parseInt(panelLeft["min-height"] || "0", 10) >= 500,
+    "Laptop .panel-left must have min-height >= 500px to keep Panel 2 tunes visible"
+  );
+
+  const panelRight = computeStyleForSelector(rules, [".panel-right"], laptop);
+  assert.equal(
+    panelRight["grid-column"],
+    "1 / -1",
+    "Laptop .panel-right must span all columns (1 / -1)"
+  );
+  assert.ok(
+    parseInt(panelRight["min-height"] || "0", 10) >= 400,
+    "Laptop .panel-right must have min-height >= 400px"
+  );
+});
+
+test("C64 character ROM contains authentic 8x8 glyphs for all 256 characters with lowercase support and no arithmetic noise hieroglyphs", async () => {
+  const { C64_CHAR_ROM } = await import("../src/c64_charset.js");
+  assert.equal(C64_CHAR_ROM.length, 256 * 8, "C64_CHAR_ROM must be 2048 bytes (256 * 8)");
+
+  // Verify lowercase 'a' (code 0x61 = 97) is not a solid middle line hieroglyph
+  const glyphA = Array.from(C64_CHAR_ROM.slice(97 * 8, 97 * 8 + 8));
+  assert.notEqual(glyphA[3], 0xFF, "Lowercase 'a' must not be replaced with a solid-line hieroglyph");
+  assert.equal(glyphA[0], 0x00, "Lowercase 'a' top row must be 0x00");
+
+  // Verify letters 'A'..'Z' ($41..$5A) have non-empty valid rows
+  for (let c = 0x41; c <= 0x5A; c++) {
+    const rows = Array.from(C64_CHAR_ROM.slice(c * 8, c * 8 + 8));
+    const nonZero = rows.filter((r) => r !== 0);
+    assert.ok(
+      nonZero.length >= 4,
+      `Character code ${c} ($${c.toString(16)}) must have a readable letter glyph`
+    );
+  }
+
+  // Verify brackets, braces, and vertical bar ($5B, $5D, $7B, $7C, $7D)
+  for (const c of [0x5B, 0x5D, 0x7B, 0x7C, 0x7D]) {
+    const rows = Array.from(C64_CHAR_ROM.slice(c * 8, c * 8 + 8));
+    const nonZero = rows.filter((r) => r !== 0);
+    assert.ok(
+      nonZero.length >= 4,
+      `Punctuation code ${c} ($${c.toString(16)}) must be defined`
+    );
+  }
+});
+
+test("HUD row guide and Follow PC initial states match markup defaults and stay synchronized on boot", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+
+  // chk-hud-overlay must be unchecked by default, hud-guide-overlay hidden
+  assert.match(
+    html,
+    /<input type="checkbox" id="chk-hud-overlay" \/>/,
+    "HUD Row Guide checkbox must be unchecked by default in index.html"
+  );
+  assert.match(
+    html,
+    /<div class="hud-guide-overlay hidden" id="hud-guide-overlay"><\/div>/,
+    "HUD Row Guide overlay element must start with 'hidden' class in index.html"
+  );
+
+  // chk-follow-pc must be checked by default
+  assert.match(
+    html,
+    /<input type="checkbox" id="chk-follow-pc" checked \/>/,
+    "Follow PC checkbox must be checked by default in index.html"
+  );
+});
+
+test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlighted numbers sit still without jitter", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const desktop = { width: 1440, height: 900 };
+
+  const telSummary = computeStyleForSelector(rules, [".telemetry-summary"], desktop);
+  assert.equal(
+    telSummary["font-variant-numeric"],
+    "tabular-nums",
+    ".telemetry-summary must enforce tabular-nums"
+  );
+  assert.equal(
+    telSummary["white-space"],
+    "nowrap",
+    ".telemetry-summary must have white-space: nowrap"
+  );
+
+  const telFrame = computeStyleForSelector(rules, ["#tel-frame"], desktop);
+  assert.equal(
+    telFrame["min-width"],
+    "5.5ch",
+    "#tel-frame must have fixed min-width: 5.5ch to prevent number jitter"
+  );
+
+  const telPc = computeStyleForSelector(rules, ["#tel-pc"], desktop);
+  assert.equal(
+    telPc["min-width"],
+    "5ch",
+    "#tel-pc must have fixed min-width: 5ch to prevent hex address jitter"
+  );
+
+  const telD418 = computeStyleForSelector(rules, ["#tel-d418"], desktop);
+  assert.equal(
+    telD418["min-width"],
+    "2.5ch",
+    "#tel-d418 must have fixed min-width: 2.5ch to prevent drum write jitter"
+  );
 });

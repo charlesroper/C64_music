@@ -124,7 +124,7 @@
           </div>
           <div class="header-right-group">
             <label class="toggle-label" title="Overlay labels explaining Martin Galway's raw memory dump rows on $0400">
-              <input type="checkbox" id="chk-hud-overlay" checked />
+              <input type="checkbox" id="chk-hud-overlay" />
               <span>HUD Row Guide</span>
             </label>
             <label class="toggle-label" title="Show C64 CRT scanline effect">
@@ -139,7 +139,7 @@
           <div class="c64-canvas-container" id="c64-canvas-container">
             <canvas id="c64-monitor-canvas" width="384" height="272"></canvas>
             <div class="crt-overlay" id="crt-overlay"></div>
-            <div class="hud-guide-overlay" id="hud-guide-overlay"></div>
+            <div class="hud-guide-overlay hidden" id="hud-guide-overlay"></div>
           </div>
 
           <!-- Rambo II Secret Morse Code Live Decoder Banner (shown when rambload.asm is active) -->
@@ -164,9 +164,9 @@
         <div class="panel-header panel-subheader">
           <span class="panel-title">4. MOS 6581/8580 OSCILLOSCOPES &amp; VOICE TELEMETRY</span>
           <div class="telemetry-summary" id="telemetry-summary">
-            <span>FRAME: <strong id="tel-frame">0</strong></span>
-            <span>CPU PC: <strong id="tel-pc">$0000</strong></span>
-            <span>$D418 WRITES/FRM: <strong id="tel-d418">0</strong></span>
+            <span class="tel-item tel-item-frame"><span class="tel-lbl">FRAME:</span> <strong id="tel-frame">0</strong></span>
+            <span class="tel-item tel-item-pc"><span class="tel-lbl">CPU PC:</span> <strong id="tel-pc">$0000</strong></span>
+            <span class="tel-item tel-item-d418"><span class="tel-lbl">$D418 WRITES/FRM:</span> <strong id="tel-d418">0</strong></span>
           </div>
         </div>
 
@@ -273,7 +273,7 @@
           </div>
           <div class="header-right-group">
             <label class="toggle-label" title="Auto-scroll code viewer to follow Voice 1 / Drum Sequencer PC">
-              <input type="checkbox" id="chk-follow-pc" />
+              <input type="checkbox" id="chk-follow-pc" checked />
               <span>Follow PC</span>
             </label>
             <button id="btn-toggle-edit" class="btn-mini-action" title="Edit .asm source and re-assemble in browser">
