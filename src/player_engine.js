@@ -112,7 +112,18 @@ export function createWorkbenchPlayer({
       wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
       wasm.wasm_jsr(s.InitKeyScan, 0, 0, 0, 10000);
       wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-      wasm.wasm_jsr(s.FilthRaid, 0, 0, 0, 50000);
+
+      const keyChar = track.key ? track.key.charCodeAt(0) : 65;
+      const tuneIdx = keyChar - 65;
+      let tuneAddr = s.FilthRaid;
+      if (s.DVTABL && tuneIdx >= 0 && tuneIdx < 26) {
+        const lo = ram[s.DVTABL + tuneIdx * 2];
+        const hi = ram[s.DVTABL + tuneIdx * 2 + 1];
+        const resolved = lo | (hi << 8);
+        if (resolved) tuneAddr = resolved;
+      }
+      wasm.wasm_jsr(tuneAddr, 0, 0, 0, 50000);
+
       ram[s.RF] = 7;
       if (s.D1 !== undefined && s.FMC !== undefined) {
         ram[s.D1 + s.FMC] = 0;
@@ -121,7 +132,7 @@ export function createWorkbenchPlayer({
       const refsp = track.refsp || 0x0040;
       ram[s.Refsp] = refsp & 0xFF;
       ram[s.Refsp + 1] = (refsp >> 8) & 0xFF;
-      wasm.wasm_inject_key(track.key.charCodeAt(0));
+      wasm.wasm_inject_key(keyChar);
       wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xFD, 0x24);
       updateEffectiveMuteMask();
       return;

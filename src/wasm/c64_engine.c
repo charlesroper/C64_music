@@ -410,6 +410,12 @@ static inline uint16_t compute_voice_wave(int v) {
     return comb;
 }
 
+static inline float soft_saturate(float x) {
+    if (x <= -1.25f) return -0.96f;
+    if (x >= 1.25f) return 0.96f;
+    return x - 0.16f * (x * x * x);
+}
+
 static void sid_generate_sample(float *out_l, float *out_r) {
     float dry_bus = 0.0f;
     float flt_in  = 0.0f;
@@ -473,24 +479,18 @@ static void sid_generate_sample(float *out_l, float *out_r) {
     float target_v_gain = digi_active ? (0.55f + 0.45f * vol_norm) : vol_norm;
     smoothed_vol += 0.05f * (target_v_gain - smoothed_vol);
 
-    float raw_mix = (dry_bus + flt_out) * 0.30f * smoothed_vol + digi_ac * 0.52f;
+    float raw_mix = (dry_bus + flt_out) * 0.28f * smoothed_vol + digi_ac * 0.50f;
 
     // Subtle stereo spread option (voices 0,1,2 slightly panned around center)
-    float stereo_diff = (voices[0].last_out - voices[2].last_out) * 0.06f * smoothed_vol;
+    float stereo_diff = (voices[0].last_out - voices[2].last_out) * 0.05f * smoothed_vol;
     float raw_l = raw_mix - stereo_diff;
     float raw_r = raw_mix + stereo_diff;
 
     // C64 motherboard AUDIO OUT 10uF AC-coupling capacitor (~15 Hz high-pass)
     out_dc_l += out_dc_coeff * (raw_l - out_dc_l);
     out_dc_r += out_dc_coeff * (raw_r - out_dc_r);
-    float ac_l = raw_l - out_dc_l;
-    float ac_r = raw_r - out_dc_r;
-
-    // Soft analog limiter
-    if (ac_l > 0.98f) ac_l = 0.98f;
-    else if (ac_l < -0.98f) ac_l = -0.98f;
-    if (ac_r > 0.98f) ac_r = 0.98f;
-    else if (ac_r < -0.98f) ac_r = -0.98f;
+    float ac_l = soft_saturate(raw_l - out_dc_l);
+    float ac_r = soft_saturate(raw_r - out_dc_r);
 
     voice_scope[3][sc_idx] = 0.5f * (ac_l + ac_r);
     scope_write_pos = (scope_write_pos + 1) & 511u;
