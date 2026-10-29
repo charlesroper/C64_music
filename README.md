@@ -8,6 +8,14 @@ Instead of playing pre-recorded audio files, the web application compiles Galway
 
 For the full story of Galway's technical innovations, the historical context, and the architecture behind the emulation, read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the web interface.
 
+### Key capabilities
+
+1. **Assembles Galway's raw source code on the fly.** A zero-dependency JavaScript cross-assembler parses Ocean Software's bespoke 1980s directives (`DFS`, `DFB`, `DFW`, `DFM`, `ADD`, `SUB`, `EQU`) directly in the browser in under 20 milliseconds.
+2. **Runs a standalone WebAssembly 6510 and SID engine.** A freestanding C core compiled to WebAssembly executes the assembled code clock by clock, with 200Hz raster timer interrupts, Chamberlin filter modelling, and 15Hz AC coupling.
+3. **Supports the complete catalogue.** Plays all six original assembly sources and all 73 tracks and sound effects without requiring disk images or emulator installations.
+4. **Visualises developer telemetry.** Recreates Galway's original light grey `$0400` memory display and `$D020` border raster profiler alongside 4-channel hardware oscilloscopes.
+5. **Enables live in-browser editing and hot-reloading.** Lets you adjust Galway's note values, instruments, or filter settings in the source viewer, assemble the changes, and hear them in running C64 memory in real time.
+
 ---
 
 ## Martin Galway's original release note
