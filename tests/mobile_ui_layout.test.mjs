@@ -203,6 +203,27 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
       `Mobile ${inputSel} should use 16px font-size to prevent iOS Safari auto-zoom on focus`
     );
   }
+
+  // 7. Mobile hardware controls: slider spans full width, docs & story buttons form a 2-up row
+  const mobSliderGroup = computeStyleForSelector(rules, ["#hw-group-digi"], mobile);
+  assert.equal(
+    mobSliderGroup["grid-column"],
+    "1 / -1",
+    "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width"
+  );
+
+  const mobDocsBtn = computeStyleForSelector(rules, ["#btn-directives-modal"], mobile);
+  const mobStoryBtn = computeStyleForSelector(rules, ["#btn-narrative-modal"], mobile);
+  assert.equal(mobDocsBtn["width"], "100%", "Mobile docs button must be width: 100%");
+  assert.equal(mobStoryBtn["width"], "100%", "Mobile story button must be width: 100%");
+  assert.ok(
+    parseInt(mobDocsBtn["min-height"] || "0", 10) >= 36,
+    "Mobile docs button must be >= 36px tall"
+  );
+  assert.ok(
+    parseInt(mobStoryBtn["min-height"] || "0", 10) >= 36,
+    "Mobile story button must be >= 36px tall"
+  );
 });
 
 test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, exposes mobile view tabs, and switches to ASM tab on PC jump", async () => {

@@ -1,6 +1,6 @@
 # The Galway Story: How This Was Built & The 1980s Ocean SID Secrets
 
-*By Martin Galway & Antigravity (Pair Programming with Charles Roper)*  
+*By Martin Galway & Antigravity (Vibe Coding with Gemini and Charles Roper)*  
 *Featuring original 1985-1987 6502/SID assembly code from Ocean Software Ltd, Manchester.*
 
 ---
@@ -43,7 +43,44 @@ This is not a media player with a Commodore 64 skin. It is a full reproduction o
 
 ---
 
-## 3. Historic Tricks & Innovations Galway Pulled Off
+## 3. The Digital Archaeology: Vibe Coding with agy, Gemini 4 Argon, 3.8 Flash & Charles
+
+How did raw, un-compiled 1980s text files transform into a zero-dependency WebAssembly studio running live on the web in hours instead of months?
+
+That is the story of modern **digital archaeology** and **vibe coding**.
+
+### The Multi-Model AI Engine: agy, Gemini 4 Argon, and 3.8 Flash
+The project was orchestrated through Google's Antigravity CLI environment (`agy`), pairing human ears and intuition with a dual-model agentic setup:
+
+- **Gemini 4 Argon (Lead Architect & Systems Engineer)**:
+  Argon served as the deep reasoning brain. It tore into Galway's idiosyncratic 6502 assembly, reverse-engineered Ocean's bespoke assembler dialect (`DFS`, `DFB`, `DFW`, `DFM`, `ADD`, `SUB`, `EQU`), wrote the two-pass JavaScript cross-assembler, and implemented the cycle-accurate MOS 6510 CPU and MOS 6581/8580 SID sound core in pure C without external libraries. When analog filter distortion or DC offsets threatened audio quality, Argon calculated the Chamberlin state-variable filter equations and analyzed Commodore 64 motherboard schematics to model the physical hardware.
+- **3.8 Flash (High-Speed Subagent & Research Scout)**:
+  Flash acted as the agile scout, running lightning-fast codebase sweeps, checking symbol definitions across Galway's source trees, validating test suites, and performing background verification without slowing down deep architectural work.
+
+### The Human in the Loop: Vibe Coding with Charles Roper
+Vibe coding on this project was not a matter of typing a vague prompt and hoping for the best. It was an intense, sensory feedback loop between human ears, real mobile devices, and AI systems programming.
+
+Charles sat with his phone in hand, testing live deployments on Android via Vivaldi, listening critically to every note, and catching things that purely synthetic test suites missed:
+
+1. **The Silent Phone**:
+   When Charles first opened the site on mobile, he reported: *"the page loads but makes no sounds... also the webite ui is a bit broken on mobile"*. This sparked an immediate dive into mobile browser quirks: WebKit AudioContext autoplay locks, the need to synchronously unlock audio inside touch gestures before network assets finish downloading, handling devices running at 44.1 kHz instead of 48 kHz, and fixing WebKit's silent pause bug on 0-input `ScriptProcessorNode` by wiring a dummy looping buffer.
+2. **The Golden Ears & The Wizball Glitch**:
+   While automated Fourier transforms confirmed the note pitches were mathematically exact, Charles listened closely to *Wizball Title* and noted: *"It is very close. I think i hear a bit of glitching in the Wizball title music. Can you check the music plays as intended."*
+   Gemini 4 Argon dove straight into `wizball.asm` and uncovered four interconnected truths:
+   - Galway's multi-speed 200 Hz engine runs 4-note arpeggios that change every 30 milliseconds (6 ticks at 200 Hz) in routine `TS00`, producing an insanely rapid pitch cascade that sounds almost like a modern digital synth glitch.
+   - A real 20ms stray audio frame was leaking at startup because `FilthRaid` was briefly touched before user input; Gemini eliminated this by dispatching directly through Galway's `DVTABL` entry points.
+   - Resonant filter sweeps were hitting a hard digital limiter; Gemini replaced it with an analog-modeled soft cubic saturation curve (`soft_saturate`).
+   - Narrow-pulse waveforms had a massive DC bias; Gemini inspected historical Commodore 64 motherboard schematics and discovered capacitor `C13` (a 10 microfarad electrolytic DC-blocking capacitor on pin 27 `AUDIO OUT`), implementing an authentic 15 Hz high-pass AC-coupling filter in WebAssembly that completely stabilized the waveform.
+3. **The Monochrome Mystery**:
+   Charles shared a screenshot of the CRT monitor view on his phone: *"does this look right? you mention colour, but its mono"*. Gemini 4 Argon inspected line 418 of `wizball.asm` and revealed: `DREFCOLOUR EQU 15` (Commodore 64 Light Grey on Black). Galway deliberately designed the *Wizball* telemetry screen to be monochrome light grey and white to maximize scanline visibility!
+4. **UI Alignment by Screenshot**:
+   Charles noticed the *The Story* button was awkwardly breaking the row and crowding the hardware controls, snapping a screenshot (`the_story.png`) and pointing out: *"it looks like it needs to drop down next to the docs button so the slider can span the whole width"*. Within minutes, the CSS grid was updated: `#hw-group-digi` spanned both columns full-width, and the two modal buttons dropped into a clean 2-up row side-by-side.
+
+This is the power of AI-assisted digital archaeology: 40-year-old assembly source code, preserved as historical text, brought back to life as a living, breathing instrument through the conversational flow of vibe coding.
+
+---
+
+## 4. Historic Tricks & Innovations Galway Pulled Off
 
 Digging through Galway's original source code reveals a masterclass in 1980s 8-bit software engineering. Here are the genuine historic hacks and innovations uncovered directly in the assembly files:
 
@@ -208,7 +245,7 @@ Galway did not write separate code for every note. He designed a compact bytecod
 
 ---
 
-## 4. How We Built This Engine (Modern WebAssembly & Web Audio)
+## 5. How We Built This Engine (Modern WebAssembly & Web Audio)
 
 Recreating Galway's engine in a modern browser required solving several fascinating technical hurdles:
 
@@ -236,10 +273,11 @@ The workbench adapts dynamically from a wide 3-column desktop mastering console 
 - Dedicated mobile view switcher (`ALL PANELS`, `MONITOR`, `TUNES`, `LIVE .ASM`).
 - Tapping a live voice PC tag (`PC0: $1234`) on mobile automatically switches views and jumps directly to that line in Galway's source code!
 - Touch targets sized to >= 38px, input font sizes locked to 16px to prevent iOS Safari auto-zoom, and automatic HUD label scaling on narrow phone displays.
+- Full-width `$D418 DIGI` hardware slider with side-by-side modal action buttons for the assembly directives manual and historical narrative.
 
 ---
 
-## 5. Galway's Writing Style: Direct From The 1987 Comments
+## 6. Galway's Writing Style: Direct From The 1987 Comments
 
 The comments in Galway's code read like a diary of a brilliant, irreverent 20-something having the time of his life.
 
@@ -262,11 +300,11 @@ And in `gameover.asm`:
 
 ---
 
-## 6. Verification & Automated Test Suite
+## 7. Verification & Automated Test Suite
 
 Every acoustic calculation, timing constant, and layout rule is backed by an automated test suite (`npm test`):
 - **Pitch accuracy**: Hann-windowed Discrete Fourier Transform (DFT) tests verify that Galway's fundamental frequencies match the physical MOS 6581 datasheet formula across 44.1 kHz, 48 kHz, PAL, and NTSC.
 - **Catalog integrity**: All 73 tunes, jingles, and arcade SFX across all 6 assembly files are verified for valid AC oscillation, zero DC lock, and bounded peak levels.
-- **Mobile layout**: Evaluates the CSS media-query cascade across 375x812 vs desktop to verify that mobile viewports scroll freely with zero horizontal clipping.
+- **Mobile layout**: Evaluates the CSS media-query cascade across 375x812 vs desktop to verify that mobile viewports scroll freely, the full-width slider spans the hardware rack, and action buttons align cleanly.
 
 Enjoy exploring the music and code that defined the golden age of 8-bit sound!

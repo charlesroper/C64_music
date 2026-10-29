@@ -1286,6 +1286,11 @@ button:active, button.active {
     min-width: 0;
   }
 
+  #hw-group-digi {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
   .hw-select {
     width: 100%;
     min-width: 0;
@@ -1299,7 +1304,8 @@ button:active, button.active {
     height: 32px;
   }
 
-  #btn-directives-modal {
+  #btn-directives-modal,
+  #btn-narrative-modal {
     width: 100%;
     min-height: 36px;
     justify-content: center;
