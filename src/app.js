@@ -5,6 +5,7 @@
 import { GAME_FILES } from "./tracks_catalog.js";
 import { C64_CHAR_ROM, VIC_PALETTE_RGBA } from "./c64_charset.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
+import { renderMarkdownToHtml } from "./markdown.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
 
@@ -373,97 +374,6 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-}
-
-function formatMarkdownInline(str) {
-  let s = escapeHtml(str);
-  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
-  return s;
-}
-
-function renderMarkdownToHtml(md) {
-  if (!md) return "";
-  const lines = md.split("\n");
-  const out = [];
-  let inCode = false;
-  let codeLang = "";
-  let codeLines = [];
-  let inList = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (line.startsWith("```")) {
-      if (inCode) {
-        out.push(`<pre><code class="lang-${codeLang}">${escapeHtml(codeLines.join("\n"))}</code></pre>`);
-        inCode = false;
-        codeLines = [];
-      } else {
-        if (inList) { out.push("</ul>"); inList = false; }
-        inCode = true;
-        codeLang = line.slice(3).trim();
-      }
-      continue;
-    }
-
-    if (inCode) {
-      codeLines.push(line);
-      continue;
-    }
-
-    if (line.trim() === "---") {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push("<hr />");
-      continue;
-    }
-
-    if (line.startsWith("### ")) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push(`<h3>${formatMarkdownInline(line.slice(4))}</h3>`);
-      continue;
-    }
-    if (line.startsWith("## ")) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push(`<h2>${formatMarkdownInline(line.slice(3))}</h2>`);
-      continue;
-    }
-    if (line.startsWith("# ")) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push(`<h1>${formatMarkdownInline(line.slice(2))}</h1>`);
-      continue;
-    }
-
-    if (line.startsWith("> ")) {
-      if (inList) { out.push("</ul>"); inList = false; }
-      out.push(`<blockquote><p>${formatMarkdownInline(line.slice(2))}</p></blockquote>`);
-      continue;
-    }
-
-    if (/^(\*|-)\s+/.test(line)) {
-      if (!inList) { out.push("<ul>"); inList = true; }
-      out.push(`<li>${formatMarkdownInline(line.replace(/^(\*|-)\s+/, ""))}</li>`);
-      continue;
-    }
-
-    if (inList && !/^(\*|-)\s+/.test(line) && line.trim() === "") {
-      out.push("</ul>");
-      inList = false;
-      continue;
-    }
-
-    if (line.trim() === "") {
-      continue;
-    }
-
-    out.push(`<p>${formatMarkdownInline(line)}</p>`);
-  }
-
-  if (inList) out.push("</ul>");
-  if (inCode) out.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
-
-  return out.join("\n");
 }
 
 function formatAsmLineHtml(rawLine) {
