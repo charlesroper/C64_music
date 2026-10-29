@@ -58,9 +58,10 @@ async function initWorkbench() {
     "rambload.asm",
   ];
 
-  const [wasmResp, directivesResp, ...asmResps] = await Promise.all([
+  const [wasmResp, directivesResp, narrativeResp, ...asmResps] = await Promise.all([
     fetch("./wasm/c64_engine.wasm"),
     fetch("./ocean_assembler_directives.txt"),
+    fetch("./NARRATIVE.md"),
     ...fileNames.map((f) => fetch(`./${f}`)),
   ]);
 
@@ -69,6 +70,12 @@ async function initWorkbench() {
 
   state.directivesText = await directivesResp.text();
   document.getElementById("directives-pre").textContent = state.directivesText;
+
+  const narrativeText = await narrativeResp.text();
+  const narrativeBody = document.getElementById("narrative-modal-body");
+  if (narrativeBody) {
+    narrativeBody.innerHTML = renderMarkdownToHtml(narrativeText);
+  }
 
   const rawSources = {};
   for (let i = 0; i < fileNames.length; i++) {
@@ -366,6 +373,97 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function formatMarkdownInline(str) {
+  let s = escapeHtml(str);
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  return s;
+}
+
+function renderMarkdownToHtml(md) {
+  if (!md) return "";
+  const lines = md.split("\n");
+  const out = [];
+  let inCode = false;
+  let codeLang = "";
+  let codeLines = [];
+  let inList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith("```")) {
+      if (inCode) {
+        out.push(`<pre><code class="lang-${codeLang}">${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        inCode = false;
+        codeLines = [];
+      } else {
+        if (inList) { out.push("</ul>"); inList = false; }
+        inCode = true;
+        codeLang = line.slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCode) {
+      codeLines.push(line);
+      continue;
+    }
+
+    if (line.trim() === "---") {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push("<hr />");
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h3>${formatMarkdownInline(line.slice(4))}</h3>`);
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h2>${formatMarkdownInline(line.slice(3))}</h2>`);
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h1>${formatMarkdownInline(line.slice(2))}</h1>`);
+      continue;
+    }
+
+    if (line.startsWith("> ")) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<blockquote><p>${formatMarkdownInline(line.slice(2))}</p></blockquote>`);
+      continue;
+    }
+
+    if (/^(\*|-)\s+/.test(line)) {
+      if (!inList) { out.push("<ul>"); inList = true; }
+      out.push(`<li>${formatMarkdownInline(line.replace(/^(\*|-)\s+/, ""))}</li>`);
+      continue;
+    }
+
+    if (inList && !/^(\*|-)\s+/.test(line) && line.trim() === "") {
+      out.push("</ul>");
+      inList = false;
+      continue;
+    }
+
+    if (line.trim() === "") {
+      continue;
+    }
+
+    out.push(`<p>${formatMarkdownInline(line)}</p>`);
+  }
+
+  if (inList) out.push("</ul>");
+  if (inCode) out.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+
+  return out.join("\n");
 }
 
 function formatAsmLineHtml(rawLine) {
@@ -1057,6 +1155,21 @@ function setupUIHandlers() {
   modal.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.add("hidden");
   });
+
+  const narrativeModal = document.getElementById("narrative-modal");
+  const btnNarrative = document.getElementById("btn-narrative-modal");
+  const btnCloseNarrative = document.getElementById("btn-close-narrative-modal");
+  if (btnNarrative && narrativeModal) {
+    btnNarrative.addEventListener("click", () => narrativeModal.classList.remove("hidden"));
+  }
+  if (btnCloseNarrative && narrativeModal) {
+    btnCloseNarrative.addEventListener("click", () => narrativeModal.classList.add("hidden"));
+  }
+  if (narrativeModal) {
+    narrativeModal.addEventListener("click", (e) => {
+      if (e.target === narrativeModal) narrativeModal.classList.add("hidden");
+    });
+  }
 
   window.addEventListener("keydown", (e) => {
     const tag = document.activeElement ? document.activeElement.tagName : "";
