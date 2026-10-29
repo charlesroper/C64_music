@@ -2,21 +2,16 @@
 // Martin Galway // Ocean 6502-SID Workbench Main Application
 // ============================================================================
 
-import { assembleOceanSource } from "./ocean_assembler.js";
 import { GAME_FILES } from "./tracks_catalog.js";
-import { C64_CHAR_ROM, VIC_PALETTE, VIC_PALETTE_RGBA } from "./c64_charset.js";
+import { C64_CHAR_ROM, VIC_PALETTE_RGBA } from "./c64_charset.js";
+import { createWorkbenchPlayer } from "./player_engine.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
 
 const state = {
-  wasm: null,
-  audioCtx: null,
-  scriptNode: null,
-  isPlaying: false,
-  isFastForward: false,
-
-  rawSources: {},
-  assembledCache: {},
+  player: null,
+  preUnlockedAudioCtx: null,
+  pendingPlayOnBoot: false,
   directivesText: "",
 
   activeGameId: "wizball.asm",
@@ -45,7 +40,15 @@ async function initWorkbench() {
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
 
-  // Load WASM + all 6 .asm files + ocean_assembler_directives.txt in parallel
+  if (typeof window !== "undefined" && window.innerWidth && window.innerWidth <= 640) {
+    const chkHud = document.getElementById("chk-hud-overlay");
+    const hudOverlay = document.getElementById("hud-guide-overlay");
+    if (chkHud && hudOverlay) {
+      chkHud.checked = false;
+      hudOverlay.classList.add("hidden");
+    }
+  }
+
   const fileNames = [
     "wizball.asm",
     "arkanoid.asm",
@@ -63,83 +66,47 @@ async function initWorkbench() {
 
   const wasmBytes = await wasmResp.arrayBuffer();
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
-  state.wasm = instance.exports;
-  state.wasm.wasm_init(48000);
 
   state.directivesText = await directivesResp.text();
   document.getElementById("directives-pre").textContent = state.directivesText;
 
+  const rawSources = {};
   for (let i = 0; i < fileNames.length; i++) {
     const buf = await asmResps[i].arrayBuffer();
-    // Decode as Latin-1 so all byte values are preserved
     const bytes = new Uint8Array(buf);
     let text = "";
     for (let j = 0; j < bytes.length; j++) {
       text += String.fromCharCode(bytes[j]);
     }
-    state.rawSources[fileNames[i]] = text;
-    state.assembledCache[fileNames[i]] = assembleOceanSource(text);
+    rawSources[fileNames[i]] = text;
   }
+
+  state.player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: (opts) => {
+      if (state.preUnlockedAudioCtx) {
+        const ctx = state.preUnlockedAudioCtx;
+        state.preUnlockedAudioCtx = null;
+        return ctx;
+      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      return opts ? new AudioCtx(opts) : new AudioCtx();
+    },
+    navigatorObj: typeof navigator !== "undefined" ? navigator : null,
+  });
 
   document.getElementById("status-led").classList.add("ready");
   renderGameList();
-  selectGameAndTrack("wizball.asm", "wiz-title", false);
+  selectGameAndTrack("wizball.asm", "wiz-title", state.pendingPlayOnBoot);
+  state.pendingPlayOnBoot = false;
   requestAnimationFrame(renderFrameLoop);
 }
 
-// ============================================================================
-// Web Audio API Streaming Engine
-// ============================================================================
-
-function ensureAudioContext() {
-  if (!state.audioCtx) {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    state.audioCtx = new AudioCtx({ sampleRate: 48000 });
-    const actualRate = state.audioCtx.sampleRate;
-    state.wasm.wasm_set_sample_rate(actualRate);
-
-    const bufferSize = 2048;
-    state.scriptNode = state.audioCtx.createScriptProcessor(bufferSize, 0, 2);
-    state.scriptNode.onaudioprocess = (e) => {
-      const outL = e.outputBuffer.getChannelData(0);
-      const outR = e.outputBuffer.getChannelData(1);
-      const n = outL.length;
-
-      if (!state.isPlaying || !state.wasm) {
-        outL.fill(0);
-        outR.fill(0);
-        return;
-      }
-
-      if (state.isFastForward) {
-        // Advance 3 extra frames per audio callback for 4x speed
-        state.wasm.wasm_fast_forward_frames(3);
-      }
-
-      state.wasm.wasm_render_audio(n);
-      const wasmL = new Float32Array(
-        state.wasm.memory.buffer,
-        state.wasm.wasm_get_audio_l_ptr(),
-        n
-      );
-      const wasmR = new Float32Array(
-        state.wasm.memory.buffer,
-        state.wasm.wasm_get_audio_r_ptr(),
-        n
-      );
-      outL.set(wasmL);
-      outR.set(wasmR);
-    };
-    state.scriptNode.connect(state.audioCtx.destination);
-  }
-  if (state.audioCtx.state === "suspended") {
-    state.audioCtx.resume();
-  }
-}
-
 function setPlayingState(playing) {
-  if (playing) ensureAudioContext();
-  state.isPlaying = playing;
+  if (!state.player) return;
+  if (playing) state.player.play();
+  else state.player.pause();
 
   const btnPlay = document.getElementById("btn-play");
   const playIcon = document.getElementById("play-icon");
@@ -161,200 +128,12 @@ function setPlayingState(playing) {
   }
 }
 
-// ============================================================================
-// C64 Memory & Track Loader
-// ============================================================================
-
-function getRamView() {
-  return new Uint8Array(
-    state.wasm.memory.buffer,
-    state.wasm.wasm_get_ram_ptr(),
-    65536
-  );
-}
-
-function applyHardwareSettingsToWasm() {
-  if (!state.wasm) return;
-  state.wasm.wasm_set_sid_model(state.sidModel8580 ? 1 : 0);
-  state.wasm.wasm_set_video_standard(state.videoNtsc ? 1 : 0);
-  state.wasm.wasm_set_digi_boost(state.digiBoost);
-  updateEffectiveMuteMask();
-}
-
-function updateEffectiveMuteMask() {
-  if (!state.wasm) return;
-  let mask = state.muteMask;
-  if (state.soloVoice >= 0) {
-    mask = 0x07 & ~(1 << state.soloVoice);
-  }
-  state.wasm.wasm_set_voice_mute_mask(mask);
-}
-
-function loadTrackIntoEmulator(gameId, track) {
-  const sampleRate = state.audioCtx ? state.audioCtx.sampleRate : 48000;
-  state.wasm.wasm_init(sampleRate);
-  applyHardwareSettingsToWasm();
-
-  const ram = getRamView();
-
-  if (gameId === "wizball.asm") {
-    const asm = state.assembledCache["wizball.asm"];
-    ram.set(asm.mem);
-    const s = asm.symbols;
-    state.wasm.wasm_set_custom_keyscan(s.KeyScan);
-    state.wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
-    state.wasm.wasm_jsr(s.InitKeyScan, 0, 0, 0, 10000);
-    state.wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-    // Run FilthRaid once to set $D418 = $1F (master vol 15 + LP filter)
-    state.wasm.wasm_jsr(s.FilthRaid, 0, 0, 0, 50000);
-    ram[s.RF] = 7;
-    // Clear D1 FMC/PMC (since D0/D2 are in Zero Page while D1 is at $4680)
-    if (s.D1 !== undefined && s.FMC !== undefined) {
-      ram[s.D1 + s.FMC] = 0;
-      ram[s.D1 + s.PMC] = 0;
-    }
-    const refsp = track.refsp || 0x0040;
-    ram[s.Refsp] = refsp & 0xFF;
-    ram[s.Refsp + 1] = (refsp >> 8) & 0xFF;
-    state.wasm.wasm_inject_key(track.key.charCodeAt(0));
-    state.wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xFD, 0x24);
-    return;
-  }
-
-  if (gameId === "arkadrum.asm" || gameId === "arkanoid.asm") {
-    const asmArk = state.assembledCache["arkanoid.asm"];
-    const asmDrm = state.assembledCache["arkadrum.asm"];
-    ram.set(asmArk.mem);
-    for (let i = 0x4000; i < 0x6000; i++) {
-      if (asmDrm.mem[i] !== 0) ram[i] = asmDrm.mem[i];
-    }
-    const sA = asmArk.symbols;
-    const sD = asmDrm.symbols;
-
-    if (track.withDrums) {
-      state.wasm.wasm_jsr(sA.InitScreen, 0, 0, 0, 200000);
-      ram[sA.RF] = 7;
-      state.wasm.wasm_jsr(sD.INITRASTERS, 0, 0, 0, 50000);
-      state.wasm.wasm_jsr(sD.INITSOUND, 0, 0, 0, 50000);
-      const riffAddr = track.riff === "eNTERDATA" ? sD.eNTERDATA : sD.TITLEDATA;
-      const riffClk = track.riffClk || 2;
-      state.wasm.wasm_jsr(
-        sD.RIFF,
-        riffClk,
-        riffAddr & 0xFF,
-        (riffAddr >> 8) & 0xFF,
-        10000
-      );
-      state.wasm.wasm_jsr(sD.TUNE, 0, 0, track.tuneY, 50000);
-      state.wasm.wasm_set_cpu_state(sD.MAIN, 0, 0, 0, 0xFD, 0x20); // CLI enabled
-      if (track.drumsSolo) {
-        state.wasm.wasm_set_voice_mute_mask(0x07); // Mute SID voices 1-3, keep $D418 drums
-      }
-    } else {
-      state.wasm.wasm_jsr(sA.InitScreen, 0, 0, 0, 200000);
-      state.wasm.wasm_jsr(sA.INITSOUND, 0, 0, 0, 50000);
-      state.wasm.wasm_write_bus(0xD418, 0x0F);
-      if (sA.D418 !== undefined) ram[sA.D418] = 0x0F;
-      ram[sA.RF] = 7;
-      const refsp = track.refsp || 0x0080;
-      ram[sA.Refsp] = refsp & 0xFF;
-      ram[sA.Refsp + 1] = (refsp >> 8) & 0xFF;
-      state.wasm.wasm_inject_key(track.key.charCodeAt(0));
-      state.wasm.wasm_set_cpu_state(sA.DLoop, 0, 0, 0, 0xFD, 0x24);
-    }
-    return;
-  }
-
-  if (gameId === "gameover.asm") {
-    const asm = state.assembledCache["gameover.asm"];
-    ram.set(asm.mem);
-    const s = asm.symbols;
-
-    if (track.withDrums) {
-      state.wasm.wasm_set_cpu_state(s.Start, 0, 0, 0, 0xFD, 0x24);
-      if (track.skipFrames && track.skipFrames > 0) {
-        state.wasm.wasm_fast_forward_frames(track.skipFrames);
-      }
-    } else {
-      state.wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
-      state.wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-      // Set volume 15 ($D418) via bus write so standalone SFX are audible immediately
-      state.wasm.wasm_write_bus(0xD418, 0x0F);
-      ram[s.RF] = 7;
-      const refsp = track.refsp || 0x0040;
-      ram[s.Refsp] = refsp & 0xFF;
-      ram[s.Refsp + 1] = (refsp >> 8) & 0xFF;
-      state.wasm.wasm_inject_key(track.key.charCodeAt(0));
-      state.wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xFD, 0x24);
-    }
-    return;
-  }
-
-  if (gameId === "greenberet.asm") {
-    const asm = state.assembledCache["greenberet.asm"];
-    ram.set(asm.mem);
-    const s = asm.symbols;
-    state.wasm.wasm_jsr(s.setscreen, 0, 0, 0, 200000);
-    state.wasm.wasm_jsr(s.FULLRESET, 0, 0, 0, 50000);
-    state.wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xFD, 0x24);
-    state.wasm.wasm_inject_key(track.key.charCodeAt(0));
-    return;
-  }
-
-  if (gameId === "rambload.asm") {
-    const asm = state.assembledCache["rambload.asm"];
-    ram.set(asm.mem);
-    const s = asm.symbols;
-    initRamboMonitorScreen(ram);
-    // Patch START + 6 ($1006, right after SEI : LDX #15 : STX $D418) to JMP $100E (JSR MUS+3)
-    // so the dummy BILLOADER delay loop is bypassed.
-    ram[s.START + 6] = 0x4C;
-    ram[s.START + 7] = (s.L - 3) & 0xFF;
-    ram[s.START + 8] = ((s.L - 3) >> 8) & 0xFF;
-    state.wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xFD, 0x24);
-
-    if (track.skipFrames && track.skipFrames > 0) {
-      state.wasm.wasm_fast_forward_frames(track.skipFrames);
-    }
-    if (track.mode === "morse_solo") {
-      state.wasm.wasm_set_voice_mute_mask(0x06); // Isolate Voice 1 Morse transmitter
-    }
-    return;
-  }
-}
-
-// Populate $0400 Screen RAM and $D800 Color RAM when rambload.asm is active
-function initRamboMonitorScreen(ram) {
-  for (let i = 0; i < 1000; i++) {
-    ram[0x0400 + i] = 0x20;
-    ram[0xD800 + i] = 15; // Light grey
-  }
-  const writeStr = (row, col, text, color = 1) => {
-    const base = row * 40 + col;
-    for (let i = 0; i < text.length && col + i < 40; i++) {
-      ram[0x0400 + base + i] = text.charCodeAt(i);
-      ram[0xD800 + base + i] = color;
-    }
-  };
-  writeStr(1, 2, "R.A.M.B.O. FIRST BLOOD PART II (1985)", 7);
-  writeStr(2, 2, "OCEAN LOADER + SECRET MORSE TRANSMIT", 3);
-  writeStr(4, 2, "Z0-ZF ZERO PAGE ($0010-$001F):", 14);
-  writeStr(7, 2, "MORSE SECRET MESSAGE (STARTMC):", 13);
-  writeStr(8, 2, "BILL BARNA / DAVID COLLIER", 1);
-  writeStr(9, 2, "MARTIN GALWAY / TONY POMFRET", 1);
-  writeStr(10, 2, "STEVE WAHID", 1);
-  writeStr(12, 2, "SB0-SB2 SOUNDBLOCKS ($137D-$13F1):", 14);
-  writeStr(22, 2, "RASTER SYNC: LINE 99 ($D012) @ 50HZ", 7);
-}
-
 function updateRamboMonitorScreen(ram, asm) {
   const s = asm.symbols;
-  // Copy Zero Page $10..$1F to Row 5
   for (let i = 0; i < 16; i++) {
     ram[0x0400 + 5 * 40 + 2 + i] = ram[0x10 + i];
     ram[0xD800 + 5 * 40 + 2 + i] = 3;
   }
-  // Copy SB0, SB1, SB2 to Rows 14, 16, 18
   if (s.SB0 && s.SB1 && s.SB2) {
     for (let i = 0; i < 38; i++) {
       ram[0x0400 + 14 * 40 + 1 + i] = ram[s.SB0 + i];
@@ -372,43 +151,35 @@ function updateRamboMonitorScreen(ram, asm) {
 // ============================================================================
 
 function selectGameAndTrack(gameId, trackId, autoPlay = true) {
+  if (!state.player) return;
   const prevGameId = state.activeGameId;
-  state.activeGameId = gameId;
-
-  const game = GAME_FILES.find((g) => g.id === gameId) || GAME_FILES[0];
-  const track =
-    game.tracks.find((t) => t.id === trackId) || game.tracks[0];
+  const { game, track } = state.player.selectTrack(gameId, trackId, { autoPlay });
+  state.activeGameId = game.id;
   state.activeTrackId = track.id;
 
-  // Render UI lists
   renderGameList();
   renderTrackList();
   renderGameMetaCard(game);
 
-  if (prevGameId !== gameId || document.getElementById("source-viewer").children.length === 0) {
-    renderSourceViewer(gameId);
+  if (
+    prevGameId !== game.id ||
+    document.getElementById("source-viewer").children.length === 0
+  ) {
+    renderSourceViewer(game.id);
   }
 
-  // Toggle Rambo II Morse code banner
   const morseBanner = document.getElementById("morse-banner");
-  if (gameId === "rambload.asm") {
+  if (game.id === "rambload.asm") {
     morseBanner.classList.remove("hidden");
     renderMorseStream(0);
   } else {
     morseBanner.classList.add("hidden");
   }
 
-  loadTrackIntoEmulator(gameId, track);
-
   document.getElementById("now-playing-pill").textContent =
     `${game.title}: ${track.name}`;
 
-  if (autoPlay) {
-    setPlayingState(true);
-  } else {
-    // Run 2 frames so the C64 screen RAM is populated even while paused
-    state.wasm.wasm_render_audio(2048);
-  }
+  setPlayingState(autoPlay);
 }
 
 function renderGameList() {
@@ -513,11 +284,10 @@ function renderKeypadButtons() {
         ? "Inject '*' for $0001 slow-motion inspection"
         : `Inject key '${k}' into C64 driver ($F13E / KeyScan)`;
     btn.addEventListener("click", () => {
-      if (!state.wasm) return;
-      ensureAudioContext();
-      if (!state.isPlaying) setPlayingState(true);
+      if (!state.player) return;
+      if (!state.player.getState().isPlaying) setPlayingState(true);
       const code = k === "RET" ? 13 : k.charCodeAt(0);
-      state.wasm.wasm_inject_key(code);
+      state.player.injectKey(code);
     });
     container.appendChild(btn);
   }
@@ -540,7 +310,6 @@ function renderSidHexStripSkeleton() {
 
 function renderHudGuideOverlay() {
   const overlay = document.getElementById("hud-guide-overlay");
-  // Positions correspond to the 25 C64 text rows inside the 384x272 monitor canvas
   const rows = [
     { row: 0, text: "ROW 0: ZER0 ($10-$2F) PC0..2, CLOCK0..2" },
     { row: 0, text: "SPEED (Refsp) & CH (YYY)", right: true },
@@ -560,7 +329,6 @@ function renderHudGuideOverlay() {
   for (const r of rows) {
     const tag = document.createElement("div");
     tag.className = `hud-tag${r.right ? " right" : ""}`;
-    // Top border is 36/272 (~13.2%), active 200px height is 73.5% of 272px
     const topPct = ((36 + r.row * 8) / 272) * 100;
     tag.style.top = `${topPct.toFixed(2)}%`;
     tag.textContent = r.text;
@@ -606,14 +374,12 @@ function formatAsmLineHtml(rawLine) {
   const commentPart = semi >= 0 ? rawLine.slice(semi) : "";
 
   let formattedCode = escapeHtml(codePart);
-  // Highlight label in column 0
   if (codePart.length > 0 && !/\s/.test(codePart[0])) {
     formattedCode = formattedCode.replace(
       /^(\S+)/,
       '<span class="asm-label">$1</span>'
     );
   }
-  // Highlight Ocean directives
   formattedCode = formattedCode.replace(
     /\b(ORG|EQU|DFB|DFW|DFL|DFH|DFS|DFM|ENT|INC)\b/g,
     '<span class="asm-directive">$1</span>'
@@ -627,7 +393,8 @@ function formatAsmLineHtml(rawLine) {
 }
 
 function renderSourceViewer(gameId) {
-  const asm = state.assembledCache[gameId];
+  if (!state.player) return;
+  const asm = state.player.getAssembled(gameId);
   if (!asm) return;
 
   document.getElementById("source-file-title").textContent =
@@ -635,7 +402,6 @@ function renderSourceViewer(gameId) {
   document.getElementById("source-stats").textContent =
     `${asm.rawLines.length} lines | ${Object.keys(asm.symbols).length} symbols`;
 
-  // Populate symbol jump dropdown
   const symSelect = document.getElementById("select-symbol-jump");
   symSelect.innerHTML = `<option value="">Jump to Symbol / Label (${Object.keys(asm.symbols).length})...</option>`;
 
@@ -650,7 +416,6 @@ function renderSourceViewer(gameId) {
     symSelect.appendChild(opt);
   }
 
-  // Render lines
   const viewer = document.getElementById("source-viewer");
   const frag = document.createDocumentFragment();
 
@@ -672,12 +437,28 @@ function renderSourceViewer(gameId) {
   viewer.innerHTML = "";
   viewer.appendChild(frag);
 
-  // Sync editor textarea
-  document.getElementById("source-editor").value = state.rawSources[gameId];
+  document.getElementById("source-editor").value = state.player.getRawSource(gameId);
   state.prevHighlightedLines = [];
 }
 
-function scrollToSourceLine(lineNo) {
+function setMobileView(view) {
+  const grid = document.getElementById("workbench-grid");
+  if (grid) {
+    grid.dataset.mobileView = view;
+  }
+  document.querySelectorAll("[data-mobile-tab]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mobileTab === view);
+  });
+}
+
+function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
+  if (revealMobilePanel) {
+    const grid = document.getElementById("workbench-grid");
+    const currentView = grid && grid.dataset ? grid.dataset.mobileView : "all";
+    if (currentView && currentView !== "all" && currentView !== "asm") {
+      setMobileView("asm");
+    }
+  }
   const el = document.getElementById(`asm-L${lineNo}`);
   if (el) {
     el.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -693,11 +474,10 @@ const c64Ctx = c64Canvas.getContext("2d");
 const c64ImgData = c64Ctx.createImageData(384, 272);
 const c64Pixels = new Uint8Array(c64ImgData.data.buffer);
 
-function renderC64Monitor(ram) {
-  const borderPtr = state.wasm.wasm_get_border_ptr();
-  const scanlineBorder = new Uint8Array(state.wasm.memory.buffer, borderPtr, 312);
+function renderC64Monitor(ram, wasm) {
+  const borderPtr = wasm.wasm_get_border_ptr();
+  const scanlineBorder = new Uint8Array(wasm.memory.buffer, borderPtr, 312);
 
-  // Render 384x272 frame (32px side borders, 36px top/bottom borders around 320x200 screen)
   for (let y = 0; y < 272; y++) {
     const vicLine = y + 20;
     const bdrColorIdx = scanlineBorder[vicLine] & 0x0F;
@@ -720,7 +500,6 @@ function renderC64Monitor(ram) {
       continue;
     }
 
-    // Left 32px border
     for (let x = 0; x < 32; x++) {
       c64Pixels[dstIdx]     = bdrRgba[0];
       c64Pixels[dstIdx + 1] = bdrRgba[1];
@@ -729,7 +508,6 @@ function renderC64Monitor(ram) {
       dstIdx += 4;
     }
 
-    // 40 columns of 8px characters
     const rowBase = textRow * 40;
     for (let col = 0; col < 40; col++) {
       const charCode = ram[0x0400 + rowBase + col];
@@ -745,7 +523,6 @@ function renderC64Monitor(ram) {
           c64Pixels[dstIdx + 2] = fgRgba[2];
           c64Pixels[dstIdx + 3] = 255;
         } else {
-          // Background black ($000000)
           c64Pixels[dstIdx]     = 0;
           c64Pixels[dstIdx + 1] = 0;
           c64Pixels[dstIdx + 2] = 0;
@@ -755,7 +532,6 @@ function renderC64Monitor(ram) {
       }
     }
 
-    // Right 32px border
     for (let x = 0; x < 32; x++) {
       c64Pixels[dstIdx]     = bdrRgba[0];
       c64Pixels[dstIdx + 1] = bdrRgba[1];
@@ -801,7 +577,6 @@ function drawVoiceScope(canvasId, scopeData, chOffset, colorHex) {
   ctx.fillStyle = "#080b11";
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle center grid line
   ctx.strokeStyle = "#161f30";
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -809,7 +584,6 @@ function drawVoiceScope(canvasId, scopeData, chOffset, colorHex) {
   ctx.lineTo(w, h / 2);
   ctx.stroke();
 
-  // Triggered zero-crossing search
   const base = chOffset * 512;
   let trigger = 0;
   for (let i = 1; i < 200; i++) {
@@ -842,7 +616,6 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
   ctx.fillStyle = "#080b11";
   ctx.fillRect(0, 0, w, h);
 
-  // 1. Draw Filter Frequency Response Curve in background
   const normCutoff = Math.min(1, Math.max(0.05, fcReg / 2047));
   const resPeak = (resReg / 15) * 0.38;
 
@@ -863,15 +636,12 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
     } else {
       let resp = 0;
       if (modeBits & 0x10) {
-        // Low-pass
         resp = Math.max(resp, f <= normCutoff ? 0.55 : 0.55 * Math.exp(-((f - normCutoff) * 9)));
       }
       if (modeBits & 0x20) {
-        // Band-pass
         resp = Math.max(resp, 0.55 * Math.exp(-(dist * dist) / 0.025));
       }
       if (modeBits & 0x40) {
-        // High-pass
         resp = Math.max(resp, f >= normCutoff ? 0.55 : 0.55 * Math.exp(-((normCutoff - f) * 9)));
       }
       gain = Math.min(0.92, resp + bell);
@@ -885,7 +655,6 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
   ctx.fill();
   ctx.stroke();
 
-  // 2. Draw Master Audio + $D418 Digi Waveform on top
   const base = 3 * 512;
   ctx.strokeStyle = "#45f08b";
   ctx.lineWidth = 1.6;
@@ -901,9 +670,10 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
 }
 
 function renderFrameLoop() {
-  if (state.wasm) {
-    const ram = getRamView();
-    const asm = state.assembledCache[state.activeGameId];
+  if (state.player) {
+    const wasm = state.player.wasm;
+    const ram = state.player.getRamView();
+    const asm = state.player.getAssembled(state.activeGameId);
 
     if (state.activeGameId === "rambload.asm" && asm) {
       updateRamboMonitorScreen(ram, asm);
@@ -913,20 +683,18 @@ function renderFrameLoop() {
       }
     }
 
-    renderC64Monitor(ram);
+    renderC64Monitor(ram, wasm);
 
-    // Update telemetry header
     document.getElementById("tel-frame").textContent =
-      state.wasm.wasm_get_frame_count();
+      wasm.wasm_get_frame_count();
     document.getElementById("tel-pc").textContent =
-      "$" + state.wasm.wasm_get_cpu_pc().toString(16).toUpperCase().padStart(4, "0");
+      "$" + wasm.wasm_get_cpu_pc().toString(16).toUpperCase().padStart(4, "0");
     document.getElementById("tel-d418").textContent =
-      state.wasm.wasm_get_d418_activity();
+      wasm.wasm_get_d418_activity();
 
-    // Update SID Hex Strip ($D400-$D418)
     const sidRegs = new Uint8Array(
-      state.wasm.memory.buffer,
-      state.wasm.wasm_get_sid_regs_ptr(),
+      wasm.memory.buffer,
+      wasm.wasm_get_sid_regs_ptr(),
       32
     );
     for (let i = 0; i <= 0x18; i++) {
@@ -936,10 +704,9 @@ function renderFrameLoop() {
       }
     }
 
-    // Update 3 Voice Cards + Scopes
     const scopeData = new Float32Array(
-      state.wasm.memory.buffer,
-      state.wasm.wasm_get_scope_ptr(),
+      wasm.memory.buffer,
+      wasm.wasm_get_scope_ptr(),
       4 * 512
     );
 
@@ -950,10 +717,10 @@ function renderFrameLoop() {
     const activeLines = [];
 
     for (let v = 0; v < 3; v++) {
-      const freq = state.wasm.wasm_get_voice_freq(v);
-      const pw = state.wasm.wasm_get_voice_pw(v);
-      const ctrl = state.wasm.wasm_get_voice_control(v);
-      const env = state.wasm.wasm_get_voice_env(v);
+      const freq = wasm.wasm_get_voice_freq(v);
+      const pw = wasm.wasm_get_voice_pw(v);
+      const ctrl = wasm.wasm_get_voice_control(v);
+      const env = wasm.wasm_get_voice_env(v);
       const ad = sidRegs[v * 7 + 5];
       const sr = sidRegs[v * 7 + 6];
 
@@ -968,7 +735,6 @@ function renderFrameLoop() {
 
       drawVoiceScope(`scope-v${v}`, scopeData, v, colors[v]);
 
-      // Sequence pointer PC0..PC2
       if (asm && pcSyms[v] && asm.symbols[pcSyms[v]] !== undefined) {
         const zpAddr = asm.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
@@ -982,12 +748,11 @@ function renderFrameLoop() {
       }
     }
 
-    // Filter & Master Card
-    const fc = state.wasm.wasm_get_filter_fc();
-    const res = state.wasm.wasm_get_filter_res();
-    const rout = state.wasm.wasm_get_filter_routing();
-    const mode = state.wasm.wasm_get_filter_mode();
-    const vol = state.wasm.wasm_get_master_vol();
+    const fc = wasm.wasm_get_filter_fc();
+    const res = wasm.wasm_get_filter_res();
+    const rout = wasm.wasm_get_filter_routing();
+    const mode = wasm.wasm_get_filter_mode();
+    const vol = wasm.wasm_get_master_vol();
 
     const modeTags = [];
     if (mode & 0x10) modeTags.push("LP");
@@ -1014,7 +779,6 @@ function renderFrameLoop() {
 
     drawMasterAndFilterScope(scopeData, fc, res, mode);
 
-    // Drum sequencer pointer (seqPC at $0050 in arkadrum.asm / gameover.asm)
     const seqPcEl = document.getElementById("seq-pc");
     if (
       state.activeGameId === "arkadrum.asm" ||
@@ -1033,7 +797,6 @@ function renderFrameLoop() {
       seqPcEl.textContent = "DRUM: ----";
     }
 
-    // Update live source line highlights
     updateLiveSourceHighlights(activeLines);
   }
 
@@ -1060,7 +823,12 @@ function updateLiveSourceHighlights(activeLines) {
   }
   state.prevHighlightedLines = activeLines;
 
-  if (state.followPc && activeLines.length > 0 && state.isPlaying) {
+  if (
+    state.followPc &&
+    activeLines.length > 0 &&
+    state.player &&
+    state.player.getState().isPlaying
+  ) {
     scrollToSourceLine(activeLines[0].lineNo);
   }
 }
@@ -1070,17 +838,38 @@ function updateLiveSourceHighlights(activeLines) {
 // ============================================================================
 
 function setupUIHandlers() {
-  // Play / Pause
   document.getElementById("btn-play").addEventListener("click", () => {
-    setPlayingState(!state.isPlaying);
+    if (!state.player) {
+      if (typeof navigator !== "undefined" && navigator.audioSession) {
+        try {
+          navigator.audioSession.type = "playback";
+        } catch (_) {}
+      }
+      if (!state.preUnlockedAudioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          try {
+            state.preUnlockedAudioCtx = new AudioCtx({ sampleRate: 48000 });
+          } catch (_) {
+            state.preUnlockedAudioCtx = new AudioCtx();
+          }
+          if (state.preUnlockedAudioCtx.state !== "running") {
+            state.preUnlockedAudioCtx.resume();
+          }
+        }
+      }
+      state.pendingPlayOnBoot = !state.pendingPlayOnBoot;
+      document.getElementById("play-label").textContent =
+        state.pendingPlayOnBoot ? "LOADING..." : "PLAY";
+      return;
+    }
+    setPlayingState(!state.player.getState().isPlaying);
   });
 
-  // Restart
   document.getElementById("btn-restart").addEventListener("click", () => {
     selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
   });
 
-  // Prev / Next Track
   document.getElementById("btn-prev").addEventListener("click", () => {
     stepTrack(-1);
   });
@@ -1088,38 +877,42 @@ function setupUIHandlers() {
     stepTrack(1);
   });
 
-  // Fast-Forward 4x button (hold or toggle)
   const btnFfwd = document.getElementById("btn-ffwd");
-  btnFfwd.addEventListener("mousedown", () => {
-    state.isFastForward = true;
+  const startFfwd = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!state.player) return;
+    state.player.setHardwareOptions({ isFastForward: true });
     btnFfwd.classList.add("active");
-  });
-  window.addEventListener("mouseup", () => {
-    if (state.isFastForward) {
-      state.isFastForward = false;
-      btnFfwd.classList.remove("active");
-    }
-  });
+  };
+  const stopFfwd = () => {
+    if (!state.player || !state.player.getState().isFastForward) return;
+    state.player.setHardwareOptions({ isFastForward: false });
+    btnFfwd.classList.remove("active");
+  };
+  btnFfwd.addEventListener("pointerdown", startFfwd);
+  btnFfwd.addEventListener("mousedown", startFfwd);
+  btnFfwd.addEventListener("touchstart", startFfwd);
+  window.addEventListener("pointerup", stopFfwd);
+  window.addEventListener("mouseup", stopFfwd);
+  window.addEventListener("touchend", stopFfwd);
 
-  // Hardware switches
   document.getElementById("select-sid-model").addEventListener("change", (e) => {
     state.sidModel8580 = e.target.value === "8580";
-    applyHardwareSettingsToWasm();
+    if (state.player) state.player.setHardwareOptions({ sidModel8580: state.sidModel8580 });
   });
 
   document.getElementById("select-video-std").addEventListener("change", (e) => {
     state.videoNtsc = e.target.value === "ntsc";
-    applyHardwareSettingsToWasm();
+    if (state.player) state.player.setHardwareOptions({ videoNtsc: state.videoNtsc });
   });
 
   document.getElementById("slider-digi-boost").addEventListener("input", (e) => {
     state.digiBoost = parseFloat(e.target.value);
     document.getElementById("digi-boost-val").textContent =
       `${state.digiBoost.toFixed(1)}x`;
-    applyHardwareSettingsToWasm();
+    if (state.player) state.player.setHardwareOptions({ digiBoost: state.digiBoost });
   });
 
-  // Track category filter pills
   document.querySelectorAll(".filter-pills .pill").forEach((pill) => {
     pill.addEventListener("click", () => {
       document
@@ -1131,7 +924,6 @@ function setupUIHandlers() {
     });
   });
 
-  // HUD Overlay & CRT Scanlines checkboxes
   document.getElementById("chk-hud-overlay").addEventListener("change", (e) => {
     document
       .getElementById("hud-guide-overlay")
@@ -1143,7 +935,6 @@ function setupUIHandlers() {
       .classList.toggle("hidden", !e.target.checked);
   });
 
-  // Voice Mute & Solo buttons
   document.querySelectorAll("[data-mute]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const ch = parseInt(btn.dataset.mute, 10);
@@ -1153,7 +944,7 @@ function setupUIHandlers() {
       if (card && ch < 3) {
         card.classList.toggle("muted", Boolean(state.muteMask & (1 << ch)));
       }
-      updateEffectiveMuteMask();
+      if (state.player) state.player.setHardwareOptions({ muteMask: state.muteMask });
     });
   });
 
@@ -1167,29 +958,34 @@ function setupUIHandlers() {
           parseInt(b.dataset.solo, 10) === state.soloVoice
         );
       });
-      updateEffectiveMuteMask();
+      if (state.player) state.player.setHardwareOptions({ soloVoice: state.soloVoice });
     });
   });
 
-  // Click PC0..PC2 / seqPC tags to jump to line in source viewer
+  document.querySelectorAll("[data-mobile-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mobileTab) {
+        setMobileView(btn.dataset.mobileTab);
+      }
+    });
+  });
+
   ["v0-pc", "v1-pc", "v2-pc", "seq-pc"].forEach((id) => {
     document.getElementById(id).addEventListener("click", (e) => {
       const ln = parseInt(e.currentTarget.dataset.line || "0", 10);
-      if (ln > 0) scrollToSourceLine(ln);
+      if (ln > 0) scrollToSourceLine(ln, { revealMobilePanel: true });
     });
   });
 
-  // Source toolbar: Follow PC, Symbol Jump, Search, Edit & Re-Assemble
   document.getElementById("chk-follow-pc").addEventListener("change", (e) => {
     state.followPc = e.target.checked;
   });
 
   document.getElementById("select-symbol-jump").addEventListener("change", (e) => {
     const symName = e.target.value;
-    if (!symName) return;
-    const asm = state.assembledCache[state.activeGameId];
+    if (!symName || !state.player) return;
+    const asm = state.player.getAssembled(state.activeGameId);
     if (!asm) return;
-    // Find line where label is defined
     const idx = asm.rawLines.findIndex((line) =>
       new RegExp(`^${symName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(line)
     );
@@ -1198,7 +994,8 @@ function setupUIHandlers() {
 
   document.getElementById("input-source-search").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
-    const asm = state.assembledCache[state.activeGameId];
+    if (!state.player) return;
+    const asm = state.player.getAssembled(state.activeGameId);
     if (!asm) return;
     document
       .querySelectorAll(".asm-line.search-match")
@@ -1217,7 +1014,6 @@ function setupUIHandlers() {
     if (firstMatch) scrollToSourceLine(firstMatch);
   });
 
-  // Toggle in-browser source editor
   const btnToggleEdit = document.getElementById("btn-toggle-edit");
   const btnReassemble = document.getElementById("btn-reassemble");
   const viewerEl = document.getElementById("source-viewer");
@@ -1234,9 +1030,9 @@ function setupUIHandlers() {
   });
 
   btnReassemble.addEventListener("click", () => {
+    if (!state.player) return;
     const editedText = editorEl.value;
-    state.rawSources[state.activeGameId] = editedText;
-    state.assembledCache[state.activeGameId] = assembleOceanSource(editedText);
+    state.player.updateSource(state.activeGameId, editedText);
 
     const badge = document.getElementById("asm-compile-badge");
     badge.textContent = "HOT-RELOADED OK";
@@ -1251,7 +1047,6 @@ function setupUIHandlers() {
     selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
   });
 
-  // Directives Modal
   const modal = document.getElementById("directives-modal");
   document
     .getElementById("btn-directives-modal")
@@ -1263,14 +1058,13 @@ function setupUIHandlers() {
     if (e.target === modal) modal.classList.add("hidden");
   });
 
-  // Global keyboard shortcuts (when not typing in search or source editor)
   window.addEventListener("keydown", (e) => {
     const tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
     if (e.code === "Space") {
       e.preventDefault();
-      setPlayingState(!state.isPlaying);
+      if (state.player) setPlayingState(!state.player.getState().isPlaying);
     } else if (e.key === "[") {
       stepTrack(-1);
     } else if (e.key === "]") {
@@ -1280,10 +1074,9 @@ function setupUIHandlers() {
       const btn = document.querySelector(`[data-mute="${ch}"]`);
       if (btn) btn.click();
     } else if (/^[a-zA-Z+\-@*]$/.test(e.key)) {
-      if (state.wasm) {
-        ensureAudioContext();
-        if (!state.isPlaying) setPlayingState(true);
-        state.wasm.wasm_inject_key(e.key.toUpperCase().charCodeAt(0));
+      if (state.player) {
+        if (!state.player.getState().isPlaying) setPlayingState(true);
+        state.player.injectKey(e.key.toUpperCase().charCodeAt(0));
       }
     }
   });

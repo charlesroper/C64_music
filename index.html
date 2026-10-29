@@ -78,8 +78,16 @@
       </div>
     </header>
 
+    <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
+    <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile Studio Panels">
+      <button type="button" class="mobile-tab-btn active" data-mobile-tab="all">ALL PANELS</button>
+      <button type="button" class="mobile-tab-btn" data-mobile-tab="monitor">MONITOR</button>
+      <button type="button" class="mobile-tab-btn" data-mobile-tab="tunes">TUNES</button>
+      <button type="button" class="mobile-tab-btn" data-mobile-tab="asm">LIVE .ASM</button>
+    </nav>
+
     <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
-    <main class="workbench-grid">
+    <main class="workbench-grid" id="workbench-grid" data-mobile-view="all">
       <!-- LEFT PANEL: GAME CARTRIDGES & TRACK/SFX BROWSER -->
       <section class="panel panel-left">
         <div class="panel-header">

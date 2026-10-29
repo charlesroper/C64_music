@@ -109,10 +109,13 @@ static float    filter_hp = 0.0f;
 static float    filter_w0 = 0.05f;
 static float    filter_q  = 0.707f;
 
-// 6581 $D418 Digi-Drum DAC state
+// 6581 $D418 Digi-Drum DAC & C64 AUDIO OUT AC-coupling state
 static float    digi_dc_state = 1.0f;
 static float    digi_boost = 1.35f;
 static float    smoothed_vol = 1.0f;
+static float    out_dc_l = 0.0f;
+static float    out_dc_r = 0.0f;
+static float    out_dc_coeff = 0.00196f;
 static uint32_t d418_writes_this_frame = 0;
 static uint32_t d418_writes_last_frame = 0;
 static float    last_digi_sample = 0.0f;
@@ -165,6 +168,10 @@ static void update_filter_coeffs(void) {
         filter_q = 1.35f - 1.18f * res_norm;
     }
     if (filter_q < 0.12f) filter_q = 0.12f;
+
+    // C64 AUDIO OUT 10uF AC-coupling high-pass (~15 Hz cutoff)
+    out_dc_coeff = 2.0f * 3.14159265f * 15.0f / (float)sample_rate;
+    if (out_dc_coeff > 0.02f) out_dc_coeff = 0.02f;
 }
 
 static void sid_reset(void) {
@@ -196,6 +203,8 @@ static void sid_reset(void) {
     filter_hp = 0.0f;
     digi_dc_state = 1.0f;
     smoothed_vol = 1.0f;
+    out_dc_l = 0.0f;
+    out_dc_r = 0.0f;
     d418_writes_this_frame = 0;
     d418_writes_last_frame = 0;
     last_digi_sample = 0.0f;
@@ -464,19 +473,30 @@ static void sid_generate_sample(float *out_l, float *out_r) {
     float target_v_gain = digi_active ? (0.55f + 0.45f * vol_norm) : vol_norm;
     smoothed_vol += 0.05f * (target_v_gain - smoothed_vol);
 
-    float mixed = (dry_bus + flt_out) * 0.30f * smoothed_vol + digi_ac * 0.52f;
-
-    // Soft analog limiter
-    if (mixed > 0.98f) mixed = 0.98f;
-    else if (mixed < -0.98f) mixed = -0.98f;
-
-    voice_scope[3][sc_idx] = mixed;
-    scope_write_pos = (scope_write_pos + 1) & 511u;
+    float raw_mix = (dry_bus + flt_out) * 0.30f * smoothed_vol + digi_ac * 0.52f;
 
     // Subtle stereo spread option (voices 0,1,2 slightly panned around center)
     float stereo_diff = (voices[0].last_out - voices[2].last_out) * 0.06f * smoothed_vol;
-    *out_l = mixed - stereo_diff;
-    *out_r = mixed + stereo_diff;
+    float raw_l = raw_mix - stereo_diff;
+    float raw_r = raw_mix + stereo_diff;
+
+    // C64 motherboard AUDIO OUT 10uF AC-coupling capacitor (~15 Hz high-pass)
+    out_dc_l += out_dc_coeff * (raw_l - out_dc_l);
+    out_dc_r += out_dc_coeff * (raw_r - out_dc_r);
+    float ac_l = raw_l - out_dc_l;
+    float ac_r = raw_r - out_dc_r;
+
+    // Soft analog limiter
+    if (ac_l > 0.98f) ac_l = 0.98f;
+    else if (ac_l < -0.98f) ac_l = -0.98f;
+    if (ac_r > 0.98f) ac_r = 0.98f;
+    else if (ac_r < -0.98f) ac_r = -0.98f;
+
+    voice_scope[3][sc_idx] = 0.5f * (ac_l + ac_r);
+    scope_write_pos = (scope_write_pos + 1) & 511u;
+
+    *out_l = ac_l;
+    *out_r = ac_r;
 }
 
 // ============================================================================
@@ -954,6 +974,14 @@ WASM_EXPORT void wasm_inject_key(uint8_t petscii_key) {
 
 WASM_EXPORT void wasm_set_sid_model(uint8_t is_8580) {
     sid_model_8580 = is_8580 ? 1 : 0;
+    update_filter_coeffs();
+}
+
+WASM_EXPORT void wasm_set_sample_rate(uint32_t sr) {
+    if (sr < 8000 || sr > 192000) sr = 48000;
+    sample_rate = sr;
+    uint32_t clock = is_ntsc ? NTSC_CLOCK_HZ : PAL_CLOCK_HZ;
+    cycles_per_sample = (double)clock / (double)sample_rate;
     update_filter_coeffs();
 }
 

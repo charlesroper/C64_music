@@ -212,6 +212,10 @@ button:active, button.active {
   cursor: pointer;
 }
 
+.mobile-view-tabs {
+  display: none;
+}
+
 /* ==================== 3-COLUMN WORKBENCH GRID ==================== */
 .workbench-grid {
   flex: 1;
@@ -1098,12 +1102,364 @@ button:active, button.active {
 }
 
 @media (max-width: 1180px) {
+  .top-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .workbench-grid {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
     overflow-y: auto;
   }
   .panel-right {
     grid-column: 1 / -1;
     min-height: 360px;
+  }
+}
+
+/* ==================== MOBILE & TABLET PORTRAIT LAYOUT ==================== */
+@media (max-width: 820px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .top-bar {
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .brand-block {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .transport-bar {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 5px 6px;
+  }
+
+  .transport-bar button {
+    min-height: 38px;
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 6px 8px;
+    touch-action: manipulation;
+  }
+
+  .btn-primary {
+    min-width: 96px;
+    flex: 1.4 1 auto;
+  }
+
+  .hardware-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    align-items: end;
+  }
+
+  .hw-group {
+    min-width: 0;
+  }
+
+  .hw-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    font-size: 16px;
+    padding: 4px 6px;
+  }
+
+  .hw-slider {
+    width: 100%;
+    height: 32px;
+  }
+
+  #btn-directives-modal {
+    width: 100%;
+    min-height: 36px;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .mobile-view-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    padding: 8px 8px 0 8px;
+  }
+
+  .mobile-tab-btn {
+    min-height: 36px;
+    justify-content: center;
+    font-size: 10.5px;
+    padding: 6px 4px;
+    touch-action: manipulation;
+  }
+
+  .workbench-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 8px;
+    overflow: visible;
+  }
+
+  .panel {
+    min-width: 0;
+  }
+
+  .panel-center {
+    order: 1;
+  }
+
+  .panel-left {
+    order: 2;
+  }
+
+  .panel-right {
+    order: 3;
+    grid-column: auto;
+    min-height: 0;
+  }
+
+  .workbench-grid[data-mobile-view="monitor"] .panel-left,
+  .workbench-grid[data-mobile-view="monitor"] .panel-right {
+    display: none;
+  }
+
+  .workbench-grid[data-mobile-view="tunes"] .panel-center,
+  .workbench-grid[data-mobile-view="tunes"] .panel-right {
+    display: none;
+  }
+
+  .workbench-grid[data-mobile-view="asm"] .panel-left,
+  .workbench-grid[data-mobile-view="asm"] .panel-center {
+    display: none;
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .header-left-group,
+  .header-right-group {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .now-playing-pill {
+    max-width: 100%;
+  }
+
+  .game-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .game-item {
+    min-width: 0;
+    padding: 8px 9px;
+    gap: 6px;
+    touch-action: manipulation;
+  }
+
+  .game-item-left {
+    min-width: 0;
+  }
+
+  .game-item-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pill {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 10px;
+    touch-action: manipulation;
+  }
+
+  .track-list {
+    max-height: 320px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .workbench-grid[data-mobile-view="tunes"] .track-list {
+    max-height: 62dvh;
+  }
+
+  .track-item {
+    padding: 9px 10px;
+    touch-action: manipulation;
+  }
+
+  .track-row-top,
+  .track-badges {
+    flex-wrap: wrap;
+  }
+
+  .c64-keypad-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 5px 6px;
+  }
+
+  .keypad-buttons {
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+
+  .key-btn {
+    min-width: 34px;
+    min-height: 34px;
+    font-size: 11px;
+    flex-shrink: 0;
+    touch-action: manipulation;
+  }
+
+  .telemetry-summary {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .btn-mini {
+    min-height: 28px;
+    min-width: 28px;
+    padding: 3px 8px;
+    font-size: 10px;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .voice-regs {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+
+  .source-toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .symbol-select {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    font-size: 16px;
+  }
+
+  .source-search {
+    flex: 1 1 160px;
+    min-width: 0;
+    min-height: 36px;
+    font-size: 16px;
+  }
+
+  .source-viewer {
+    flex: none;
+    height: 340px;
+    max-height: 58dvh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .workbench-grid[data-mobile-view="asm"] .source-viewer {
+    height: 64dvh;
+    max-height: 64dvh;
+  }
+
+  .source-editor {
+    flex: none;
+    height: 340px;
+    max-height: 58dvh;
+    font-size: 16px;
+  }
+
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .modal-card {
+    max-height: 92dvh;
+  }
+
+  .modal-header {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .modal-header h2 {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .modal-cols {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .directives-pre {
+    overflow-x: auto;
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 820px) and (min-height: 560px) {
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+}
+
+@media (max-width: 560px) {
+  .game-list {
+    grid-template-columns: 1fr;
+  }
+
+  .scopes-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .scope-canvas {
+    min-height: 56px;
+  }
+
+  .hud-tag {
+    font-size: 7px;
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
