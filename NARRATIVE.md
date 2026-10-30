@@ -32,6 +32,7 @@ Galway's sources show him working around those limits:
 
 ## 3. What you see in the player
 
+* **Header and version.** The top banner displays the title, the WebAssembly engine status light, and the CalVer release badge.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
@@ -220,7 +221,7 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Metadata.** All 73 tracks carry non-empty descriptions, valid duration hints, authentic keys and unique identifiers.
 * **Drums.** The `$D418` drum routines produce sound, and the volume control for them works.
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
-* **Versioning.** The CalVer release identifier renders beside the title in both the header and document head.
+* **Versioning.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`).
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
 * **Character ROM.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation.
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, and control checkboxes synchronize on boot.
