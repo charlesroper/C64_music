@@ -42,10 +42,12 @@ Never edit, reformat, or patch these historical files. All catalog corrections, 
 - **No em-dashes**: Do not use em-dash characters (Unicode U+2014) anywhere in this repository (markdown, code comments, commit messages, or HTML). Use commas, colons, parentheses, or periods instead.
 - **William Zinsser prose**: Keep documentation concise, active, and direct. Avoid marketing hype, jargon, and fluff.
 
-## 4. Test Suite and Documentation Sync
+## 4. Documentation and Test Suite Synchronization
 
-- Run the full test suite with `npm test` before committing. All tests must pass.
-- When adding or removing tests, update the test counts and bullet lists in both `README.md` and `NARRATIVE.md` so documentation stays synchronized with `npm test`.
+- **Dual-document updates**: Every feature, UI change, workflow script, or catalog adjustment must be reflected in both `README.md` and `NARRATIVE.md` in lockstep:
+  - `README.md`: Technical setup, architecture overview, capabilities, and developer workflow.
+  - `NARRATIVE.md`: In-app story overlay covering visible player UI elements (Section 3), architecture (Section 5), and verification (Section 7).
+- **Test synchronization**: Run `npm test` before committing. All tests must pass. When adding, modifying, or removing tests, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly.
 
 ## 5. Commit Standards
 
