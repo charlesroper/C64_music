@@ -193,3 +193,85 @@ for (let ch = 0; ch < 256; ch++) {
     C64_CHAR_ROM[ch * 8 + row] = glyph[row] ^ inv;
   }
 }
+
+// Authentic Commodore 64 Colorful Rainbow Palette
+// Derived from authentic VIC-II palette colors for vibrant 80s synth and computer branding:
+// G: Light Red (#C46C71), A: Orange (#8E5029), L: Yellow (#EDF171), W: Light Green (#A9FF9F),
+// A: Cyan (#75CEC8), Y: Light Blue (#706DEB), 2: Yellow (#EDF171), 6: White (#FFFFFF)
+export const C64_RAINBOW_PALETTE = [
+  VIC_PALETTE[10], // G: Light Red
+  VIC_PALETTE[8],  // A: Orange
+  VIC_PALETTE[7],  // L: Yellow
+  VIC_PALETTE[13], // W: Light Green
+  VIC_PALETTE[3],  // A: Cyan
+  VIC_PALETTE[14], // Y: Light Blue
+  VIC_PALETTE[7],  // 2: Yellow
+  VIC_PALETTE[1],  // 6: White
+];
+
+/**
+ * Generate an accessible, pixel-perfect SVG logo or banner using authentic C64 PETSCII glyphs.
+ * Each character is rendered from C64_CHAR_ROM with shape-rendering="crispEdges".
+ */
+export function generateC64TextSvg(text = "GALWAY26", options = {}) {
+  const {
+    colors = C64_RAINBOW_PALETTE,
+    charSpacing = 8,
+    gapAfterIndex = 5, // Gap after "GALWAY" before "26"
+    gapSize = 2,
+    padX = 1,
+    padY = 1,
+    title = "Galway26",
+    className = "c64-logo-svg",
+  } = options;
+
+  let currentX = padX;
+  const paths = [];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const code = ch.charCodeAt(0);
+    const color = colors[i % colors.length];
+    const segments = [];
+
+    for (let y = 0; y < 8; y++) {
+      const byte = C64_CHAR_ROM[code * 8 + y];
+      let runStart = -1;
+      for (let x = 0; x < 8; x++) {
+        const bit = (byte >> (7 - x)) & 1;
+        if (bit === 1) {
+          if (runStart === -1) runStart = x;
+        } else {
+          if (runStart !== -1) {
+            const runLen = x - runStart;
+            segments.push(`M${currentX + runStart},${padY + y}h${runLen}v1h-${runLen}z`);
+            runStart = -1;
+          }
+        }
+      }
+      if (runStart !== -1) {
+        const runLen = 8 - runStart;
+        segments.push(`M${currentX + runStart},${padY + y}h${runLen}v1h-${runLen}z`);
+      }
+    }
+
+    if (segments.length > 0) {
+      paths.push(`<path fill="${color}" data-char="${ch}" d="${segments.join(" ")}" />`);
+    }
+
+    currentX += charSpacing;
+    if (i === gapAfterIndex) {
+      currentX += gapSize;
+    }
+  }
+
+  const totalWidth = currentX - charSpacing + 8 + padX;
+  const totalHeight = 8 + padY * 2;
+
+  return `<svg class="${className}" viewBox="0 0 ${totalWidth} ${totalHeight}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}" shape-rendering="crispEdges">\n  <title>${title}</title>\n  ${paths.join("\n  ")}\n</svg>`;
+}
+
+export function getGalway26LogoSvg(options = {}) {
+  return generateC64TextSvg("GALWAY26", options);
+}
+

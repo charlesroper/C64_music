@@ -1,4 +1,4 @@
-# Agent Guidelines for Martin Galway C64 Music Workbench
+# Agent Guidelines for Galway26 C64 Music Workbench
 
 Instructions and conventions for AI coding agents working in this repository.
 
@@ -7,7 +7,7 @@ Instructions and conventions for AI coding agents working in this repository.
 Every deployment must update the calendar version across three synchronized files:
 - `package.json`: `"version": "YYYY.MM.DD"` (or `"YYYY.MM.DD.MICRO"`).
 - `index.html`:
-  - Document title: `<title>Martin Galway // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
+  - Document title: `<title>Galway26 // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
   - Header badge: `<span class="brand-version" id="app-version">vYYYY.MM.DD</span>` placed immediately following the app title inside `<div class="brand-title">`.
 - `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`.
 

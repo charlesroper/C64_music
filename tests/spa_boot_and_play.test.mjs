@@ -320,30 +320,41 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
 });
 
-test("CalVer version number appears immediately after the title of the app", () => {
+test("CalVer version number appears immediately after the title of the app", async () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   
-  // Brand title contains brand-version badge right after the title text
+  // Brand title contains Galway26 logo with accessible text and brand-version badge
   const match = html.match(/<div class="brand-title">([\s\S]*?)<\/div>/);
   assert.ok(match, "index.html must contain brand-title");
   
   const titleContent = match[1];
   assert.match(
     titleContent,
-    /MARTIN GALWAY <span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    /<span class="brand-logo"[^>]*role="img"[^>]*aria-label="Galway26"[^>]*>[\s\S]*?<span class="sr-only">Galway26<\/span>\s*<\/span>\s*<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
     "Version badge must be placed immediately after the app title"
   );
 
   const calver = titleContent.match(/id="app-version">v([^<]+)<\/span>/)[1];
   assert.equal(pkg.version, calver, "package.json version must match CalVer in index.html");
 
-  // Title tag also includes the version
-  assert.match(html, new RegExp(`<title>[^<]*v${calver}[^<]*<\\/title>`));
+  // Title tag also includes Galway26 and the version
+  assert.match(html, new RegExp(`<title>Galway26[^<]*v${calver}[^<]*<\\/title>`));
 
   // scripts/bump_version.mjs calculation logic
   const mockDate = new Date("2026-10-30T12:00:00Z");
   assert.equal(computeNextVersion("2026.10.29", mockDate), "2026.10.30");
   assert.equal(computeNextVersion("2026.10.30", mockDate), "2026.10.30.1");
   assert.equal(computeNextVersion("2026.10.30.1", mockDate), "2026.10.30.2");
+  assert.equal(computeNextVersion("2026.10.30.2", mockDate), "2026.10.30.3");
+
+  // Verify Galway26 C64 logo generator uses authentic C64 character ROM and VIC palette
+  const { getGalway26LogoSvg, C64_RAINBOW_PALETTE, VIC_PALETTE } = await import("../src/c64_charset.js");
+  const svg = getGalway26LogoSvg();
+  assert.ok(svg.includes('aria-label="Galway26"'), "Logo SVG must contain accessible aria-label");
+  assert.ok(svg.includes('<title>Galway26</title>'), "Logo SVG must contain accessible title");
+  assert.ok(svg.includes('shape-rendering="crispEdges"'), "Logo SVG must specify crispEdges");
+  assert.ok(svg.includes(`fill="${VIC_PALETTE[10]}"`), "Logo SVG must include authentic VIC Light Red for G");
+  assert.ok(svg.includes(`fill="${VIC_PALETTE[1]}"`), "Logo SVG must include authentic VIC White for 6");
+  assert.equal(C64_RAINBOW_PALETTE.length, 8, "C64 rainbow palette must have 8 authentic colors");
 });

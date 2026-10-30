@@ -1,5 +1,5 @@
 // ============================================================================
-// Martin Galway // Ocean 6502-SID Workbench Main Application
+// Galway26 // Ocean 6502-SID Workbench Main Application
 // ============================================================================
 
 import { GAME_FILES } from "./tracks_catalog.js";

@@ -1,5 +1,5 @@
 /* ============================================================================
-   Martin Galway // Ocean 6502-SID Workbench Stylesheet
+   Galway26 // Ocean 6502-SID Workbench Stylesheet
    ============================================================================ */
 
 :root {
@@ -101,6 +101,32 @@ html, body {
   align-items: center;
   flex-wrap: wrap;
   gap: 0 8px;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.c64-logo-svg {
+  display: block;
+  height: 18px;
+  width: auto;
+  shape-rendering: crispEdges;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .brand-accent {
@@ -1453,11 +1479,21 @@ button:active, button.active {
   .brand-title {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     font-size: 13px;
     line-height: 1.3;
-    row-gap: 2px;
+    row-gap: 3px;
+  }
+
+  .brand-logo {
+    order: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .c64-logo-svg {
+    height: 15px;
   }
 
   .brand-accent {
