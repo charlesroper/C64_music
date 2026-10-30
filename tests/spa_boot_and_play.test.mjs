@@ -318,3 +318,25 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   const stats = harness.pullWebKitStrictAudioFrames(16);
   assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
 });
+
+test("CalVer version number appears immediately after the title of the app", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  
+  // Brand title contains brand-version badge right after the title text
+  const match = html.match(/<div class="brand-title">([\s\S]*?)<\/div>/);
+  assert.ok(match, "index.html must contain brand-title");
+  
+  const titleContent = match[1];
+  assert.match(
+    titleContent,
+    /MARTIN GALWAY <span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    "Version badge must be placed immediately after the app title"
+  );
+
+  const calver = titleContent.match(/id="app-version">v([^<]+)<\/span>/)[1];
+  assert.equal(pkg.version, calver, "package.json version must match CalVer in index.html");
+
+  // Title tag also includes the version
+  assert.match(html, new RegExp(`<title>[^<]*v${calver}[^<]*<\\/title>`));
+});
