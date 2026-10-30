@@ -90,10 +90,10 @@ Run the test suite from the repository root:
 npm test
 ```
 
-The test runner executes 18 automated checks across four test files:
+The test runner executes 19 automated checks across four test files:
 * `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesized tones match the MOS 6581 datasheet pitch formula across 44.1kHz, 48kHz, PAL and NTSC configurations. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis, pause controls, channel mute masks, and catalog metadata integrity.
 * `tests/spa_boot_and_play.test.mjs`: Tests AudioContext gesture unlocks, verifies that audio starts cleanly even when playback is triggered before WebAssembly and assembly assets finish downloading, and validates CalVer versioning.
-* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow PC), and jitter-free Section 4 telemetry rendering with tabular numbers.
+* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow Voice), interactive voice tracking chips (V1, V2, V3, DRM), responsive $D400-$D418 hardware register group stacking with active sound lights, and jitter-free Section 4 telemetry rendering with tabular numbers.
 * `tests/narrative.test.mjs`: Validates the custom markdown renderer, confirms that all quotations in [NARRATIVE.md](NARRATIVE.md) match Galway's sources verbatim, and checks cited line numbers and equates against the original assembly files.
 
 ---

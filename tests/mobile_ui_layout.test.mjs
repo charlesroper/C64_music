@@ -246,7 +246,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       this.textContent = "";
       this._innerHTML = "";
       this.value = "";
-      this.checked = id === "chk-crt-scanlines" || id === "chk-follow-pc";
+      this.checked = id === "chk-crt-scanlines";
       this.style = {};
       this.dataset = {};
       this.children = [];
@@ -319,6 +319,15 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     elementsById.set(id, el);
   }
 
+  const legendChips = [];
+  for (const m of html.matchAll(/class="legend-chip[^"]*"[^>]*data-voice="([^"]+)"/g)) {
+    const chip = new MockElement("button");
+    chip.className = "legend-chip";
+    chip.dataset.voice = m[1];
+    if (m[1] === "0") chip.classList.add("active-followed");
+    legendChips.push(chip);
+  }
+
   for (const m of html.matchAll(/data-mobile-tab="([^"]+)"/g)) {
     const btn = new MockElement("button");
     btn.dataset.mobileTab = m[1];
@@ -386,9 +395,16 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       void origAppend;
       return frag;
     },
-    querySelector: () => null,
+    querySelector: (sel) => {
+      const matchChip = sel.match(/\.legend-chip\[data-voice="([^"]+)"\]/);
+      if (matchChip) {
+        return legendChips.find((c) => c.dataset.voice === matchChip[1]) || null;
+      }
+      return null;
+    },
     querySelectorAll: (sel) => {
       if (sel === "[data-mobile-tab]") return tabButtons;
+      if (sel === ".legend-chip") return legendChips;
       return [];
     },
   };
@@ -439,6 +455,23 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       "Tapping PC0 tag on mobile monitor view must reveal the ASM panel"
     );
     assert.ok(scrolledElements.length > 0, "Expected scrollIntoView on target ASM line");
+
+    // 4. Follow Voice starts unchecked by default, but clicking a voice chip selects voice and enables it
+    const chkFollow = elementsById.get("chk-follow-pc");
+    assert.equal(chkFollow.checked, false, "Follow Voice must start unchecked by default");
+    const v1Chip = legendChips.find((c) => c.dataset.voice === "1");
+    assert.ok(v1Chip, "Expected Voice 2 legend chip");
+    v1Chip.click();
+    assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow Voice");
+    assert.equal(v1Chip.classList.contains("active-followed"), true, "Voice 2 chip must be active-followed");
+
+    // 5. SID Hex Strip renders all 4 labeled voice groups
+    const hexCells = elementsById.get("sid-hex-cells");
+    assert.equal(hexCells.children.length, 4, "Must render 4 groups: V1, V2, V3, and FLT");
+    assert.ok(elementsById.get("sid-group-v0"), "Must render #sid-group-v0");
+    assert.ok(elementsById.get("sid-group-v1"), "Must render #sid-group-v1");
+    assert.ok(elementsById.get("sid-group-v2"), "Must render #sid-group-v2");
+    assert.ok(elementsById.get("sid-group-flt"), "Must render #sid-group-flt");
   } finally {
     globalThis.window = prevGlobals.window;
     globalThis.document = prevGlobals.document;
@@ -515,7 +548,7 @@ test("C64 character ROM contains authentic 8x8 glyphs for all 256 characters wit
   }
 });
 
-test("HUD row guide and Follow PC initial states match markup defaults and stay synchronized on boot", () => {
+test("HUD row guide and Follow Voice initial states match markup defaults and stay synchronized on boot", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 
   // chk-hud-overlay must be unchecked by default, hud-guide-overlay hidden
@@ -530,11 +563,65 @@ test("HUD row guide and Follow PC initial states match markup defaults and stay 
     "HUD Row Guide overlay element must start with 'hidden' class in index.html"
   );
 
-  // chk-follow-pc must be checked by default
+  // chk-follow-pc must be unchecked by default with 'Follow Voice' label
   assert.match(
     html,
-    /<input type="checkbox" id="chk-follow-pc" checked \/>/,
-    "Follow PC checkbox must be checked by default in index.html"
+    /<input type="checkbox" id="chk-follow-pc" \/>\s*<span>Follow Voice<\/span>/,
+    "Follow Voice checkbox must be unchecked by default in index.html"
+  );
+
+  // Interactive voice legend chips must be present with V1 active by default
+  assert.match(
+    html,
+    /class="legend-chip active-followed"[^>]*data-voice="0"/,
+    "Voice 1 legend chip must be selected by default"
+  );
+  assert.match(
+    html,
+    /data-voice="1"/,
+    "Voice 2 legend chip must be present"
+  );
+  assert.match(
+    html,
+    /data-voice="2"/,
+    "Voice 3 legend chip must be present"
+  );
+  assert.match(
+    html,
+    /data-voice="seq"/,
+    "Drum sequencer legend chip must be present"
+  );
+});
+
+test("SID hardware register strip ($D400-$D418) groups voices into labeled sections and stacks responsively on mobile", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const desktop = { width: 1440, height: 900 };
+  const mobile = { width: 375, height: 812 };
+
+  // Desktop styles: flex items inline with gap
+  const cellsDesktop = computeStyleForSelector(rules, [".sid-hex-cells"], desktop);
+  assert.equal(cellsDesktop.display, "flex", ".sid-hex-cells must be flex on desktop");
+  assert.equal(cellsDesktop["flex-wrap"], "wrap", ".sid-hex-cells must allow flex-wrap");
+
+  // Mobile styles: column strip with wrap and stretch
+  const stripMobile = computeStyleForSelector(rules, [".sid-hex-strip"], mobile);
+  assert.equal(
+    stripMobile["flex-direction"],
+    "column",
+    ".sid-hex-strip must switch to column on mobile"
+  );
+  assert.equal(
+    stripMobile["overflow-x"],
+    "visible",
+    ".sid-hex-strip must eliminate horizontal scroll on mobile"
+  );
+
+  const groupMobile = computeStyleForSelector(rules, [".sid-hex-group"], mobile);
+  assert.match(
+    groupMobile.flex,
+    /calc\(50%/,
+    ".sid-hex-group must stack two across (50% basis) on mobile viewports"
   );
 });
 

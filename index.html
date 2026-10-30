@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Galway 64 // Ocean 6502-SID Workbench (1985-1987) v2026.10.30.5</title>
+  <title>Galway 64 // Ocean 6502-SID Workbench (1985-1987) v2026.10.30.6</title>
   <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
@@ -28,7 +28,7 @@
               </svg>
               <span class="sr-only">Galway 64</span>
             </span>
-            <span class="brand-accent">// OCEAN 6502-SID WORKBENCH</span> <span class="brand-version" id="app-version">v2026.10.30.5</span>
+            <span class="brand-accent">// OCEAN 6502-SID WORKBENCH</span> <span class="brand-version" id="app-version">v2026.10.30.6</span>
           </div>
           <div class="brand-subtitle">
             Cycle-Accurate WebAssembly MOS 6510 + 6581/8580 SID Emulator &amp; Live 1987 Ocean Cross-Assembler
@@ -286,9 +286,9 @@
             <span class="source-stats" id="source-stats">0 lines</span>
           </div>
           <div class="header-right-group">
-            <label class="toggle-label" title="Auto-scroll code viewer to follow Voice 1 / Drum Sequencer PC">
-              <input type="checkbox" id="chk-follow-pc" checked />
-              <span>Follow PC</span>
+            <label class="toggle-label" title="Auto-scroll code viewer to follow selected voice or drum sequencer pattern">
+              <input type="checkbox" id="chk-follow-pc" />
+              <span>Follow Voice</span>
             </label>
             <button id="btn-toggle-edit" class="btn-mini-action" title="Edit .asm source and re-assemble in browser">
               EDIT .ASM
@@ -310,11 +310,11 @@
             class="source-search"
             placeholder="Find label, opcode, comment..."
           />
-          <div class="pc-legend">
-            <span class="legend-item"><i class="dot-v0"></i>V1</span>
-            <span class="legend-item"><i class="dot-v1"></i>V2</span>
-            <span class="legend-item"><i class="dot-v2"></i>V3</span>
-            <span class="legend-item"><i class="dot-seq"></i>DRM</span>
+          <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
+            <button type="button" class="legend-chip active-followed" data-voice="0" title="Follow Voice 1 (PC0)"><i class="dot-v0"></i>V1</button>
+            <button type="button" class="legend-chip" data-voice="1" title="Follow Voice 2 (PC1)"><i class="dot-v1"></i>V2</button>
+            <button type="button" class="legend-chip" data-voice="2" title="Follow Voice 3 (PC2)"><i class="dot-v2"></i>V3</button>
+            <button type="button" class="legend-chip" data-voice="seq" title="Follow Drum Sequencer (seqPC)"><i class="dot-seq"></i>DRM</button>
           </div>
         </div>
 

@@ -26,7 +26,8 @@ const state = {
   muteMask: 0, // bit 0=V1, bit 1=V2, bit 2=V3, bit 3=Digi
   soloVoice: -1,
 
-  followPc: true,
+  followPc: false,
+  followVoice: 0,
   isEditingSource: false,
   prevHighlightedLines: [],
 };
@@ -40,6 +41,7 @@ async function initWorkbench() {
   renderKeypadButtons();
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
+  updateDrmChipState();
 
   if (typeof window !== "undefined" && window.innerWidth && window.innerWidth <= 640) {
     const chkHud = document.getElementById("chk-hud-overlay");
@@ -187,6 +189,8 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
   document.getElementById("now-playing-pill").textContent =
     `${game.title}: ${track.name}`;
 
+  updateDrmChipState();
+
   setPlayingState(autoPlay);
 }
 
@@ -303,16 +307,90 @@ function renderKeypadButtons() {
 
 function renderSidHexStripSkeleton() {
   const container = document.getElementById("sid-hex-cells");
+  if (!container) return;
   container.innerHTML = "";
-  for (let i = 0; i <= 0x18; i++) {
-    const span = document.createElement("span");
-    const cls =
-      i < 7 ? "v0" : i < 14 ? "v1" : i < 21 ? "v2" : "flt";
-    span.className = `sid-cell ${cls}`;
-    span.id = `sid-reg-${i}`;
-    span.title = `$D4${i.toString(16).toUpperCase().padStart(2, "0")}`;
-    span.textContent = "00";
-    container.appendChild(span);
+
+  const groups = [
+    { id: "v0", label: "V1", start: 0, count: 7, cls: "v0" },
+    { id: "v1", label: "V2", start: 7, count: 7, cls: "v1" },
+    { id: "v2", label: "V3", start: 14, count: 7, cls: "v2" },
+    { id: "flt", label: "FLT", start: 21, count: 4, cls: "flt" },
+  ];
+
+  const regNames = [
+    "V1 Freq Lo", "V1 Freq Hi", "V1 PW Lo", "V1 PW Hi", "V1 Ctrl", "V1 Att/Dec", "V1 Sus/Rel",
+    "V2 Freq Lo", "V2 Freq Hi", "V2 PW Lo", "V2 PW Hi", "V2 Ctrl", "V2 Att/Dec", "V2 Sus/Rel",
+    "V3 Freq Lo", "V3 Freq Hi", "V3 PW Lo", "V3 PW Hi", "V3 Ctrl", "V3 Att/Dec", "V3 Sus/Rel",
+    "Flt Cut Lo", "Flt Cut Hi", "Flt Res/Route", "Mode / Vol",
+  ];
+
+  for (const g of groups) {
+    const grpEl = document.createElement("div");
+    grpEl.className = `sid-hex-group ${g.cls}`;
+    grpEl.id = `sid-group-${g.id}`;
+
+    const tag = document.createElement("span");
+    tag.className = "sid-group-tag";
+    tag.textContent = g.label;
+    grpEl.appendChild(tag);
+
+    const cellsWrap = document.createElement("div");
+    cellsWrap.className = "sid-group-cells";
+
+    for (let i = g.start; i < g.start + g.count; i++) {
+      const span = document.createElement("span");
+      span.className = `sid-cell ${g.cls}`;
+      span.id = `sid-reg-${i}`;
+      const hex = i.toString(16).toUpperCase().padStart(2, "0");
+      span.title = `$D4${hex}: ${regNames[i]}`;
+      span.textContent = "00";
+      cellsWrap.appendChild(span);
+    }
+
+    grpEl.appendChild(cellsWrap);
+    container.appendChild(grpEl);
+  }
+}
+
+function setFollowVoice(voice) {
+  state.followVoice = voice;
+  const chips = document.querySelectorAll(".legend-chip");
+  chips.forEach((chip) => {
+    chip.classList.toggle("active-followed", chip.dataset.voice === String(voice));
+  });
+
+  const chkFollow = document.getElementById("chk-follow-pc");
+  if (chkFollow && !chkFollow.checked) {
+    chkFollow.checked = true;
+    state.followPc = true;
+  }
+
+  if (state.player && state.player.getState().isPlaying && state.prevHighlightedLines) {
+    const targetCls = voice === "seq" ? "pc-seq" : `pc-v${voice}`;
+    const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
+    if (targetLine) {
+      scrollToSourceLine(targetLine.lineNo);
+    }
+  }
+}
+
+function updateDrmChipState() {
+  const drmChip = document.querySelector('.legend-chip[data-voice="seq"]');
+  if (!drmChip) return;
+  const game = GAME_FILES.find((g) => g.id === state.activeGameId);
+  const pcSyms = game && game.architecture ? game.architecture.pcSymbols : [];
+  const hasDrums =
+    pcSyms.includes("seqPC") ||
+    state.activeGameId === "arkadrum.asm" ||
+    state.activeGameId === "gameover.asm";
+
+  drmChip.classList.toggle("disabled", !hasDrums);
+  drmChip.title = hasDrums
+    ? "Follow Drum Sequencer (seqPC)"
+    : "No drum sequencer in this song";
+
+  if (!hasDrums && state.followVoice === "seq") {
+    setFollowVoice(0);
   }
 }
 
@@ -748,6 +826,12 @@ function renderFrameLoop() {
 
       drawVoiceScope(`scope-v${v}`, scopeData, v, colors[v]);
 
+      const isVoiceActive = env > 0 || (ctrl & 0x01) !== 0;
+      const grp = document.getElementById(`sid-group-v${v}`);
+      if (grp) {
+        grp.classList.toggle("active", isVoiceActive);
+      }
+
       if (asm && pcSyms[v] && asm.symbols[pcSyms[v]] !== undefined) {
         const zpAddr = asm.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
@@ -789,6 +873,12 @@ function renderFrameLoop() {
       .join("+");
     document.getElementById("flt-rout").textContent = routStr || "NONE";
     document.getElementById("flt-vol").textContent = vol;
+
+    const isFltActive = vol > 0 && rout > 0;
+    const fltGrp = document.getElementById("sid-group-flt");
+    if (fltGrp) {
+      fltGrp.classList.toggle("active", isFltActive);
+    }
 
     drawMasterAndFilterScope(scopeData, fc, res, mode);
 
@@ -842,7 +932,11 @@ function updateLiveSourceHighlights(activeLines) {
     state.player &&
     state.player.getState().isPlaying
   ) {
-    scrollToSourceLine(activeLines[0].lineNo);
+    const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
+    const targetLine = activeLines.find((al) => al.cls === targetCls);
+    if (targetLine) {
+      scrollToSourceLine(targetLine.lineNo);
+    }
   }
 }
 
@@ -990,8 +1084,29 @@ function setupUIHandlers() {
     });
   });
 
+  document.querySelectorAll(".legend-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      if (chip.classList.contains("disabled")) return;
+      const voiceAttr = chip.dataset.voice;
+      const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
+      setFollowVoice(voice);
+    });
+  });
+
   document.getElementById("chk-follow-pc").addEventListener("change", (e) => {
     state.followPc = e.target.checked;
+    if (
+      state.followPc &&
+      state.player &&
+      state.player.getState().isPlaying &&
+      state.prevHighlightedLines
+    ) {
+      const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
+      const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
+      if (targetLine) {
+        scrollToSourceLine(targetLine.lineNo);
+      }
+    }
   });
 
   // Synchronize initial state of checkboxes & sliders with DOM (handles browser form autofill/restores)

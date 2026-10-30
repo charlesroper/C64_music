@@ -36,7 +36,7 @@ Galway's sources show him working around those limits:
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
-* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. You can edit the source and rerun it.
+* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. Interactive chips let you select which voice (V1, V2, V3, or DRM) to follow in real time with an optional Follow Voice toggle. At the bottom, a responsive SID register strip ($D400-$D418) displays live hex values in four color-coded voice and filter groups that illuminate when voices sound. You can also edit the source and rerun it.
 * **Hardware options.** Switch between the two SID chip models, PAL and NTSC timing, and the strength of the drum sounds.
 
 A short glossary for the sections below:
@@ -214,7 +214,7 @@ The header of `gameover.asm` reads:
 
 The player was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with a human listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 18 automated checks across four test files:
+`npm test` runs 19 automated checks across four test files:
 
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
@@ -224,7 +224,7 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Versioning.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`).
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
 * **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 64 brand logo features a retro reflection sparkle cycling valid VIC-II colours.
-* **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, and control checkboxes synchronize on boot.
+* **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronize on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.
