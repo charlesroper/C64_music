@@ -17,7 +17,7 @@
 
   --accent-cyan: #38e2ff;
   --accent-magenta: #ff56b1;
-  --accent-yellow: #ffd24c;
+  --accent-yellow: #ffaa00;
   --accent-green: #45f08b;
   --accent-orange: #ff8e3c;
   --accent-blue: #4d88ff;
@@ -556,7 +556,7 @@ button:active, button.active {
 
 .t-badge.hz-100 {
   color: var(--accent-yellow);
-  border-color: rgba(255, 210, 76, 0.4);
+  border-color: rgba(255, 170, 0, 0.4);
 }
 
 .t-badge.hz-50 {
@@ -944,9 +944,10 @@ button:active, button.active {
 }
 
 .btn-mini.active-solo {
-  background: #5c4b14;
+  background: rgba(255, 170, 0, 0.25);
   border-color: var(--accent-yellow);
   color: var(--accent-yellow);
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.35);
 }
 
 .scope-canvas {
@@ -1083,11 +1084,16 @@ button:active, button.active {
   box-shadow: 0 0 6px rgba(255, 86, 177, 0.3);
 }
 
+.legend-chip[data-voice="2"]:hover:not(.disabled) {
+  border-color: rgba(255, 170, 0, 0.5);
+  background: rgba(255, 170, 0, 0.08);
+}
+
 .legend-chip[data-voice="2"].active-followed {
   border-color: var(--accent-yellow);
   color: #fff;
-  background: rgba(255, 210, 76, 0.15);
-  box-shadow: 0 0 6px rgba(255, 210, 76, 0.3);
+  background: rgba(255, 170, 0, 0.24);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.45), inset 0 0 4px rgba(255, 170, 0, 0.15);
 }
 
 .legend-chip[data-voice="seq"].active-followed {
@@ -1118,8 +1124,13 @@ button:active, button.active {
 }
 .dot-v0 { background: var(--accent-cyan); box-shadow: 0 0 5px var(--accent-cyan); }
 .dot-v1 { background: var(--accent-magenta); box-shadow: 0 0 5px var(--accent-magenta); }
-.dot-v2 { background: var(--accent-yellow); box-shadow: 0 0 6px var(--accent-yellow); }
+.dot-v2 { background: var(--accent-yellow); box-shadow: 0 0 7px var(--accent-yellow), 0 0 2px #ffffff; }
 .dot-seq { background: var(--accent-green); box-shadow: 0 0 5px var(--accent-green); }
+
+.legend-chip[data-voice="2"].active-followed .dot-v2 {
+  background: #ffc400;
+  box-shadow: 0 0 9px var(--accent-yellow), 0 0 3px #ffffff;
+}
 
 .source-viewer {
   flex: 1;
@@ -1163,11 +1174,11 @@ button:active, button.active {
 .asm-line.pc-v1 .ln-addr { color: #ffa1d4; }
 
 .asm-line.pc-v2 {
-  background: rgba(255, 210, 76, 0.22);
+  background: rgba(255, 170, 0, 0.22);
   border-left: 3px solid var(--accent-yellow);
 }
 .asm-line.pc-v2 .ln-num { color: var(--accent-yellow); font-weight: 600; }
-.asm-line.pc-v2 .ln-addr { color: #ffe68a; }
+.asm-line.pc-v2 .ln-addr { color: #ffd480; }
 
 .asm-line.pc-seq {
   background: rgba(69, 240, 139, 0.24);
@@ -1186,8 +1197,8 @@ button:active, button.active {
   box-shadow: inset 0 0 10px rgba(255, 86, 177, 0.35), 0 0 8px rgba(255, 86, 177, 0.2);
 }
 .asm-line.pc-followed.pc-v2 {
-  background: rgba(255, 210, 76, 0.35) !important;
-  box-shadow: inset 0 0 10px rgba(255, 210, 76, 0.35), 0 0 8px rgba(255, 210, 76, 0.2);
+  background: rgba(255, 170, 0, 0.35) !important;
+  box-shadow: inset 0 0 10px rgba(255, 170, 0, 0.35), 0 0 8px rgba(255, 170, 0, 0.2);
 }
 .asm-line.pc-followed.pc-seq {
   background: rgba(69, 240, 139, 0.35) !important;
@@ -1299,7 +1310,7 @@ button:active, button.active {
 
 .sid-hex-group.v0 .sid-group-tag { color: var(--accent-cyan); background: rgba(56, 226, 255, 0.12); }
 .sid-hex-group.v1 .sid-group-tag { color: var(--accent-magenta); background: rgba(255, 86, 177, 0.12); }
-.sid-hex-group.v2 .sid-group-tag { color: var(--accent-yellow); background: rgba(255, 210, 76, 0.12); }
+.sid-hex-group.v2 .sid-group-tag { color: var(--accent-yellow); background: rgba(255, 170, 0, 0.15); }
 .sid-hex-group.flt .sid-group-tag { color: var(--accent-green); background: rgba(69, 240, 139, 0.12); }
 
 .sid-group-cells {
@@ -1348,13 +1359,13 @@ button:active, button.active {
 
 .sid-hex-group.v2.active {
   border-color: var(--accent-yellow);
-  box-shadow: 0 0 8px rgba(255, 210, 76, 0.35);
-  background: rgba(255, 210, 76, 0.08);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.35);
+  background: rgba(255, 170, 0, 0.08);
 }
 .sid-hex-group.v2.active .sid-cell.v2 {
-  border-bottom-color: #ffe68a;
+  border-bottom-color: #ffd480;
   color: #fff;
-  box-shadow: 0 1px 3px rgba(255, 210, 76, 0.4);
+  box-shadow: 0 1px 3px rgba(255, 170, 0, 0.4);
 }
 
 .sid-hex-group.flt.active {

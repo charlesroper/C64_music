@@ -912,7 +912,7 @@ function renderFrameLoop() {
       4 * 512
     );
 
-    const colors = ["#38e2ff", "#ff56b1", "#ffd24c"];
+    const colors = ["#38e2ff", "#ff56b1", "#ffaa00"];
     const game = GAME_FILES.find((g) => g.id === state.activeGameId);
     const pcSyms = game ? game.architecture.pcSymbols : ["PC0", "PC1", "PC2"];
 

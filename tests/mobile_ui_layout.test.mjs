@@ -225,10 +225,15 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile story button must be >= 36px tall"
   );
 
-  // 8. Voice 3 button dot has matching glowing accent yellow (not dim brown)
+  // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)
   const dotV2Style = computeStyleForSelector(rules, [".dot-v2"], mobile);
   assert.match(dotV2Style["background"], /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["box-shadow"], /#ffffff/);
+
+  const v3FollowStyle = computeStyleForSelector(rules, [".legend-chip[data-voice=\"2\"].active-followed"], mobile);
+  assert.match(v3FollowStyle["border-color"], /var\(--accent-yellow\)/);
+  assert.match(v3FollowStyle["background"], /rgba\(255,\s*170,\s*0/);
 });
 
 test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, exposes mobile view tabs, and switches to ASM tab on PC jump", async () => {
