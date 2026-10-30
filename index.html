@@ -341,10 +341,10 @@
             <div class="arch-notes">
               <p>
                 <strong>1. Multi-Speed Fractional Raster Clock (<code>Refsp</code> / <code>CREFSP</code>):</strong>
-                In <code>wizball.asm</code>, <code>arkanoid.asm</code>, and <code>gameover.asm</code>,
-                <code>DREFRESH</code> waits for 4 PAL raster lines per frame (lines 32, 110, 188, and 266 = 200 Hz).
-                At each raster point, 16-bit <code>Refsp</code> is added to <code>CREFSP</code>. Whenever the high byte
-                <code>CREFSP+1</code> changes, <code>REFRESH</code> executes. Thus:
+                In <code>wizball.asm</code> and <code>gameover.asm</code> (lines 32, 110, 188, and 266) as well as
+                <code>arkanoid.asm</code> (lines 57, 117, 172, and 237), <code>DREFRESH</code> waits for 4 PAL raster
+                lines per frame (200 Hz). At each raster point, 16-bit <code>Refsp</code> is added to <code>CREFSP</code>.
+                Whenever the high byte <code>CREFSP+1</code> changes, <code>REFRESH</code> executes. Thus:
                 <code>$0100</code> = 200 Hz, <code>$0080</code> = 100 Hz, and <code>$0040</code> = 50 Hz.
               </p>
               <p>
@@ -367,7 +367,7 @@
                 <strong>4. Rambo II Secret Morse Code (<code>rambload.asm</code>):</strong>
                 One second into the loader music, Channel 0 executes <code>DFB Code: DFW STARTMC</code>, patching
                 <code>MUS+1</code> to <code>MCREFR</code>. Voice 1 transmits the hidden string at <code>Secret</code>
-                (<code>BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID</code>) in 535 Hz Morse code
+                (<code>BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID</code>) in 516 Hz (PAL) / 535 Hz (NTSC) Morse code
                 using the bit-packed lookup table <code>CodeTab</code> before restoring <code>REFRESH</code>.
               </p>
             </div>

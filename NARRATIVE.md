@@ -34,7 +34,7 @@ Galway's sources show him working around those limits:
 
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
-* **Monitor.** A copy of the text display that Galway's program draws into screen memory, with a border that shows processor load.
+* **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
 * **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. You can edit the source and rerun it.
 * **Hardware options.** Switch between the two SID chip models, PAL and NTSC timing, and the strength of the drum sounds.
 
@@ -170,7 +170,12 @@ The player picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tell
 
 ### Interface
 
-The desktop layout has three columns. On narrow screens it becomes one column with tabs for the monitor, tunes and source.
+The workbench layout adapts to the screen size:
+
+* **Desktop.** Three columns show the tunes and controls on the left, the live C64 monitor and oscilloscopes in the centre, and the assembly source viewer on the right.
+* **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side while the assembly source spans the full width below, preserving natural vertical scrolling.
+* **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source.
+* **Character display.** Screen memory at `$0400` renders with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text.
 
 ---
 
@@ -208,11 +213,15 @@ The header of `gameover.asm` reads:
 
 The player was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with a human listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs automated checks:
+`npm test` runs 16 automated checks across four test files:
 
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
 * **Drums.** The `$D418` drum routines produce sound, and the volume control for them works.
-* **Mobile.** The page loads, unlocks audio on the first tap and starts playing, and the narrow-screen layout scrolls and lays out its controls correctly.
+* **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
+* **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
+* **Character ROM.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation.
+* **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, and control checkboxes synchronize on boot.
+* **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.

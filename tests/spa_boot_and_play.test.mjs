@@ -309,7 +309,10 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
 
   // Wait for fetches + WASM assembly to complete
   await bootPromise;
-  await new Promise((r) => setTimeout(r, 160));
+  const deadline = Date.now() + 2000;
+  while (harness.elementsById.get("play-label").textContent === "LOADING..." && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
 
   assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
   const stats = harness.pullWebKitStrictAudioFrames(16);

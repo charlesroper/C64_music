@@ -10,10 +10,10 @@ For the full story of Galway's technical innovations, the historical context, an
 
 ### Key capabilities
 
-1. **Assembles Galway's raw source code on the fly.** A zero-dependency JavaScript cross-assembler parses Ocean Software's bespoke 1980s directives (`DFS`, `DFB`, `DFW`, `DFM`, `ADD`, `SUB`, `EQU`) directly in the browser in under 20 milliseconds.
+1. **Assembles Galway's raw source code on the fly.** A zero-dependency JavaScript cross-assembler parses Ocean Software's bespoke 1980s directives (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `EQU`, `ADD`, `SUB`) directly in the browser in under 20 milliseconds.
 2. **Runs a standalone WebAssembly 6510 and SID engine.** A freestanding C core compiled to WebAssembly executes the assembled code clock by clock, with 200Hz raster timer interrupts, Chamberlin filter modelling, and 15Hz AC coupling.
 3. **Supports the complete catalogue.** Plays all six original assembly sources and all 73 tracks and sound effects without requiring disk images or emulator installations.
-4. **Visualises developer telemetry.** Recreates Galway's original light grey `$0400` memory display and `$D020` border raster profiler alongside 4-channel hardware oscilloscopes.
+4. **Visualises developer telemetry.** Recreates Galway's original light grey `$0400` memory display with authentic 256-glyph C64 character ROM rendering and `$D020` border raster profiler alongside 4-channel hardware oscilloscopes.
 5. **Enables live in-browser editing and hot-reloading.** Lets you adjust Galway's note values, instruments, or filter settings in the source viewer, assemble the changes, and hear them in running C64 memory in real time.
 
 ---
@@ -36,11 +36,11 @@ The repository includes six complete assembly sources and Galway's notes on Ocea
 
 * `wizball.asm` (April 1987): Galway's 1st Generation sound driver featuring his 200Hz fractional raster clock, rapid 30ms arpeggios, and `$0400` telemetry monitor.
 * `arkanoid.asm` (February 1987): Opening sequence and in-game sound effects.
-* `arkadrum.asm` (January 1987): Real-time algorithmic drum synthesis output through the SID master volume register (`$D418`).
+* `arkadrum.asm` (February 1987): Real-time algorithmic drum synthesis output through the SID master volume register (`$D418`).
 * `gameover.asm` (July 1987): Rock drum accompaniment streamed from 4-bit digitized PCM samples.
-* `greenberet.asm` (November 1985): Arcade conversion title theme and loading jingles.
+* `greenberet.asm` (April 1986): Arcade conversion title theme and loading jingles.
 * `rambload.asm` (November 1985): The loader music featuring Galway's secret Morse code transmitter broadcasting the development team's names.
-* `ocean_assembler_directives.txt`: Galway's notes explaining the syntax and directives used by Ocean's in-house 6502 cross-assembler (`DFS`, `DFB`, `DFW`, `DFM`, `ADD`, `SUB`, `EQU`).
+* `ocean_assembler_directives.txt`: Galway's notes explaining the syntax and directives used by Ocean's in-house 6502 cross-assembler (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `EQU`, `ADD`, `SUB`).
 
 ---
 
@@ -85,17 +85,17 @@ Open `http://localhost:8080` (or the address printed by your server) in any mode
 
 ## Running the automated test suite
 
-The test suite validates pitch accuracy, audio waveform stability, drum synthesis, mobile layouts, and narrative factual fidelity. It runs on Node.js using its built-in test runner (`node:test`) and requires zero external dependencies.
+The test suite validates pitch accuracy, audio waveform stability, drum synthesis, mobile and laptop responsive layouts, C64 character ROM decoding, and narrative factual fidelity. It runs on Node.js using its built-in test runner (`node:test`) and requires zero external dependencies.
 
 Run the test suite from the repository root:
 ```bash
 npm test
 ```
 
-The test runner executes 12 automated checks across four test files:
-* `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesized tones match the MOS 6581 datasheet pitch formula across 44.1kHz, 48kHz, PAL and NTSC configurations. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis.
-* `tests/spa_boot_and_play.test.mjs`: Tests AudioContext gesture unlocks and verifies that audio starts cleanly even when playback is triggered before assets finish downloading.
-* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop and mobile viewports, verifying vertical scrolling, touch target dimensions (>= 36px), and single-column layout transitions.
+The test runner executes 16 automated checks across four test files:
+* `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesized tones match the MOS 6581 datasheet pitch formula across 44.1kHz, 48kHz, PAL and NTSC configurations. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis, pause controls, and channel mute masks.
+* `tests/spa_boot_and_play.test.mjs`: Tests AudioContext gesture unlocks and verifies that audio starts cleanly even when playback is triggered before WebAssembly and assembly assets finish downloading.
+* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow PC), and jitter-free Section 4 telemetry rendering with tabular numbers.
 * `tests/narrative.test.mjs`: Validates the custom markdown renderer, confirms that all quotations in [NARRATIVE.md](NARRATIVE.md) match Galway's sources verbatim, and checks cited line numbers and equates against the original assembly files.
 
 ---
@@ -136,12 +136,13 @@ rm wasm/c64_engine.o
 
 ## Architecture overview
 
-The application is structured into four focused layers:
+The application is structured into five focused modules:
 
-1. **In-browser cross-assembler (`src/ocean_assembler.js`)**: A JavaScript assembler that parses Galway's raw source text, handles Ocean's custom directives (`DFS`, `DFB`, `DFW`, `DFM`, `ADD`, `SUB`, `EQU`), performs two-pass symbol resolution, and generates a binary memory image along with line-to-address source maps in under 20 milliseconds.
+1. **In-browser cross-assembler (`src/ocean_assembler.js`)**: A JavaScript assembler that parses Galway's raw source text, handles Ocean's custom directives (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `DSP`, `DFC`, `EQU`, `ADD`, `SUB`), performs two-pass symbol resolution, and generates a binary memory image along with line-to-address source maps in under 20 milliseconds.
 2. **Cycle-accurate emulation core (`src/wasm/c64_engine.c`)**: A freestanding C core compiled to WebAssembly that emulates the MOS 6510 CPU, VIC-II raster timer (63 cycles per line on PAL, 65 on NTSC), and the MOS 6581/8580 SID synthesizer. It includes a 2x-oversampled Chamberlin state-variable filter, a 15Hz high-pass AC-coupling filter matching the C64 motherboard output capacitor, and a cubic soft saturation curve (`soft_saturate`) to prevent harsh clipping.
 3. **Web Audio driver (`src/player_engine.js`)**: Coordinates audio sample rate negotiation (44.1kHz or 48kHz), synchronizes the WebAssembly clock divider, routes stereo audio through a ScriptProcessorNode with a silent looping buffer, and manages mobile WebKit autoplay unlocks.
-4. **Studio workbench interface (`src/app.js`, `src/styles.css`, `index.html`)**: Provides the CRT memory display (`$0400`), border profiler raster bars (`$D020`), 4-channel oscilloscopes, live code disassembly tracking voice program counters (`PC0` to `PC2`), and the in-app narrative modal overlay rendered by `src/markdown.js`.
+4. **C64 Character ROM and display (`src/c64_charset.js`)**: Decodes authentic 8x8 bitmap glyphs for all 256 C64 PETSCII character codes, including lowercase letters, uppercase graphics, and punctuation, rendering the `$0400` telemetry monitor directly to the CRT canvas.
+5. **Studio workbench interface and track catalogue (`src/app.js`, `src/tracks_catalog.js`, `src/styles.css`, `index.html`)**: Provides the CRT memory display (`$0400`), border profiler raster bars (`$D020`), 4-channel oscilloscopes, live code disassembly tracking voice program counters (`PC0` to `PC2`), complete metadata and registers for all 73 tracks, adaptive responsive breakpoints for mobile and laptop screens, and the in-app narrative modal overlay rendered by `src/markdown.js`.
 
 ---
 
