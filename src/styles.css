@@ -1,5 +1,5 @@
 /* ============================================================================
-   Galway 64 // Ocean 6502-SID Workbench Stylesheet
+   Galway 2664 // Ocean 6502-SID Workbench Stylesheet
    ============================================================================ */
 
 :root {
@@ -172,25 +172,31 @@ html, body {
   animation: c64-sparkle-sweep 0.35s 0.00s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(2) {
-  animation: c64-sparkle-sweep 0.35s 0.08s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.07s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(3) {
-  animation: c64-sparkle-sweep 0.35s 0.16s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.14s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(4) {
-  animation: c64-sparkle-sweep 0.35s 0.24s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.21s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(5) {
-  animation: c64-sparkle-sweep 0.35s 0.32s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.28s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(6) {
-  animation: c64-sparkle-sweep 0.35s 0.40s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.35s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(7) {
-  animation: c64-sparkle-sweep 0.35s 0.52s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.44s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(8) {
-  animation: c64-sparkle-sweep 0.35s 0.60s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0.51s steps(1);
+}
+.brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(9) {
+  animation: c64-sparkle-sweep 0.35s 0.58s steps(1);
+}
+.brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(10) {
+  animation: c64-sparkle-sweep 0.35s 0.65s steps(1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1105,14 +1111,15 @@ button:active, button.active {
 
 .dot-v0, .dot-v1, .dot-v2, .dot-seq {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
-.dot-v0 { background: var(--accent-cyan); }
-.dot-v1 { background: var(--accent-magenta); }
-.dot-v2 { background: var(--accent-yellow); }
-.dot-seq { background: var(--accent-green); }
+.dot-v0 { background: var(--accent-cyan); box-shadow: 0 0 5px var(--accent-cyan); }
+.dot-v1 { background: var(--accent-magenta); box-shadow: 0 0 5px var(--accent-magenta); }
+.dot-v2 { background: var(--accent-yellow); box-shadow: 0 0 6px var(--accent-yellow); }
+.dot-seq { background: var(--accent-green); box-shadow: 0 0 5px var(--accent-green); }
 
 .source-viewer {
   flex: 1;

@@ -1,5 +1,5 @@
 // ============================================================================
-// Galway 64 // Ocean 6502-SID Workbench Main Application
+// Galway 2664 // Ocean 6502-SID Workbench Main Application
 // ============================================================================
 
 import { GAME_FILES } from "./tracks_catalog.js";
@@ -17,6 +17,7 @@ const state = {
 
   activeGameId: "wizball.asm",
   activeTrackId: "wiz-title",
+  currentSourceFile: "wizball.asm",
   activeFilter: "all",
 
   sidModel8580: false,
@@ -173,11 +174,19 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
   renderTrackList();
   renderGameMetaCard(game);
 
+  const targetFile =
+    game.id === "arkadrum.asm" && state.followVoice === "seq"
+      ? "arkadrum.asm"
+      : game.id === "arkadrum.asm"
+      ? "arkanoid.asm"
+      : game.id;
+
   if (
     prevGameId !== game.id ||
+    state.currentSourceFile !== targetFile ||
     document.getElementById("source-viewer").children.length === 0
   ) {
-    renderSourceViewer(game.id);
+    renderSourceViewer(targetFile);
   }
 
   const morseBanner = document.getElementById("morse-banner");
@@ -372,6 +381,13 @@ function setFollowVoice(voice) {
   }
   state.followPc = true;
 
+  if (state.activeGameId === "arkadrum.asm") {
+    const targetFile = voice === "seq" ? "arkadrum.asm" : "arkanoid.asm";
+    if (state.currentSourceFile !== targetFile) {
+      renderSourceViewer(targetFile);
+    }
+  }
+
   if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
     updateLiveSourceHighlights(state.prevHighlightedLines);
   }
@@ -499,6 +515,8 @@ function renderSourceViewer(gameId) {
   if (!state.player) return;
   const asm = state.player.getAssembled(gameId);
   if (!asm) return;
+
+  state.currentSourceFile = gameId;
 
   document.getElementById("source-file-title").textContent =
     `5. OCEAN 1987 SOURCE: ${gameId.toUpperCase()}`;
@@ -841,7 +859,10 @@ function renderFrameLoop() {
   if (state.player) {
     const wasm = state.player.wasm;
     const ram = state.player.getRamView();
+    const currentFile = state.currentSourceFile || state.activeGameId;
     const asm = state.player.getAssembled(state.activeGameId);
+    const currentAsm = state.player.getAssembled(currentFile);
+    const arkAsm = state.activeGameId === "arkadrum.asm" ? state.player.getAssembled("arkanoid.asm") : null;
     const d = getDom();
 
     if (state.activeGameId === "rambload.asm" && asm) {
@@ -928,16 +949,19 @@ function renderFrameLoop() {
         vDom.grp.classList.toggle("active", isVoiceActive);
       }
 
-      if (asm && pcSyms[v] && asm.symbols[pcSyms[v]] !== undefined) {
-        const zpAddr = asm.symbols[pcSyms[v]];
+      const symSource = arkAsm || asm || currentAsm;
+      if (symSource && pcSyms[v] && symSource.symbols[pcSyms[v]] !== undefined) {
+        const zpAddr = symSource.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
         if (vDom.pc) {
           vDom.pc.textContent = `PC${v}: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
         }
-        const lineNo = findNearestSourceLine(asm, seqPtr);
-        if (lineNo) {
-          if (vDom.pc) vDom.pc.dataset.line = lineNo;
-          activeLines.push({ lineNo, cls: `pc-v${v}` });
+        if (currentAsm) {
+          const lineNo = findNearestSourceLine(currentAsm, seqPtr);
+          if (lineNo) {
+            if (vDom.pc) vDom.pc.dataset.line = lineNo;
+            activeLines.push({ lineNo, cls: `pc-v${v}` });
+          }
         }
       }
     }
@@ -988,8 +1012,8 @@ function renderFrameLoop() {
       if (d.seqPc) {
         d.seqPc.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
       }
-      if (asm) {
-        const lineNo = findNearestSourceLine(asm, seqPtr);
+      if (currentAsm && (state.activeGameId === "gameover.asm" || currentFile === "arkadrum.asm")) {
+        const lineNo = findNearestSourceLine(currentAsm, seqPtr);
         if (lineNo) {
           if (d.seqPc) d.seqPc.dataset.line = lineNo;
           activeLines.push({ lineNo, cls: "pc-seq" });
@@ -1206,6 +1230,12 @@ function setupUIHandlers() {
 
   ["v0-pc", "v1-pc", "v2-pc", "seq-pc"].forEach((id) => {
     document.getElementById(id).addEventListener("click", (e) => {
+      if (state.activeGameId === "arkadrum.asm") {
+        const targetFile = id === "seq-pc" ? "arkadrum.asm" : "arkanoid.asm";
+        if (state.currentSourceFile !== targetFile) {
+          renderSourceViewer(targetFile);
+        }
+      }
       const ln = parseInt(e.currentTarget.dataset.line || "0", 10);
       if (ln > 0) scrollToSourceLine(ln, { revealMobilePanel: true });
     });
@@ -1322,8 +1352,9 @@ function setupUIHandlers() {
 
   btnReassemble.addEventListener("click", () => {
     if (!state.player) return;
+    const fileToUpdate = state.currentSourceFile || state.activeGameId;
     const editedText = editorEl.value;
-    state.player.updateSource(state.activeGameId, editedText);
+    state.player.updateSource(fileToUpdate, editedText);
 
     const badge = document.getElementById("asm-compile-badge");
     badge.textContent = "HOT-RELOADED OK";
@@ -1334,7 +1365,7 @@ function setupUIHandlers() {
     btnReassemble.classList.add("hidden");
     btnToggleEdit.textContent = "EDIT .ASM";
 
-    renderSourceViewer(state.activeGameId);
+    renderSourceViewer(fileToUpdate);
     selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
   });
 
@@ -1364,7 +1395,7 @@ function setupUIHandlers() {
     });
   }
 
-  // Galway 64 C64 logo sparkle reflection animation & easter egg
+  // Galway 2664 C64 logo sparkle reflection animation & easter egg
   const brandLogo = document.querySelector(".brand-logo");
   if (brandLogo) {
     let sparkleTimer = null;

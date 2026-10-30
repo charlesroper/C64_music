@@ -220,14 +220,14 @@ export const C64_SPARKLE_PALETTE = [
  * Each character is rendered from C64_CHAR_ROM with shape-rendering="crispEdges".
  * Defaults to pure white (#FFFFFF, VIC-II 1) with retro C64 sparkle effects handled via CSS.
  */
-export function generateC64TextSvg(text = "GALWAY 64", options = {}) {
+export function generateC64TextSvg(text = "GALWAY 2664", options = {}) {
   const {
     colors = [VIC_PALETTE[1]], // Default to authentic C64 White (#FFFFFF)
     charSpacing = 8,
     spaceWidth = 8,
     padX = 1,
     padY = 1,
-    title = "Galway 64",
+    title = "Galway 2664",
     className = "c64-logo-svg",
   } = options;
 
@@ -281,10 +281,11 @@ export function generateC64TextSvg(text = "GALWAY 64", options = {}) {
   return `<svg class="${className}" viewBox="0 0 ${totalWidth} ${totalHeight}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}" shape-rendering="crispEdges">\n  <title>${title}</title>\n  ${paths.join("\n  ")}\n</svg>`;
 }
 
-export function getGalway64LogoSvg(options = {}) {
-  return generateC64TextSvg("GALWAY 64", options);
+export function getGalway2664LogoSvg(options = {}) {
+  return generateC64TextSvg("GALWAY 2664", { title: "Galway 2664", ...options });
 }
 
-export const getGalway26LogoSvg = getGalway64LogoSvg;
+export const getGalway64LogoSvg = getGalway2664LogoSvg;
+export const getGalway26LogoSvg = getGalway2664LogoSvg;
 
 

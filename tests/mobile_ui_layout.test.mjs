@@ -224,6 +224,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     parseInt(mobStoryBtn["min-height"] || "0", 10) >= 36,
     "Mobile story button must be >= 36px tall"
   );
+
+  // 8. Voice 3 button dot has matching glowing accent yellow (not dim brown)
+  const dotV2Style = computeStyleForSelector(rules, [".dot-v2"], mobile);
+  assert.match(dotV2Style["background"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
 });
 
 test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, exposes mobile view tabs, and switches to ASM tab on PC jump", async () => {
@@ -474,7 +479,37 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.equal(followedEl.classList.contains("pc-followed"), true, "Followed line must carry .pc-followed");
     assert.equal(followedEl.classList.contains("pc-v1"), true, ".pc-followed must match selected Voice 2");
 
-    // 6. SID Hex Strip renders all 4 labeled voice groups
+    // 6. DRM chip switches to arkadrum.asm and tapping V1/V2/V3 switches back to arkanoid.asm
+    const gameList = elementsById.get("game-list");
+    const arkadrumItem = gameList.children.find((c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"));
+    assert.ok(arkadrumItem, "Expected arkadrum.asm in game list");
+    arkadrumItem.click();
+    if (rafCb) rafCb();
+
+    const drmChip = legendChips.find((c) => c.dataset.voice === "seq");
+    const v3Chip = legendChips.find((c) => c.dataset.voice === "2");
+    assert.ok(drmChip, "Expected DRM chip");
+    assert.ok(v3Chip, "Expected Voice 3 chip");
+    assert.equal(drmChip.classList.contains("disabled"), false, "DRM chip must be enabled for arkadrum.asm");
+
+    // Click DRM chip -> follow DRM in arkadrum.asm
+    drmChip.click();
+    assert.equal(drmChip.classList.contains("active-followed"), true, "DRM chip must be active-followed");
+    assert.equal(v3Chip.classList.contains("active-followed"), false, "Voice 3 chip must not be active-followed");
+    assert.match(elementsById.get("source-file-title").textContent, /ARKADRUM\.ASM/);
+
+    // Click Voice 3 chip -> switch back to arkanoid.asm and follow V3
+    v3Chip.click();
+    assert.equal(v3Chip.classList.contains("active-followed"), true, "Voice 3 chip must be active-followed");
+    assert.equal(drmChip.classList.contains("active-followed"), false, "DRM chip must not be active-followed");
+    assert.match(elementsById.get("source-file-title").textContent, /ARKANOID\.ASM/);
+
+    // Click DRM chip again -> switch back to arkadrum.asm
+    drmChip.click();
+    assert.equal(drmChip.classList.contains("active-followed"), true, "DRM chip must be active-followed again");
+    assert.match(elementsById.get("source-file-title").textContent, /ARKADRUM\.ASM/);
+
+    // 7. SID Hex Strip renders all 4 labeled voice groups
     const hexCells = elementsById.get("sid-hex-cells");
     assert.equal(hexCells.children.length, 4, "Must render 4 groups: V1, V2, V3, and FLT");
     assert.ok(elementsById.get("sid-group-v0"), "Must render #sid-group-v0");

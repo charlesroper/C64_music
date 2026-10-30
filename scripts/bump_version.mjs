@@ -37,8 +37,8 @@ export function applyVersion(nextVersion) {
   const htmlPath = path.join(ROOT, "index.html");
   let html = fs.readFileSync(htmlPath, "utf8");
   html = html.replace(
-    /<title>Galway 64 \/\/ Ocean 6502-SID Workbench \(1985-1987\) v[^<]*<\/title>/,
-    `<title>Galway 64 // Ocean 6502-SID Workbench (1985-1987) v${nextVersion}</title>`
+    /<title>Galway (?:64|2664) \/\/ Ocean 6502-SID Workbench \(1985-1987\) v[^<]*<\/title>/,
+    `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v${nextVersion}</title>`
   );
   html = html.replace(
     /<span class="brand-version" id="app-version">v[^<]*<\/span>/,
