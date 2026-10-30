@@ -197,7 +197,7 @@ for (let ch = 0; ch < 256; ch++) {
 // Authentic Commodore 64 Colorful Rainbow Palette
 // Derived from authentic VIC-II palette colors for vibrant 80s synth and computer branding:
 // G: Light Red (#C46C71), A: Orange (#8E5029), L: Yellow (#EDF171), W: Light Green (#A9FF9F),
-// A: Cyan (#75CEC8), Y: Light Blue (#706DEB), 2: Yellow (#EDF171), 6: White (#FFFFFF)
+// A: Cyan (#75CEC8), Y: Light Blue (#706DEB), 6: Yellow (#EDF171), 4: White (#FFFFFF)
 export const C64_RAINBOW_PALETTE = [
   VIC_PALETTE[10], // G: Light Red
   VIC_PALETTE[8],  // A: Orange
@@ -205,33 +205,39 @@ export const C64_RAINBOW_PALETTE = [
   VIC_PALETTE[13], // W: Light Green
   VIC_PALETTE[3],  // A: Cyan
   VIC_PALETTE[14], // Y: Light Blue
-  VIC_PALETTE[7],  // 2: Yellow
-  VIC_PALETTE[1],  // 6: White
+  VIC_PALETTE[7],  // 6: Yellow
+  VIC_PALETTE[1],  // 4: White
 ];
 
 /**
  * Generate an accessible, pixel-perfect SVG logo or banner using authentic C64 PETSCII glyphs.
  * Each character is rendered from C64_CHAR_ROM with shape-rendering="crispEdges".
  */
-export function generateC64TextSvg(text = "GALWAY26", options = {}) {
+export function generateC64TextSvg(text = "GALWAY 64", options = {}) {
   const {
     colors = C64_RAINBOW_PALETTE,
     charSpacing = 8,
-    gapAfterIndex = 5, // Gap after "GALWAY" before "26"
-    gapSize = 2,
+    spaceWidth = 8,
     padX = 1,
     padY = 1,
-    title = "Galway26",
+    title = "Galway 64",
     className = "c64-logo-svg",
   } = options;
 
   let currentX = padX;
   const paths = [];
+  let colorIdx = 0;
 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
+    if (ch === " ") {
+      currentX += spaceWidth;
+      continue;
+    }
+
     const code = ch.charCodeAt(0);
-    const color = colors[i % colors.length];
+    const color = colors[colorIdx % colors.length];
+    colorIdx++;
     const segments = [];
 
     for (let y = 0; y < 8; y++) {
@@ -260,9 +266,6 @@ export function generateC64TextSvg(text = "GALWAY26", options = {}) {
     }
 
     currentX += charSpacing;
-    if (i === gapAfterIndex) {
-      currentX += gapSize;
-    }
   }
 
   const totalWidth = currentX - charSpacing + 8 + padX;
@@ -271,7 +274,10 @@ export function generateC64TextSvg(text = "GALWAY26", options = {}) {
   return `<svg class="${className}" viewBox="0 0 ${totalWidth} ${totalHeight}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}" shape-rendering="crispEdges">\n  <title>${title}</title>\n  ${paths.join("\n  ")}\n</svg>`;
 }
 
-export function getGalway26LogoSvg(options = {}) {
-  return generateC64TextSvg("GALWAY26", options);
+export function getGalway64LogoSvg(options = {}) {
+  return generateC64TextSvg("GALWAY 64", options);
 }
+
+export const getGalway26LogoSvg = getGalway64LogoSvg;
+
 
