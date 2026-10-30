@@ -100,6 +100,19 @@ The test runner executes 18 automated checks across four test files:
 
 ---
 
+## Calendar versioning (CalVer)
+
+The project tracks deployments with Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`), displayed immediately following the app title in the header banner.
+
+To bump the version before a release:
+```bash
+npm run bump
+```
+
+The script (`scripts/bump_version.mjs`) updates `package.json`, `index.html` (header badge and document title), and `src/version.js`. If deployed multiple times on the same date, it increments the `.MICRO` segment (`.1`, `.2`, etc.); on a new date, it resets to `YYYY.MM.DD`.
+
+---
+
 ## Rebuilding the WebAssembly sound core (optional)
 
 The pre-compiled WebAssembly binary is located at `wasm/c64_engine.wasm` (about 25KB) and is committed to the repository. You only need to rebuild it if you modify the C emulator source code in `src/wasm/c64_engine.c`.

@@ -18,6 +18,12 @@ When multiple updates deploy on the same calendar day, append a sequential incre
 - Third release: `2026.10.30.2`
 - Next day: reset to `YYYY.MM.DD` for the new date.
 
+### Automated Version Bumping
+Run `npm run bump` (or `node scripts/bump_version.mjs`) to update all three files automatically:
+- If today's UTC date matches the current version, it appends or increments the `.MICRO` counter.
+- On a new calendar day, it resets to `YYYY.MM.DD`.
+- To set an explicit version: `node scripts/bump_version.mjs YYYY.MM.DD`.
+
 ## 2. Historical Source Code Integrity
 
 Martin Galway's original assembly source files must remain authentic and unmodified:

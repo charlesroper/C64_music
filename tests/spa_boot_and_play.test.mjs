@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { computeNextVersion } from "../scripts/bump_version.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -339,4 +340,10 @@ test("CalVer version number appears immediately after the title of the app", () 
 
   // Title tag also includes the version
   assert.match(html, new RegExp(`<title>[^<]*v${calver}[^<]*<\\/title>`));
+
+  // scripts/bump_version.mjs calculation logic
+  const mockDate = new Date("2026-10-30T12:00:00Z");
+  assert.equal(computeNextVersion("2026.10.29", mockDate), "2026.10.30");
+  assert.equal(computeNextVersion("2026.10.30", mockDate), "2026.10.30.1");
+  assert.equal(computeNextVersion("2026.10.30.1", mockDate), "2026.10.30.2");
 });
