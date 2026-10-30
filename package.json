@@ -1,6 +1,6 @@
 {
   "name": "galway-64",
-  "version": "2026.10.30.8",
+  "version": "2026.10.30.9",
   "private": true,
   "type": "module",
   "description": "Galway 64: WebAssembly MOS 6510 + 6581/8580 SID emulator and live 1987 Ocean Software 6502 cross-assembler",

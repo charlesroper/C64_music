@@ -465,7 +465,16 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow Voice");
     assert.equal(v1Chip.classList.contains("active-followed"), true, "Voice 2 chip must be active-followed");
 
-    // 5. SID Hex Strip renders all 4 labeled voice groups
+    // 5. Following a voice adds high-visibility .pc-followed highlight to active source line
+    if (rafCb) rafCb();
+    const v1LineNo = Number(elementsById.get("v1-pc").dataset.line || "0");
+    assert.ok(v1LineNo > 0, "Expected Voice 2 line number on v1-pc");
+    const followedEl = elementsById.get(`asm-L${v1LineNo}`);
+    assert.ok(followedEl, "Expected an active .asm-line element");
+    assert.equal(followedEl.classList.contains("pc-followed"), true, "Followed line must carry .pc-followed");
+    assert.equal(followedEl.classList.contains("pc-v1"), true, ".pc-followed must match selected Voice 2");
+
+    // 6. SID Hex Strip renders all 4 labeled voice groups
     const hexCells = elementsById.get("sid-hex-cells");
     assert.equal(hexCells.children.length, 4, "Must render 4 groups: V1, V2, V3, and FLT");
     assert.ok(elementsById.get("sid-group-v0"), "Must render #sid-group-v0");
@@ -629,6 +638,25 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     groupMobile.width,
     "100%",
     ".sid-hex-group must stack as full-width rows on mobile viewports"
+  );
+
+  const viewerDesktop = computeStyleForSelector(rules, [".source-viewer"], desktop);
+  assert.equal(
+    viewerDesktop.position,
+    "relative",
+    ".source-viewer must be position: relative for accurate element centering"
+  );
+
+  const lineDesktop = computeStyleForSelector(rules, [".asm-line"], desktop);
+  assert.equal(
+    lineDesktop["min-width"],
+    "100%",
+    ".asm-line must be min-width: 100% to fill scrollable code viewer"
+  );
+  assert.equal(
+    lineDesktop["box-sizing"],
+    "border-box",
+    ".asm-line must use border-box sizing"
   );
 });
 

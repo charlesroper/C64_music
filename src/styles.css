@@ -1116,6 +1116,7 @@ button:active, button.active {
 
 .source-viewer {
   flex: 1;
+  position: relative;
   overflow-y: auto;
   overflow-x: auto;
   font-family: var(--font-mono);
@@ -1132,6 +1133,8 @@ button:active, button.active {
   padding: 0 8px;
   white-space: pre;
   border-left: 3px solid transparent;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 
 .asm-line:hover {
@@ -1139,23 +1142,54 @@ button:active, button.active {
 }
 
 .asm-line.pc-v0 {
-  background: rgba(56, 226, 255, 0.16);
-  border-left-color: var(--accent-cyan);
+  background: rgba(56, 226, 255, 0.22);
+  border-left: 3px solid var(--accent-cyan);
 }
+.asm-line.pc-v0 .ln-num { color: var(--accent-cyan); font-weight: 600; }
+.asm-line.pc-v0 .ln-addr { color: #a8f5ff; }
 
 .asm-line.pc-v1 {
-  background: rgba(255, 86, 177, 0.16);
-  border-left-color: var(--accent-magenta);
+  background: rgba(255, 86, 177, 0.22);
+  border-left: 3px solid var(--accent-magenta);
 }
+.asm-line.pc-v1 .ln-num { color: var(--accent-magenta); font-weight: 600; }
+.asm-line.pc-v1 .ln-addr { color: #ffa1d4; }
 
 .asm-line.pc-v2 {
-  background: rgba(255, 210, 76, 0.16);
-  border-left-color: var(--accent-yellow);
+  background: rgba(255, 210, 76, 0.22);
+  border-left: 3px solid var(--accent-yellow);
 }
+.asm-line.pc-v2 .ln-num { color: var(--accent-yellow); font-weight: 600; }
+.asm-line.pc-v2 .ln-addr { color: #ffe68a; }
 
 .asm-line.pc-seq {
-  background: rgba(69, 240, 139, 0.18);
-  border-left-color: var(--accent-green);
+  background: rgba(69, 240, 139, 0.24);
+  border-left: 3px solid var(--accent-green);
+}
+.asm-line.pc-seq .ln-num { color: var(--accent-green); font-weight: 600; }
+.asm-line.pc-seq .ln-addr { color: #8affaa; }
+
+.asm-line.pc-followed {
+  background: rgba(56, 226, 255, 0.35) !important;
+  border-left: 4px solid #ffffff !important;
+  box-shadow: inset 0 0 10px rgba(56, 226, 255, 0.35), 0 0 8px rgba(56, 226, 255, 0.2);
+}
+.asm-line.pc-followed.pc-v1 {
+  background: rgba(255, 86, 177, 0.35) !important;
+  box-shadow: inset 0 0 10px rgba(255, 86, 177, 0.35), 0 0 8px rgba(255, 86, 177, 0.2);
+}
+.asm-line.pc-followed.pc-v2 {
+  background: rgba(255, 210, 76, 0.35) !important;
+  box-shadow: inset 0 0 10px rgba(255, 210, 76, 0.35), 0 0 8px rgba(255, 210, 76, 0.2);
+}
+.asm-line.pc-followed.pc-seq {
+  background: rgba(69, 240, 139, 0.35) !important;
+  box-shadow: inset 0 0 10px rgba(69, 240, 139, 0.35), 0 0 8px rgba(69, 240, 139, 0.2);
+}
+.asm-line.pc-followed .ln-num,
+.asm-line.pc-followed .ln-addr {
+  color: #ffffff !important;
+  font-weight: 700;
 }
 
 .asm-line.search-match {

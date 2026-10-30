@@ -29,6 +29,7 @@ const state = {
   followPc: false,
   followVoice: 0,
   lastFollowedLine: 0,
+  lastFollowedVoiceCls: null,
   isEditingSource: false,
   prevHighlightedLines: [],
 };
@@ -351,11 +352,15 @@ function renderSidHexStripSkeleton() {
     grpEl.appendChild(cellsWrap);
     container.appendChild(grpEl);
   }
+  if (typeof domCache !== "undefined") {
+    domCache.sidCells = null;
+  }
 }
 
 function setFollowVoice(voice) {
   state.followVoice = voice;
   state.lastFollowedLine = 0;
+  state.lastFollowedVoiceCls = null;
   const chips = document.querySelectorAll(".legend-chip");
   chips.forEach((chip) => {
     chip.classList.toggle("active-followed", chip.dataset.voice === String(voice));
@@ -366,6 +371,10 @@ function setFollowVoice(voice) {
     chkFollow.checked = true;
   }
   state.followPc = true;
+
+  if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
+    updateLiveSourceHighlights(state.prevHighlightedLines);
+  }
 
   if (state.player && state.player.getState().isPlaying && state.prevHighlightedLines) {
     const targetCls = voice === "seq" ? "pc-seq" : `pc-v${voice}`;
@@ -555,8 +564,20 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
   }
   const el = document.getElementById(`asm-L${lineNo}`);
   const viewer = document.getElementById("source-viewer");
-  if (el && viewer && viewer.clientHeight > 0) {
-    const targetTop = el.offsetTop - (viewer.clientHeight / 2);
+  if (
+    el &&
+    viewer &&
+    viewer.clientHeight > 0 &&
+    typeof viewer.getBoundingClientRect === "function" &&
+    typeof el.getBoundingClientRect === "function"
+  ) {
+    const viewerRect = viewer.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const targetTop =
+      viewer.scrollTop +
+      (elRect.top - viewerRect.top) -
+      (viewer.clientHeight / 2) +
+      (elRect.height / 2);
     if (typeof viewer.scrollTo === "function") {
       viewer.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
     } else {
@@ -574,7 +595,73 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
 const c64Canvas = document.getElementById("c64-monitor-canvas");
 const c64Ctx = c64Canvas.getContext("2d");
 const c64ImgData = c64Ctx.createImageData(384, 272);
-const c64Pixels = new Uint8Array(c64ImgData.data.buffer);
+const c64Pixels32 = new Uint32Array(c64ImgData.data.buffer);
+
+const VIC_PALETTE_U32 = new Uint32Array(16);
+for (let i = 0; i < 16; i++) {
+  const [r, g, b, a] = VIC_PALETTE_RGBA[i];
+  VIC_PALETTE_U32[i] = (a << 24) | (b << 16) | (g << 8) | r;
+}
+
+const domCache = {
+  telFrame: null,
+  telPc: null,
+  telD418: null,
+  sidCells: null,
+  voices: null,
+  fltMode: null,
+  fltFc: null,
+  fltRes: null,
+  fltRout: null,
+  fltVol: null,
+  fltGrp: null,
+  seqPc: null,
+  grid: null,
+  viewer: null,
+};
+
+function getDom() {
+  if (!domCache.telFrame) {
+    domCache.telFrame = document.getElementById("tel-frame");
+    domCache.telPc = document.getElementById("tel-pc");
+    domCache.telD418 = document.getElementById("tel-d418");
+    domCache.sidCells = Array.from({ length: 25 }, (_, i) =>
+      document.getElementById(`sid-reg-${i}`)
+    );
+    domCache.voices = [0, 1, 2].map((v) => ({
+      note: document.getElementById(`v${v}-note`),
+      wf: document.getElementById(`v${v}-wf`),
+      pw: document.getElementById(`v${v}-pw`),
+      adsr: document.getElementById(`v${v}-adsr`),
+      env: document.getElementById(`v${v}-env`),
+      pc: document.getElementById(`v${v}-pc`),
+      grp: document.getElementById(`sid-group-v${v}`),
+    }));
+    domCache.fltMode = document.getElementById("filter-mode-tag");
+    domCache.fltFc = document.getElementById("flt-fc");
+    domCache.fltRes = document.getElementById("flt-res");
+    domCache.fltRout = document.getElementById("flt-rout");
+    domCache.fltVol = document.getElementById("flt-vol");
+    domCache.fltGrp = document.getElementById("sid-group-flt");
+    domCache.seqPc = document.getElementById("seq-pc");
+    domCache.grid = document.getElementById("workbench-grid");
+    domCache.viewer = document.getElementById("source-viewer");
+  }
+  return domCache;
+}
+
+const scopeCache = {};
+function getScopeCanvas(id) {
+  if (!scopeCache[id]) {
+    const c = document.getElementById(id);
+    if (c && typeof c.getContext === "function") {
+      scopeCache[id] = { canvas: c, ctx: c.getContext("2d") };
+    }
+  }
+  return scopeCache[id];
+}
+
+const lastSidRegs = new Uint8Array(25).fill(0xFF);
 
 function renderC64Monitor(ram, wasm) {
   const borderPtr = wasm.wasm_get_border_ptr();
@@ -583,63 +670,40 @@ function renderC64Monitor(ram, wasm) {
   for (let y = 0; y < 272; y++) {
     const vicLine = y + 20;
     const bdrColorIdx = scanlineBorder[vicLine] & 0x0F;
-    const bdrRgba = VIC_PALETTE_RGBA[bdrColorIdx];
+    const bdrPixel = VIC_PALETTE_U32[bdrColorIdx];
     const inScreenY = y >= 36 && y < 236;
     const screenY = y - 36;
     const textRow = screenY >> 3;
     const charRow = screenY & 7;
 
-    let dstIdx = y * 384 * 4;
+    const dstIdx = y * 384;
 
     if (!inScreenY) {
       for (let x = 0; x < 384; x++) {
-        c64Pixels[dstIdx]     = bdrRgba[0];
-        c64Pixels[dstIdx + 1] = bdrRgba[1];
-        c64Pixels[dstIdx + 2] = bdrRgba[2];
-        c64Pixels[dstIdx + 3] = 255;
-        dstIdx += 4;
+        c64Pixels32[dstIdx + x] = bdrPixel;
       }
       continue;
     }
 
     for (let x = 0; x < 32; x++) {
-      c64Pixels[dstIdx]     = bdrRgba[0];
-      c64Pixels[dstIdx + 1] = bdrRgba[1];
-      c64Pixels[dstIdx + 2] = bdrRgba[2];
-      c64Pixels[dstIdx + 3] = 255;
-      dstIdx += 4;
+      c64Pixels32[dstIdx + x] = bdrPixel;
     }
 
     const rowBase = textRow * 40;
+    let pixelOffset = dstIdx + 32;
     for (let col = 0; col < 40; col++) {
       const charCode = ram[0x0400 + rowBase + col];
       const fgColorIdx = ram[0xD800 + rowBase + col] & 0x0F;
-      const fgRgba = VIC_PALETTE_RGBA[fgColorIdx];
+      const fgPixel = VIC_PALETTE_U32[fgColorIdx];
       const glyphByte = C64_CHAR_ROM[charCode * 8 + charRow];
 
       for (let bit = 7; bit >= 0; bit--) {
-        const isFg = (glyphByte >> bit) & 1;
-        if (isFg) {
-          c64Pixels[dstIdx]     = fgRgba[0];
-          c64Pixels[dstIdx + 1] = fgRgba[1];
-          c64Pixels[dstIdx + 2] = fgRgba[2];
-          c64Pixels[dstIdx + 3] = 255;
-        } else {
-          c64Pixels[dstIdx]     = 0;
-          c64Pixels[dstIdx + 1] = 0;
-          c64Pixels[dstIdx + 2] = 0;
-          c64Pixels[dstIdx + 3] = 255;
-        }
-        dstIdx += 4;
+        c64Pixels32[pixelOffset++] = ((glyphByte >> bit) & 1) ? fgPixel : 0xFF000000;
       }
     }
 
     for (let x = 0; x < 32; x++) {
-      c64Pixels[dstIdx]     = bdrRgba[0];
-      c64Pixels[dstIdx + 1] = bdrRgba[1];
-      c64Pixels[dstIdx + 2] = bdrRgba[2];
-      c64Pixels[dstIdx + 3] = 255;
-      dstIdx += 4;
+      c64Pixels32[pixelOffset + x] = bdrPixel;
     }
   }
 
@@ -671,8 +735,9 @@ function decodeControlWaveforms(ctrl) {
 }
 
 function drawVoiceScope(canvasId, scopeData, chOffset, colorHex) {
-  const canvas = document.getElementById(canvasId);
-  const ctx = canvas.getContext("2d");
+  const cached = getScopeCanvas(canvasId);
+  if (!cached) return;
+  const { canvas, ctx } = cached;
   const w = canvas.width;
   const h = canvas.height;
 
@@ -710,8 +775,9 @@ function drawVoiceScope(canvasId, scopeData, chOffset, colorHex) {
 }
 
 function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
-  const canvas = document.getElementById("scope-master");
-  const ctx = canvas.getContext("2d");
+  const cached = getScopeCanvas("scope-master");
+  if (!cached) return;
+  const { canvas, ctx } = cached;
   const w = canvas.width;
   const h = canvas.height;
 
@@ -776,6 +842,7 @@ function renderFrameLoop() {
     const wasm = state.player.wasm;
     const ram = state.player.getRamView();
     const asm = state.player.getAssembled(state.activeGameId);
+    const d = getDom();
 
     if (state.activeGameId === "rambload.asm" && asm) {
       updateRamboMonitorScreen(ram, asm);
@@ -785,14 +852,23 @@ function renderFrameLoop() {
       }
     }
 
-    renderC64Monitor(ram, wasm);
+    const isMonitorVisible =
+      !d.grid ||
+      !d.grid.dataset ||
+      !d.grid.dataset.mobileView ||
+      d.grid.dataset.mobileView === "all" ||
+      d.grid.dataset.mobileView === "monitor";
 
-    document.getElementById("tel-frame").textContent =
-      wasm.wasm_get_frame_count();
-    document.getElementById("tel-pc").textContent =
-      "$" + wasm.wasm_get_cpu_pc().toString(16).toUpperCase().padStart(4, "0");
-    document.getElementById("tel-d418").textContent =
-      wasm.wasm_get_d418_activity();
+    if (isMonitorVisible) {
+      renderC64Monitor(ram, wasm);
+    }
+
+    if (d.telFrame) d.telFrame.textContent = wasm.wasm_get_frame_count();
+    if (d.telPc) {
+      d.telPc.textContent =
+        "$" + wasm.wasm_get_cpu_pc().toString(16).toUpperCase().padStart(4, "0");
+    }
+    if (d.telD418) d.telD418.textContent = wasm.wasm_get_d418_activity();
 
     const sidRegs = new Uint8Array(
       wasm.memory.buffer,
@@ -800,9 +876,12 @@ function renderFrameLoop() {
       32
     );
     for (let i = 0; i <= 0x18; i++) {
-      const cell = document.getElementById(`sid-reg-${i}`);
-      if (cell) {
-        cell.textContent = sidRegs[i].toString(16).toUpperCase().padStart(2, "0");
+      if (lastSidRegs[i] !== sidRegs[i]) {
+        lastSidRegs[i] = sidRegs[i];
+        const cell = d.sidCells[i];
+        if (cell) {
+          cell.textContent = sidRegs[i].toString(16).toUpperCase().padStart(2, "0");
+        }
       }
     }
 
@@ -826,31 +905,38 @@ function renderFrameLoop() {
       const ad = sidRegs[v * 7 + 5];
       const sr = sidRegs[v * 7 + 6];
 
-      document.getElementById(`v${v}-note`).textContent = sidFreqToNoteString(freq);
-      document.getElementById(`v${v}-wf`).textContent = decodeControlWaveforms(ctrl);
-      document.getElementById(`v${v}-pw`).textContent =
-        "$" + pw.toString(16).toUpperCase().padStart(3, "0");
-      document.getElementById(`v${v}-adsr`).textContent =
-        `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
-      document.getElementById(`v${v}-env`).textContent =
-        env.toString(16).toUpperCase().padStart(2, "0");
+      const vDom = d.voices[v];
+      if (vDom.note) vDom.note.textContent = sidFreqToNoteString(freq);
+      if (vDom.wf) vDom.wf.textContent = decodeControlWaveforms(ctrl);
+      if (vDom.pw) {
+        vDom.pw.textContent = "$" + pw.toString(16).toUpperCase().padStart(3, "0");
+      }
+      if (vDom.adsr) {
+        vDom.adsr.textContent =
+          `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
+      }
+      if (vDom.env) {
+        vDom.env.textContent = env.toString(16).toUpperCase().padStart(2, "0");
+      }
 
-      drawVoiceScope(`scope-v${v}`, scopeData, v, colors[v]);
+      if (isMonitorVisible) {
+        drawVoiceScope(`scope-v${v}`, scopeData, v, colors[v]);
+      }
 
       const isVoiceActive = env > 0 || (ctrl & 0x01) !== 0;
-      const grp = document.getElementById(`sid-group-v${v}`);
-      if (grp) {
-        grp.classList.toggle("active", isVoiceActive);
+      if (vDom.grp) {
+        vDom.grp.classList.toggle("active", isVoiceActive);
       }
 
       if (asm && pcSyms[v] && asm.symbols[pcSyms[v]] !== undefined) {
         const zpAddr = asm.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
-        const pcEl = document.getElementById(`v${v}-pc`);
-        pcEl.textContent = `PC${v}: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+        if (vDom.pc) {
+          vDom.pc.textContent = `PC${v}: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+        }
         const lineNo = findNearestSourceLine(asm, seqPtr);
         if (lineNo) {
-          pcEl.dataset.line = lineNo;
+          if (vDom.pc) vDom.pc.dataset.line = lineNo;
           activeLines.push({ lineNo, cls: `pc-v${v}` });
         }
       }
@@ -867,13 +953,13 @@ function renderFrameLoop() {
     if (mode & 0x20) modeTags.push("BP");
     if (mode & 0x40) modeTags.push("HP");
     if (mode & 0x80) modeTags.push("3OFF");
-    document.getElementById("filter-mode-tag").textContent =
-      modeTags.length ? modeTags.join("+") : "BYPASS";
+    if (d.fltMode) d.fltMode.textContent = modeTags.length ? modeTags.join("+") : "BYPASS";
 
     const cutoffHz = Math.round(30 + (fc / 2047) * 10000);
-    document.getElementById("flt-fc").textContent =
-      `$${fc.toString(16).toUpperCase().padStart(3, "0")} (${cutoffHz}Hz)`;
-    document.getElementById("flt-res").textContent = res;
+    if (d.fltFc) {
+      d.fltFc.textContent = `$${fc.toString(16).toUpperCase().padStart(3, "0")} (${cutoffHz}Hz)`;
+    }
+    if (d.fltRes) d.fltRes.textContent = res;
 
     const routStr = [
       rout & 1 ? "V1" : "",
@@ -882,33 +968,35 @@ function renderFrameLoop() {
     ]
       .filter(Boolean)
       .join("+");
-    document.getElementById("flt-rout").textContent = routStr || "NONE";
-    document.getElementById("flt-vol").textContent = vol;
+    if (d.fltRout) d.fltRout.textContent = routStr || "NONE";
+    if (d.fltVol) d.fltVol.textContent = vol;
 
     const isFltActive = vol > 0 && rout > 0;
-    const fltGrp = document.getElementById("sid-group-flt");
-    if (fltGrp) {
-      fltGrp.classList.toggle("active", isFltActive);
+    if (d.fltGrp) {
+      d.fltGrp.classList.toggle("active", isFltActive);
     }
 
-    drawMasterAndFilterScope(scopeData, fc, res, mode);
+    if (isMonitorVisible) {
+      drawMasterAndFilterScope(scopeData, fc, res, mode);
+    }
 
-    const seqPcEl = document.getElementById("seq-pc");
     if (
       state.activeGameId === "arkadrum.asm" ||
       state.activeGameId === "gameover.asm"
     ) {
       const seqPtr = ram[0x50] | (ram[0x51] << 8);
-      seqPcEl.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+      if (d.seqPc) {
+        d.seqPc.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+      }
       if (asm) {
         const lineNo = findNearestSourceLine(asm, seqPtr);
         if (lineNo) {
-          seqPcEl.dataset.line = lineNo;
+          if (d.seqPc) d.seqPc.dataset.line = lineNo;
           activeLines.push({ lineNo, cls: "pc-seq" });
         }
       }
-    } else {
-      seqPcEl.textContent = "DRUM: ----";
+    } else if (d.seqPc) {
+      d.seqPc.textContent = "DRUM: ----";
     }
 
     updateLiveSourceHighlights(activeLines);
@@ -927,15 +1015,42 @@ function findNearestSourceLine(asm, addr) {
 }
 
 function updateLiveSourceHighlights(activeLines) {
-  for (const prev of state.prevHighlightedLines) {
-    const el = document.getElementById(`asm-L${prev.lineNo}`);
-    if (el) el.classList.remove(prev.cls);
+  const followedCls =
+    state.followPc && activeLines.length > 0
+      ? state.followVoice === "seq"
+        ? "pc-seq"
+        : `pc-v${state.followVoice}`
+      : null;
+
+  const prevLines = state.prevHighlightedLines || [];
+  const linesUnchanged =
+    prevLines.length === activeLines.length &&
+    state.lastFollowedVoiceCls === followedCls &&
+    prevLines.every((p, idx) => {
+      const c = activeLines[idx];
+      return c && p.lineNo === c.lineNo && p.cls === c.cls;
+    });
+
+  if (!linesUnchanged) {
+    for (const prev of prevLines) {
+      const el = document.getElementById(`asm-L${prev.lineNo}`);
+      if (el) {
+        el.classList.remove(prev.cls);
+        el.classList.remove("pc-followed");
+      }
+    }
+    for (const curr of activeLines) {
+      const el = document.getElementById(`asm-L${curr.lineNo}`);
+      if (el) {
+        el.classList.add(curr.cls);
+        if (followedCls && curr.cls === followedCls) {
+          el.classList.add("pc-followed");
+        }
+      }
+    }
+    state.prevHighlightedLines = activeLines;
+    state.lastFollowedVoiceCls = followedCls;
   }
-  for (const curr of activeLines) {
-    const el = document.getElementById(`asm-L${curr.lineNo}`);
-    if (el) el.classList.add(curr.cls);
-  }
-  state.prevHighlightedLines = activeLines;
 
   if (
     state.followPc &&
@@ -1110,6 +1225,10 @@ function setupUIHandlers() {
   document.getElementById("chk-follow-pc").addEventListener("change", (e) => {
     state.followPc = e.target.checked;
     state.lastFollowedLine = 0;
+    state.lastFollowedVoiceCls = null;
+    if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
+      updateLiveSourceHighlights(state.prevHighlightedLines);
+    }
     if (
       state.followPc &&
       state.player &&
