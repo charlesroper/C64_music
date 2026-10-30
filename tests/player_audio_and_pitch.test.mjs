@@ -248,3 +248,45 @@ test("all 73 catalog tracks and arcade SFX across all 6 .asm files produce valid
 
   assert.equal(verifiedCount, 73);
 });
+
+test("track catalog metadata integrity: unique IDs, valid duration hints, authentic keys, and no em-dashes", () => {
+  const allIds = new Set();
+  let totalTracks = 0;
+
+  for (const game of GAME_FILES) {
+    assert.ok(game.id && game.title, `Game missing id or title`);
+    assert.ok(!/[\u2014—]/.test(game.title), `Game title contains em-dash: ${game.title}`);
+    assert.ok(!/[\u2014—]/.test(game.summary), `Game summary contains em-dash`);
+
+    for (const track of game.tracks) {
+      totalTracks++;
+      assert.ok(!allIds.has(track.id), `Duplicate track ID: ${track.id}`);
+      allIds.add(track.id);
+
+      assert.ok(track.name && track.name.length > 0, `Track ${track.id} has empty name`);
+      assert.ok(track.category === "music" || track.category === "sfx", `Invalid category on ${track.id}`);
+      assert.ok(track.description && track.description.length > 0, `Track ${track.id} has empty description`);
+
+      assert.ok(!/[\u2014—]/.test(track.name), `Track name contains em-dash: ${track.name}`);
+      assert.ok(!/[\u2014—]/.test(track.description), `Track description contains em-dash: ${track.description}`);
+
+      assert.ok(
+        track.durationHint === "Loops" || /^[0-9]+:[0-9]{2}(\s*\/\s*Loop)?$/.test(track.durationHint),
+        `Track ${track.id} has invalid durationHint: "${track.durationHint}"`
+      );
+    }
+  }
+
+  assert.equal(totalTracks, 73);
+
+  // Wizball specific verification
+  const wiz = GAME_FILES.find((g) => g.id === "wizball.asm");
+  assert.ok(wiz, "wizball.asm not found in catalog");
+  const filth = wiz.tracks.find((t) => t.id === "wiz-filth");
+  assert.ok(filth, "wiz-filth not found");
+  assert.equal(filth.key, "B");
+  assert.equal(filth.durationHint, "0:05");
+
+  const keys = wiz.tracks.map((t) => t.key).sort();
+  assert.deepEqual(keys, ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]);
+});
