@@ -32,7 +32,7 @@ Galway's sources show him working around those limits:
 
 ## 3. What you see in the player
 
-* **Header and version.** The top banner displays the title, the WebAssembly engine status light, and the CalVer release badge.
+* **Header and version.** The top banner displays the title, the WebAssembly engine status light, and the subtle CalVer release pill, formatted cleanly across desktop and mobile screens.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
@@ -175,7 +175,7 @@ The workbench layout adapts to the screen size:
 
 * **Desktop.** Three columns show the tunes and controls on the left, the live C64 monitor and oscilloscopes in the centre, and the assembly source viewer on the right.
 * **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side while the assembly source spans the full width below, preserving natural vertical scrolling.
-* **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source.
+* **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source, with the brand header neatly framing the author and version.
 * **Character display.** Screen memory at `$0400` renders with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text.
 
 ---

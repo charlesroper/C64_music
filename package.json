@@ -1,6 +1,6 @@
 {
   "name": "martin-galway-c64-sid-workbench",
-  "version": "2026.10.30.1",
+  "version": "2026.10.30.2",
   "private": true,
   "type": "module",
   "description": "WebAssembly MOS 6510 + 6581/8580 SID emulator and live 1987 Ocean Software 6502 cross-assembler",
