@@ -44,6 +44,14 @@ export function applyVersion(nextVersion) {
     /<span class="brand-version" id="app-version">v[^<]*<\/span>/,
     `<span class="brand-version" id="app-version">v${nextVersion}</span>`
   );
+  html = html.replace(
+    /href="\.\/src\/styles\.css(?:\?v=[^"]*)?"/,
+    `href="./src/styles.css?v=${nextVersion}"`
+  );
+  html = html.replace(
+    /src="\.\/src\/app\.js(?:\?v=[^"]*)?"/,
+    `src="./src/app.js?v=${nextVersion}"`
+  );
   fs.writeFileSync(htmlPath, html, "utf8");
 
   // 3. src/version.js

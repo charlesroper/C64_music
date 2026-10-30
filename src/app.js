@@ -28,6 +28,7 @@ const state = {
 
   followPc: false,
   followVoice: 0,
+  lastFollowedLine: 0,
   isEditingSource: false,
   prevHighlightedLines: [],
 };
@@ -354,21 +355,23 @@ function renderSidHexStripSkeleton() {
 
 function setFollowVoice(voice) {
   state.followVoice = voice;
+  state.lastFollowedLine = 0;
   const chips = document.querySelectorAll(".legend-chip");
   chips.forEach((chip) => {
     chip.classList.toggle("active-followed", chip.dataset.voice === String(voice));
   });
 
   const chkFollow = document.getElementById("chk-follow-pc");
-  if (chkFollow && !chkFollow.checked) {
+  if (chkFollow) {
     chkFollow.checked = true;
-    state.followPc = true;
   }
+  state.followPc = true;
 
   if (state.player && state.player.getState().isPlaying && state.prevHighlightedLines) {
     const targetCls = voice === "seq" ? "pc-seq" : `pc-v${voice}`;
     const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
     if (targetLine) {
+      state.lastFollowedLine = targetLine.lineNo;
       scrollToSourceLine(targetLine.lineNo);
     }
   }
@@ -551,7 +554,15 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
     }
   }
   const el = document.getElementById(`asm-L${lineNo}`);
-  if (el) {
+  const viewer = document.getElementById("source-viewer");
+  if (el && viewer && viewer.clientHeight > 0) {
+    const targetTop = el.offsetTop - (viewer.clientHeight / 2);
+    if (typeof viewer.scrollTo === "function") {
+      viewer.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+    } else {
+      viewer.scrollTop = Math.max(0, targetTop);
+    }
+  } else if (el && typeof el.scrollIntoView === "function") {
     el.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 }
@@ -934,7 +945,8 @@ function updateLiveSourceHighlights(activeLines) {
   ) {
     const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
     const targetLine = activeLines.find((al) => al.cls === targetCls);
-    if (targetLine) {
+    if (targetLine && targetLine.lineNo !== state.lastFollowedLine) {
+      state.lastFollowedLine = targetLine.lineNo;
       scrollToSourceLine(targetLine.lineNo);
     }
   }
@@ -1085,7 +1097,9 @@ function setupUIHandlers() {
   });
 
   document.querySelectorAll(".legend-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
+    chip.addEventListener("click", (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (e && e.stopPropagation) e.stopPropagation();
       if (chip.classList.contains("disabled")) return;
       const voiceAttr = chip.dataset.voice;
       const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
@@ -1095,6 +1109,7 @@ function setupUIHandlers() {
 
   document.getElementById("chk-follow-pc").addEventListener("change", (e) => {
     state.followPc = e.target.checked;
+    state.lastFollowedLine = 0;
     if (
       state.followPc &&
       state.player &&
@@ -1104,6 +1119,7 @@ function setupUIHandlers() {
       const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
+        state.lastFollowedLine = targetLine.lineNo;
         scrollToSourceLine(targetLine.lineNo);
       }
     }

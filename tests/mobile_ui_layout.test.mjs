@@ -604,7 +604,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   assert.equal(cellsDesktop.display, "flex", ".sid-hex-cells must be flex on desktop");
   assert.equal(cellsDesktop["flex-wrap"], "wrap", ".sid-hex-cells must allow flex-wrap");
 
-  // Mobile styles: column strip with wrap and stretch
+  // Mobile styles: column strip with stacked voice groups and no horizontal overflow
   const stripMobile = computeStyleForSelector(rules, [".sid-hex-strip"], mobile);
   assert.equal(
     stripMobile["flex-direction"],
@@ -613,15 +613,22 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   );
   assert.equal(
     stripMobile["overflow-x"],
-    "visible",
+    "hidden",
     ".sid-hex-strip must eliminate horizontal scroll on mobile"
   );
 
+  const cellsMobile = computeStyleForSelector(rules, [".sid-hex-cells"], mobile);
+  assert.equal(
+    cellsMobile["flex-direction"],
+    "column",
+    ".sid-hex-cells must stack sections vertically on mobile"
+  );
+
   const groupMobile = computeStyleForSelector(rules, [".sid-hex-group"], mobile);
-  assert.match(
-    groupMobile.flex,
-    /calc\(50%/,
-    ".sid-hex-group must stack two across (50% basis) on mobile viewports"
+  assert.equal(
+    groupMobile.width,
+    "100%",
+    ".sid-hex-group must stack as full-width rows on mobile viewports"
   );
 });
 
