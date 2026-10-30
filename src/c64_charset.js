@@ -195,9 +195,6 @@ for (let ch = 0; ch < 256; ch++) {
 }
 
 // Authentic Commodore 64 Colorful Rainbow Palette
-// Derived from authentic VIC-II palette colors for vibrant 80s synth and computer branding:
-// G: Light Red (#C46C71), A: Orange (#8E5029), L: Yellow (#EDF171), W: Light Green (#A9FF9F),
-// A: Cyan (#75CEC8), Y: Light Blue (#706DEB), 6: Yellow (#EDF171), 4: White (#FFFFFF)
 export const C64_RAINBOW_PALETTE = [
   VIC_PALETTE[10], // G: Light Red
   VIC_PALETTE[8],  // A: Orange
@@ -209,13 +206,23 @@ export const C64_RAINBOW_PALETTE = [
   VIC_PALETTE[1],  // 4: White
 ];
 
+// Authentic Commodore 64 Sparkle / Reflection Palette (valid VIC-II colors)
+export const C64_SPARKLE_PALETTE = [
+  VIC_PALETTE[3],  // Cyan (#75CEC8)
+  VIC_PALETTE[7],  // Yellow (#EDF171)
+  VIC_PALETTE[1],  // White peak (#FFFFFF)
+  VIC_PALETTE[13], // Light Green (#A9FF9F)
+  VIC_PALETTE[14], // Light Blue (#706DEB)
+];
+
 /**
  * Generate an accessible, pixel-perfect SVG logo or banner using authentic C64 PETSCII glyphs.
  * Each character is rendered from C64_CHAR_ROM with shape-rendering="crispEdges".
+ * Defaults to pure white (#FFFFFF, VIC-II 1) with retro C64 sparkle effects handled via CSS.
  */
 export function generateC64TextSvg(text = "GALWAY 64", options = {}) {
   const {
-    colors = C64_RAINBOW_PALETTE,
+    colors = [VIC_PALETTE[1]], // Default to authentic C64 White (#FFFFFF)
     charSpacing = 8,
     spaceWidth = 8,
     padX = 1,

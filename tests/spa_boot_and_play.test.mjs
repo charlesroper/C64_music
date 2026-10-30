@@ -331,7 +331,7 @@ test("CalVer version number appears immediately after the title of the app", asy
   const titleContent = match[1];
   assert.match(
     titleContent,
-    /<span class="brand-logo"[^>]*role="img"[^>]*aria-label="Galway 64"[^>]*>[\s\S]*?<span class="sr-only">Galway 64<\/span>\s*<\/span>\s*<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    /<span class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 64"[^>]*>[\s\S]*?<span class="sr-only">Galway 64<\/span>\s*<\/span>\s*<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
     "Version badge must be placed immediately after the app title"
   );
 
@@ -348,14 +348,27 @@ test("CalVer version number appears immediately after the title of the app", asy
   assert.equal(computeNextVersion("2026.10.30.1", mockDate), "2026.10.30.2");
   assert.equal(computeNextVersion("2026.10.30.2", mockDate), "2026.10.30.3");
   assert.equal(computeNextVersion("2026.10.30.3", mockDate), "2026.10.30.4");
+  assert.equal(computeNextVersion("2026.10.30.4", mockDate), "2026.10.30.5");
 
-  // Verify Galway 64 C64 logo generator uses authentic C64 character ROM and VIC palette
-  const { getGalway64LogoSvg, C64_RAINBOW_PALETTE, VIC_PALETTE } = await import("../src/c64_charset.js");
+  // Verify Galway 64 C64 logo generator defaults to pure white and uses authentic character ROM
+  const { getGalway64LogoSvg, generateC64TextSvg, C64_RAINBOW_PALETTE, C64_SPARKLE_PALETTE, VIC_PALETTE } = await import("../src/c64_charset.js");
   const svg = getGalway64LogoSvg();
   assert.ok(svg.includes('aria-label="Galway 64"'), "Logo SVG must contain accessible aria-label");
   assert.ok(svg.includes('<title>Galway 64</title>'), "Logo SVG must contain accessible title");
   assert.ok(svg.includes('shape-rendering="crispEdges"'), "Logo SVG must specify crispEdges");
-  assert.ok(svg.includes(`fill="${VIC_PALETTE[10]}"`), "Logo SVG must include authentic VIC Light Red for G");
-  assert.ok(svg.includes(`fill="${VIC_PALETTE[1]}"`), "Logo SVG must include authentic VIC White for 4");
+  assert.ok(svg.includes(`fill="${VIC_PALETTE[1]}"`), "Logo SVG must default to authentic VIC White (#FFFFFF)");
+
+  // Rainbow palette is preserved for custom color runs
+  const rainbowSvg = generateC64TextSvg("GALWAY 64", { colors: C64_RAINBOW_PALETTE });
+  assert.ok(rainbowSvg.includes(`fill="${VIC_PALETTE[10]}"`), "Custom rainbow logo must support Light Red");
   assert.equal(C64_RAINBOW_PALETTE.length, 8, "C64 rainbow palette must have 8 authentic colors");
+
+  // Verify sparkle reflection palette and CSS rules
+  assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[3]), "Sparkle palette must include Cyan");
+  assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[7]), "Sparkle palette must include Yellow");
+  assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[1]), "Sparkle palette must include White");
+
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  assert.ok(css.includes("@keyframes c64-sparkle-sweep"), "CSS must contain c64-sparkle-sweep keyframes");
+  assert.ok(css.includes(".brand-logo.sparkle-active"), "CSS must contain sparkle-active class selector");
 });

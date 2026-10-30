@@ -1114,6 +1114,33 @@ function setupUIHandlers() {
     });
   }
 
+  // Galway 64 C64 logo sparkle reflection animation & easter egg
+  const brandLogo = document.querySelector(".brand-logo");
+  if (brandLogo) {
+    let sparkleTimer = null;
+    const triggerSparkle = () => {
+      brandLogo.classList.remove("sparkle-active");
+      void brandLogo.offsetWidth;
+      brandLogo.classList.add("sparkle-active");
+      if (sparkleTimer) clearTimeout(sparkleTimer);
+      sparkleTimer = setTimeout(() => {
+        brandLogo.classList.remove("sparkle-active");
+      }, 1000);
+    };
+
+    brandLogo.addEventListener("click", triggerSparkle);
+    brandLogo.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        triggerSparkle();
+      }
+    });
+
+    // Run periodically every 10 seconds and once on startup
+    setInterval(triggerSparkle, 10000);
+    setTimeout(triggerSparkle, 1200);
+  }
+
   window.addEventListener("keydown", (e) => {
     const tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;

@@ -32,7 +32,7 @@ Galway's sources show him working around those limits:
 
 ## 3. What you see in the player
 
-* **Header, logo and version.** The top banner displays the colourful Galway 64 logo rendered with authentic Commodore 64 PETSCII character ROM glyphs, the WebAssembly engine status light, and the subtle CalVer release pill, formatted cleanly across desktop and mobile screens.
+* **Header, logo and version.** The top banner displays the white Galway 64 logo rendered with authentic Commodore 64 PETSCII character ROM glyphs, featuring a retro light reflection sparkle cycling valid VIC-II colours, the WebAssembly engine status light, and the subtle CalVer release pill, formatted cleanly across desktop and mobile screens.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
@@ -176,7 +176,7 @@ The workbench layout adapts to the screen size:
 * **Desktop.** Three columns show the tunes and controls on the left, the live C64 monitor and oscilloscopes in the centre, and the assembly source viewer on the right.
 * **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side while the assembly source spans the full width below, preserving natural vertical scrolling.
 * **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source, with the brand header neatly framing the Galway 64 logo and version.
-* **Character display and logo.** Screen memory at `$0400` and the Galway 64 header logo render with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text in authentic Commodore 64 palette colours.
+* **Character display and logo.** Screen memory at `$0400` and the Galway 64 header logo render with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text. The white logo glints with a retro light sparkle effect cycling valid Commodore 64 palette colours on click or every 10 seconds.
 
 ---
 
@@ -223,7 +223,7 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
 * **Versioning.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`).
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
-* **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the Galway 64 brand logo renders with authentic C64 rainbow colours.
+* **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 64 brand logo features a retro reflection sparkle cycling valid VIC-II colours.
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, and control checkboxes synchronize on boot.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
