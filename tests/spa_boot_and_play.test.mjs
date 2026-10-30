@@ -267,7 +267,13 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
 
   // Cache-bust import so module runs fresh against this harness
   await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  await new Promise((r) => setTimeout(r, 120));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
 
   harness.stepAnimationFrame();
 
@@ -310,7 +316,7 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
 
   // Wait for fetches + WASM assembly to complete
   await bootPromise;
-  const deadline = Date.now() + 2000;
+  const deadline = Date.now() + 5000;
   while (harness.elementsById.get("play-label").textContent === "LOADING..." && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 20));
   }

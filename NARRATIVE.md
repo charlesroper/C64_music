@@ -221,7 +221,7 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Metadata.** All 73 tracks carry non-empty descriptions, valid duration hints, authentic keys and unique identifiers.
 * **Drums.** The `$D418` drum routines produce sound, and the volume control for them works.
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
-* **Versioning.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`).
+* **Versioning and deployment.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`), with automated deployments pushed directly to GitHub Pages (`scripts/deploy.mjs`).
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
 * **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 64 brand logo features a retro reflection sparkle cycling valid VIC-II colours.
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronize on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.

@@ -55,3 +55,26 @@ Follow Chris Beams' git commit message guidelines:
 - Separate subject from body with a blank line.
 - Limit subject line to 50 characters, capitalized, imperative mood ("Add...", "Fix...", "Update..."), no trailing period.
 - Wrap body text at 72 characters.
+
+## 6. GitHub Pages Deployment ("Ship it" / "Deploy")
+
+When the user says "ship it", "deploy", or asks to publish, deploy to GitHub Pages:
+
+### Deployment Target
+- **Remote & Branch**: Push to `fork main` (`git push fork main`).
+- **Live URL**: `https://charlesroper.github.io/C64_music/`
+- **Hosting**: GitHub Pages serves directly from the root `/` of `main` on `fork`.
+
+### Quick Command
+Run:
+```bash
+npm run deploy
+```
+This runs the full test suite (`npm test`) and pushes to `fork/main`.
+
+### Deployment Checklist
+1. **CalVer Bumping**: Run `npm run bump` to update `package.json`, `index.html`, and `src/version.js`.
+2. **Docs & Test Sync**: Verify all tests pass (`npm test`) and test counts match in `README.md` and `NARRATIVE.md`.
+3. **Commit**: Commit changes following Chris Beams standards (Section 5).
+4. **Deploy**: Run `npm run deploy` (or `git push fork main`).
+5. **Verification**: Confirm the build at `gh api repos/charlesroper/C64_music/pages/builds/latest` or curl `https://charlesroper.github.io/C64_music/`. Report the live URL, CalVer version, and commit hash.

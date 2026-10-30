@@ -111,6 +111,19 @@ The script (`scripts/bump_version.mjs`) updates `package.json`, `index.html` (he
 
 ---
 
+## Deploying to GitHub Pages
+
+The application deploys as a static site hosted on GitHub Pages at [https://charlesroper.github.io/C64_music/](https://charlesroper.github.io/C64_music/).
+
+To run the automated deployment:
+```bash
+npm run deploy
+```
+
+The deploy script (`scripts/deploy.mjs`) executes the full test suite (`npm test`) and pushes the release to `fork/main`.
+
+---
+
 ## Rebuilding the WebAssembly sound core (optional)
 
 The pre-compiled WebAssembly binary is located at `wasm/c64_engine.wasm` (about 25KB) and is committed to the repository. You only need to rebuild it if you modify the C emulator source code in `src/wasm/c64_engine.c`.

@@ -1,11 +1,12 @@
 {
   "name": "galway-64",
-  "version": "2026.10.30.6",
+  "version": "2026.10.30.7",
   "private": true,
   "type": "module",
   "description": "Galway 64: WebAssembly MOS 6510 + 6581/8580 SID emulator and live 1987 Ocean Software 6502 cross-assembler",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "bump": "node scripts/bump_version.mjs"
+    "bump": "node scripts/bump_version.mjs",
+    "deploy": "node scripts/deploy.mjs"
   }
 }
