@@ -213,10 +213,11 @@ The header of `gameover.asm` reads:
 
 The player was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with a human listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 16 automated checks across four test files:
+`npm test` runs 17 automated checks across four test files:
 
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
+* **Metadata.** All 73 tracks carry non-empty descriptions, valid duration hints, authentic keys and unique identifiers.
 * **Drums.** The `$D418` drum routines produce sound, and the volume control for them works.
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
