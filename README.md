@@ -12,7 +12,7 @@ For the full story of Galway's technical innovations, the historical context, an
 2. **Runs a standalone WebAssembly 6510 and SID engine.** A freestanding C core compiled to WebAssembly executes the assembled code clock by clock, with 200Hz raster timer interrupts, Chamberlin filter modelling, and 15Hz AC coupling.
 3. **Supports the complete catalogue.** Plays all six original assembly sources and all 73 tracks and sound effects without requiring disk images or emulator installations.
 4. **Visualises developer telemetry.** Recreates Galway's original light grey `$0400` memory display with authentic 256-glyph C64 character ROM rendering and `$D020` border raster profiler alongside 4-channel hardware oscilloscopes.
-5. **Enables live in-browser editing and hot-reloading.** Lets you adjust Galway's note values, instruments, or filter settings in the source viewer, assemble the changes, and hear them in running C64 memory in real time.
+5. **Enables live in-browser editing and hot-reloading.** Lets you follow Galway's program counter with adaptive smooth scrolling that tracks fast 16th notes without lag, adjust note values, instruments, or filter settings in the source viewer, assemble the changes, and hear them in running C64 memory in real time.
 
 ---
 
@@ -90,10 +90,10 @@ Run the test suite from the repository root:
 npm test
 ```
 
-The test runner executes 19 automated checks across four test files:
+The test runner executes 20 automated checks across four test files:
 * `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesized tones match the MOS 6581 datasheet pitch formula across 44.1kHz, 48kHz, PAL and NTSC configurations. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis, pause controls, channel mute masks, and catalog metadata integrity.
 * `tests/spa_boot_and_play.test.mjs`: Tests AudioContext gesture unlocks, verifies that audio starts cleanly even when playback is triggered before WebAssembly and assembly assets finish downloading, and validates CalVer versioning.
-* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow Voice), interactive voice tracking chips (V1, V2, V3, DRM), responsive $D400-$D418 hardware register group stacking with active sound lights, and jitter-free Section 4 telemetry rendering with tabular numbers.
+* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow Voice), interactive voice tracking chips (V1, V2, V3, DRM), responsive $D400-$D418 hardware register group stacking with active sound lights, jitter-free Section 4 telemetry rendering with tabular numbers, and adaptive requestAnimationFrame smooth scrolling for code tracking with leap pre-positioning and user touch cancellation.
 * `tests/narrative.test.mjs`: Validates the custom markdown renderer, confirms that all quotations in [NARRATIVE.md](NARRATIVE.md) match Galway's sources verbatim, and checks cited line numbers and equates against the original assembly files.
 
 ---
@@ -166,7 +166,7 @@ The application is structured into five focused modules:
 2. **Cycle-accurate emulation core (`src/wasm/c64_engine.c`)**: A freestanding C core compiled to WebAssembly that emulates the MOS 6510 CPU, VIC-II raster timer (63 cycles per line on PAL, 65 on NTSC), and the MOS 6581/8580 SID synthesizer. It includes a 2x-oversampled Chamberlin state-variable filter, a 15Hz high-pass AC-coupling filter matching the C64 motherboard output capacitor, and a cubic soft saturation curve (`soft_saturate`) to prevent harsh clipping.
 3. **Web Audio driver (`src/player_engine.js`)**: Coordinates audio sample rate negotiation (44.1kHz or 48kHz), synchronizes the WebAssembly clock divider, routes stereo audio through a ScriptProcessorNode with a silent looping buffer, and manages mobile WebKit autoplay unlocks.
 4. **C64 Character ROM and logo (`src/c64_charset.js`)**: Decodes authentic 8x8 bitmap glyphs for all 256 C64 PETSCII character codes, including lowercase letters, uppercase graphics, and punctuation. Generates the white Galway 2664 brand logo with a retro reflection sparkle cycling valid VIC-II palette colors, and renders the `$0400` telemetry monitor directly to the CRT canvas.
-5. **Studio workbench interface and track catalogue (`src/app.js`, `src/tracks_catalog.js`, `src/styles.css`, `index.html`)**: Provides the CRT memory display (`$0400`), border profiler raster bars (`$D020`), 4-channel oscilloscopes, live code disassembly tracking voice program counters (`PC0` to `PC2`), complete metadata and registers for all 73 tracks, adaptive responsive breakpoints for mobile and laptop screens with refined brand header typography, and the in-app narrative modal overlay rendered by `src/markdown.js`.
+5. **Studio workbench interface and track catalogue (`src/app.js`, `src/tracks_catalog.js`, `src/styles.css`, `index.html`)**: Provides the CRT memory display (`$0400`), border profiler raster bars (`$D020`), 4-channel oscilloscopes, live code disassembly tracking voice program counters (`PC0` to `PC2`, `seqPC`) with adaptive smooth scrolling, complete metadata and registers for all 73 tracks, adaptive responsive breakpoints for mobile and laptop screens with refined brand header typography, and the in-app narrative modal overlay rendered by `src/markdown.js`.
 
 ---
 

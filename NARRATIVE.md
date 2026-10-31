@@ -36,7 +36,7 @@ Galway's sources show him working around those limits:
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
-* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. Interactive chips let you select which voice (V1, V2, V3, or DRM) to follow in real time with an optional Follow Voice toggle. For hybrid pieces like Arkanoid Digi-Drums, selecting DRM tracks the drum sequencer in arkadrum.asm while selecting voices switches to arkanoid.asm. At the bottom, a responsive SID register strip ($D400-$D418) displays live hex values in four color-coded voice and filter groups that illuminate when voices sound. You can also edit the source and rerun it.
+* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score using adaptive smooth scrolling that keeps pace with fast 16th notes and eases large leaps without lagging. Interactive chips let you select which voice (V1, V2, V3, or DRM) to follow in real time with an optional Follow Voice toggle. For hybrid pieces like Arkanoid Digi-Drums, selecting DRM tracks the drum sequencer in arkadrum.asm while selecting voices switches to arkanoid.asm. At the bottom, a responsive SID register strip ($D400-$D418) displays live hex values in four color-coded voice and filter groups that illuminate when voices sound. You can also edit the source and rerun it.
 * **Hardware options.** Switch between the two SID chip models, PAL and NTSC timing, and the strength of the drum sounds.
 
 A short glossary for the sections below:
@@ -176,6 +176,7 @@ The workbench layout adapts to the screen size:
 * **Desktop.** Three columns show the tunes and controls on the left, the live C64 monitor and oscilloscopes in the centre, and the assembly source viewer on the right.
 * **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side while the assembly source spans the full width below, preserving natural vertical scrolling.
 * **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source, with the brand header neatly framing the Galway 2664 logo and version.
+* **Adaptive code viewer.** Assembly tracking uses requestAnimationFrame interpolation tailored to step distance: 90ms ease-out curves track rapid 16th notes cleanly without lag, while large jumps across hundreds of lines pre-position near the target and ease the final 40 pixels over 70ms to prevent visual disorientation. Touch or mouse scrolling instantly cancels active transitions.
 * **Character display and logo.** Screen memory at `$0400` and the Galway 2664 header logo render with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text. The white logo glints with a retro light sparkle effect cycling valid Commodore 64 palette colours on click or every 10 seconds.
 
 ---
@@ -214,7 +215,7 @@ The header of `gameover.asm` reads:
 
 The player was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with a human listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 19 automated checks across four test files:
+`npm test` runs 20 automated checks across four test files:
 
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
@@ -225,6 +226,7 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
 * **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 2664 brand logo features a retro reflection sparkle cycling valid VIC-II colours.
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronize on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.
+* **Smooth code tracking.** The assembly viewer uses adaptive requestAnimationFrame timing to follow fast 16th notes without lag, pre-positions large leaps near destination targets, and yields immediately on user gestures.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.

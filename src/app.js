@@ -40,6 +40,7 @@ const state = {
 // ============================================================================
 
 async function initWorkbench() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
   setupUIHandlers();
   renderKeypadButtons();
   renderSidHexStripSkeleton();
@@ -572,7 +573,80 @@ function setMobileView(view) {
   });
 }
 
-function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
+let viewerScrollRaf = null;
+
+function cancelViewerSmoothScroll() {
+  if (viewerScrollRaf) {
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(viewerScrollRaf);
+    } else {
+      clearTimeout(viewerScrollRaf);
+    }
+    viewerScrollRaf = null;
+  }
+}
+
+function smoothScrollSourceViewer(viewer, targetTop, { instant = false } = {}) {
+  cancelViewerSmoothScroll();
+
+  if (instant) {
+    viewer.scrollTop = targetTop;
+    return;
+  }
+
+  const startTop = viewer.scrollTop || 0;
+  const distance = targetTop - startTop;
+  const absDist = Math.abs(distance);
+  if (absDist < 2) return;
+
+  // Adaptive duration:
+  // - Small note steps (<= 120px, 1 to 6 lines): 90ms easeOutCubic (keeps pace with 16th notes).
+  // - Medium routine leaps (121px to 500px): 130ms.
+  // - Long jumps (> 500px, cross-routine or loop returns):
+  //   Pre-position within 40px of target and ease the final 40px in 70ms so the viewer
+  //   never lags or spends half a second scrolling past hundreds of lines.
+  let start = startTop;
+  let dist = distance;
+  let duration = 90;
+
+  if (absDist > 500) {
+    start = targetTop - Math.sign(distance) * 40;
+    dist = targetTop - start;
+    duration = 70;
+    viewer.scrollTop = start;
+  } else if (absDist > 120) {
+    duration = 130;
+  }
+
+  const getNow = () =>
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const startTime = getNow();
+
+  const reqRaf =
+    typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame
+      : (cb) => setTimeout(() => cb(getNow()), 16);
+
+  function step(now) {
+    const currentNow = typeof now === "number" && now > 0 ? now : getNow();
+    const elapsed = currentNow - startTime;
+    const progress = Math.min(1, Math.max(0, elapsed / duration));
+    const ease = 1 - Math.pow(1 - progress, 3);
+    viewer.scrollTop = Math.round(start + dist * ease);
+
+    if (progress < 1) {
+      viewerScrollRaf = reqRaf(step);
+    } else {
+      viewerScrollRaf = null;
+    }
+  }
+
+  viewerScrollRaf = reqRaf(step);
+}
+
+function scrollToSourceLine(lineNo, { revealMobilePanel = false, instant = false } = {}) {
   if (revealMobilePanel) {
     const grid = document.getElementById("workbench-grid");
     const currentView = grid && grid.dataset ? grid.dataset.mobileView : "all";
@@ -582,25 +656,18 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
   }
   const el = document.getElementById(`asm-L${lineNo}`);
   const viewer = document.getElementById("source-viewer");
-  if (
-    el &&
-    viewer &&
-    viewer.clientHeight > 0 &&
-    typeof viewer.getBoundingClientRect === "function" &&
-    typeof el.getBoundingClientRect === "function"
-  ) {
-    const viewerRect = viewer.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const targetTop =
-      viewer.scrollTop +
-      (elRect.top - viewerRect.top) -
-      (viewer.clientHeight / 2) +
-      (elRect.height / 2);
-    if (typeof viewer.scrollTo === "function") {
-      viewer.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
-    } else {
-      viewer.scrollTop = Math.max(0, targetTop);
+  if (el && viewer && viewer.clientHeight > 0) {
+    let top = typeof el.offsetTop === "number" ? el.offsetTop : 0;
+    let curr = el.offsetParent;
+    while (curr && curr !== viewer && curr !== document.body && curr != null) {
+      top += curr.offsetTop;
+      curr = curr.offsetParent;
     }
+    const targetTop = Math.max(
+      0,
+      Math.round(top - viewer.clientHeight / 2 + (el.clientHeight || 18) / 2)
+    );
+    smoothScrollSourceViewer(viewer, targetTop, { instant });
   } else if (el && typeof el.scrollIntoView === "function") {
     el.scrollIntoView({ block: "center", behavior: "smooth" });
   }
@@ -610,10 +677,22 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false } = {}) {
 // Real-Time 60fps Visualization Loop (C64 CRT Canvas, Scopes, Registers, PC)
 // ============================================================================
 
-const c64Canvas = document.getElementById("c64-monitor-canvas");
-const c64Ctx = c64Canvas.getContext("2d");
-const c64ImgData = c64Ctx.createImageData(384, 272);
-const c64Pixels32 = new Uint32Array(c64ImgData.data.buffer);
+let c64Canvas = null;
+let c64Ctx = null;
+let c64ImgData = null;
+let c64Pixels32 = null;
+
+function ensureC64ScreenCanvas() {
+  if (c64Pixels32) return true;
+  if (typeof document === "undefined") return false;
+  c64Canvas = document.getElementById("c64-monitor-canvas");
+  if (!c64Canvas || typeof c64Canvas.getContext !== "function") return false;
+  c64Ctx = c64Canvas.getContext("2d");
+  if (!c64Ctx) return false;
+  c64ImgData = c64Ctx.createImageData(384, 272);
+  c64Pixels32 = new Uint32Array(c64ImgData.data.buffer);
+  return true;
+}
 
 const VIC_PALETTE_U32 = new Uint32Array(16);
 for (let i = 0; i < 16; i++) {
@@ -682,6 +761,7 @@ function getScopeCanvas(id) {
 const lastSidRegs = new Uint8Array(25).fill(0xFF);
 
 function renderC64Monitor(ram, wasm) {
+  if (!ensureC64ScreenCanvas()) return;
   const borderPtr = wasm.wasm_get_border_ptr();
   const scanlineBorder = new Uint8Array(wasm.memory.buffer, borderPtr, 312);
 
@@ -1340,6 +1420,12 @@ function setupUIHandlers() {
   const viewerEl = document.getElementById("source-viewer");
   const editorEl = document.getElementById("source-editor");
 
+  if (viewerEl) {
+    viewerEl.addEventListener("pointerdown", cancelViewerSmoothScroll, { passive: true });
+    viewerEl.addEventListener("touchstart", cancelViewerSmoothScroll, { passive: true });
+    viewerEl.addEventListener("wheel", cancelViewerSmoothScroll, { passive: true });
+  }
+
   btnToggleEdit.addEventListener("click", () => {
     state.isEditingSource = !state.isEditingSource;
     viewerEl.classList.toggle("hidden", state.isEditingSource);
@@ -1455,3 +1541,9 @@ function stepTrack(delta) {
 }
 
 initWorkbench();
+
+export {
+  smoothScrollSourceViewer,
+  cancelViewerSmoothScroll,
+  scrollToSourceLine,
+};

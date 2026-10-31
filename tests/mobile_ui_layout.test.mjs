@@ -738,3 +738,100 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
     "#tel-d418 must have fixed min-width: 2.5ch to prevent drum write jitter"
   );
 });
+
+test("source viewer smooth scrolling keeps pace with fast note steps and uses adaptive ease-out on long jumps without jank", async () => {
+  const { smoothScrollSourceViewer, cancelViewerSmoothScroll } = await import("../src/app.js");
+
+  const prevPerf = globalThis.performance;
+  const prevRaf = globalThis.requestAnimationFrame;
+  const prevCaf = globalThis.cancelAnimationFrame;
+
+  let nowMs = 1000;
+  let scheduledCallbacks = [];
+  let nextRafId = 1;
+
+  globalThis.performance = { now: () => nowMs };
+  globalThis.requestAnimationFrame = (cb) => {
+    const id = nextRafId++;
+    scheduledCallbacks.push({ id, cb });
+    return id;
+  };
+  globalThis.cancelAnimationFrame = (id) => {
+    scheduledCallbacks = scheduledCallbacks.filter((item) => item.id !== id);
+  };
+
+  function advanceTime(deltaMs) {
+    nowMs += deltaMs;
+    const current = scheduledCallbacks.slice();
+    scheduledCallbacks = [];
+    for (const item of current) {
+      item.cb(nowMs);
+    }
+  }
+
+  try {
+    const viewer = { scrollTop: 100 };
+
+    // 1. Instant scroll mode jumps immediately without scheduling animation frames
+    smoothScrollSourceViewer(viewer, 250, { instant: true });
+    assert.equal(viewer.scrollTop, 250, "instant: true must set target scrollTop immediately");
+    assert.equal(scheduledCallbacks.length, 0, "instant: true must not schedule RAF");
+
+    // 2. Short note step (<= 120px, e.g. 54px note step): completes in 90ms easeOutCubic
+    viewer.scrollTop = 100;
+    smoothScrollSourceViewer(viewer, 154);
+    assert.ok(scheduledCallbacks.length > 0, "Expected RAF scheduled for smooth scroll");
+
+    // At 45ms (halfway through 90ms duration), easeOutCubic is 87.5% complete
+    advanceTime(45);
+    assert.ok(
+      viewer.scrollTop >= 145 && viewer.scrollTop <= 150,
+      `Expected fast ease-out tracking near target at halfway mark, got ${viewer.scrollTop}`
+    );
+
+    // At 90ms, scroll settles precisely at target and clears active animation
+    advanceTime(45);
+    assert.equal(viewer.scrollTop, 154, "Short note step must reach exact targetTop at 90ms");
+    assert.equal(scheduledCallbacks.length, 0, "Animation loop must terminate at completion");
+
+    // 3. Long jump (> 500px, e.g. loop return or routine jump across 1200px):
+    // Pre-positions within 40px of target immediately to avoid lag, then eases the final 40px in 70ms.
+    viewer.scrollTop = 100;
+    smoothScrollSourceViewer(viewer, 1300);
+    assert.equal(
+      viewer.scrollTop,
+      1260,
+      "Long jump must immediately pre-position within 40px of targetTop to avoid crawling delay"
+    );
+    advanceTime(35);
+    assert.ok(
+      viewer.scrollTop > 1260 && viewer.scrollTop < 1300,
+      `Final 40px must ease smoothly toward target, got ${viewer.scrollTop}`
+    );
+    advanceTime(35);
+    assert.equal(viewer.scrollTop, 1300, "Long jump must settle precisely at 1300 after 70ms");
+    assert.equal(scheduledCallbacks.length, 0);
+
+    // 4. Backward long jump (e.g. from line 1400 back to line 200, -1200px)
+    viewer.scrollTop = 1400;
+    smoothScrollSourceViewer(viewer, 200);
+    assert.equal(
+      viewer.scrollTop,
+      240,
+      "Backward long jump must pre-position within +40px of targetTop"
+    );
+    advanceTime(70);
+    assert.equal(viewer.scrollTop, 200, "Backward long jump must settle at targetTop");
+
+    // 5. User interaction cancelation: cancelViewerSmoothScroll aborts active RAF
+    viewer.scrollTop = 100;
+    smoothScrollSourceViewer(viewer, 300);
+    assert.ok(scheduledCallbacks.length > 0);
+    cancelViewerSmoothScroll();
+    assert.equal(scheduledCallbacks.length, 0, "cancelViewerSmoothScroll must cancel active RAF loop");
+  } finally {
+    globalThis.performance = prevPerf;
+    globalThis.requestAnimationFrame = prevRaf;
+    globalThis.cancelAnimationFrame = prevCaf;
+  }
+});
