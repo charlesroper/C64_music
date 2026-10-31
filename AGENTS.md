@@ -46,7 +46,7 @@ Never edit, reformat, or patch these historical files. All catalog corrections, 
 
 - **Dual-document updates**: Every feature, UI change, workflow script, or catalog adjustment must be reflected in both `README.md` and `NARRATIVE.md` in lockstep:
   - `README.md`: Technical setup, architecture overview, capabilities, and developer workflow.
-  - `NARRATIVE.md`: In-app story overlay covering visible player UI elements (Section 3), architecture (Section 5), and verification (Section 7).
+  - `NARRATIVE.md`: In-app story overlay covering visible player UI elements (Section 3), architecture (Section 5), verification (Section 7), and development blog (Section 8).
 - **Test synchronization**: Run `npm test` before committing. All tests must pass. When adding, modifying, or removing tests, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly.
 
 ## 5. Commit Standards

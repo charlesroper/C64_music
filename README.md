@@ -4,7 +4,7 @@
 
 Galway 2664 is a WebAssembly audio workbench and live in-browser cross-assembler for Martin Galway's original Commodore 64 game music from Ocean Software (1985 to 1987). Named "Galway 2664" because Galway released his original music on GitHub in 2026 and composed it for the Commodore 64 (echoing the four-digit chip numbers he made innovative use of, like the MOS 6502 processor and 6581 SID), it compiles Galway's raw 6502 assembly source text directly in your browser and executes it clock by clock inside a custom WebAssembly emulation core. You can listen to all 73 catalogued tracks and sound effects, inspect hardware telemetry and oscilloscopes, trace Galway's program counter through the score in real time, and edit and reassemble the original code.
 
-For the full story of Galway's technical innovations, the historical context, and the architecture behind the emulation, read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the web interface.
+For the full story of Galway's technical innovations, the historical context, the architecture behind the emulation, and the chronological development blog, read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the web interface.
 
 ### Key capabilities
 

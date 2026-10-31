@@ -230,3 +230,65 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.
+
+---
+
+## 8. Development blog
+
+### 14 April 2026: Galway publishes the music sources
+
+The release note is dated 14 April 2026 and is preserved in [README.md](https://github.com/charlesroper/C64_music/blob/main/README.md). Galway explains why the files are public: "So that folks can read through, analyse & understand the music players and how I went about doing my work." He also sets the terms. He retains copyright, having acquired the rights from Infogrames, and asks for credit.
+
+The note matters for anyone editing this repository. It sets the licence position and explains why the sources are treated as historical documents rather than working files. It also explains the two generations of player. Wizball uses the first, whose design had been in use since 1984 until about mid-1987. The second began with Athena and continued into Times of Lore and Insects In Space.
+
+Two days passed between the note and the first upload. The gap is small, and it matches the order of the repository: the statement of intent came first, and the code followed.
+
+[Evidence](https://github.com/charlesroper/C64_music/commit/312c429)
+
+### 16 April to 12 May 2026: six sources arrive through the browser
+
+Galway uploaded the files over four weeks, mostly through GitHub's web interface, which is why the commit messages read "Add files via upload". Wizball arrived first on 16 April ([2a7a561](https://github.com/charlesroper/C64_music/commit/2a7a561)), followed by the assembler notes on 18 April ([a19961a](https://github.com/charlesroper/C64_music/commit/a19961a)), Game Over on 21 April ([11b9332](https://github.com/charlesroper/C64_music/commit/11b9332)), Arkanoid and the drum routine on 4 May ([fe93226](https://github.com/charlesroper/C64_music/commit/fe93226)), the Rambo loader the same day ([77dc334](https://github.com/charlesroper/C64_music/commit/77dc334)), and Green Beret on 12 May ([a458a36](https://github.com/charlesroper/C64_music/commit/a458a36)).
+
+The assembler notes were edited four times over the same period, which suggests Galway was answering questions as readers found them. The files carry the dates of composition in their contents, from the Rambo loader in November 1985 to Game Over in July 1987.
+
+### 29 October 2026: one large commit, then silence
+
+The first build landed as a single commit of 5,347 lines: a 370-line page, a 1,300-line application, a 470-line assembler, an 854-line catalogue, a 1,109-line stylesheet, and a 1,111-line C core compiled to a 24,961 byte WebAssembly module ([d70dc1a](https://github.com/charlesroper/C64_music/commit/d70dc1a)). It looked finished. Pressing play produced nothing.
+
+The cause was a missing export. `ensureAudioContext()` called `wasm_set_sample_rate()`, which had not been exported from the C core. The call threw a `TypeError` after the audio context was assigned but before the processing node was connected, so every later click failed as well. The fix exported the function, added a 15Hz AC coupling filter to remove the DC offset from narrow pulses, and moved the audio work into `src/player_engine.js` ([cde6239](https://github.com/charlesroper/C64_music/commit/cde6239)).
+
+That commit also started the test suite, with three files covering mobile layout, pitch and boot. The lesson held for the rest of the build: a silent output is a wiring fault, not a synthesis fault, and the wiring needs a test that clicks play.
+
+### 29 October 2026: the typo that made two narratives
+
+The story overlay needed a document, so `e2fdd30` created one. It created two: `NARRATIVE.md` and a misspelled duplicate, each 272 lines, differing by a single letter in the filename ([e2fdd30](https://github.com/charlesroper/C64_music/commit/e2fdd30)). The next two commits edited both files in parallel, so every fix was written twice.
+
+The recovery came in `12ff883`, which deleted the misspelled file, rewrote the narrative and moved the markdown renderer into `src/markdown.js` with its own tests ([12ff883](https://github.com/charlesroper/C64_music/commit/12ff883)). The rewrite also removed claims the sources did not support, including an invented Filth Raid tempo, decimal mode arithmetic and an imagined capacitor filter. The commit body says it plainly: the new text quotes Galway verbatim and drops what the engine could not back up.
+
+Deleting the duplicate was cheaper than maintaining it. The narrative now has one home, and `tests/narrative.test.mjs` checks that every quotation appears in the sources.
+
+### 30 October 2026: the catalogue was partly invented
+
+The tune list had been written from plausibility rather than from the files. `2131438` corrected it against the assembly sources and found real errors: Wizball's jump vectors were corrected to the keys the source uses, B through K, a track called BonusBass was missing, and Filth Raid was catalogued as a five-minute song when it is a five-second alarm jingle. Duration hints were fabricated, so they were replaced with verified times or an explicit "Loops" marker ([2131438](https://github.com/charlesroper/C64_music/commit/2131438)).
+
+The correction touched 345 lines of `src/tracks_catalog.js` and added metadata tests. Those tests now assert a unique identifier, a valid duration hint and an authentic key for every entry, and they check the catalogue for em-dashes. The tune list feeds the browser, the duration hints and the key labels, so an invented value was visible to every visitor. It is the clearest example in the repository of generated content passing review because nothing checked it against the primary source.
+
+### 30 October 2026: CalVer and a rulebook
+
+Eighteen commits landed on 30 October, most of them small fixes shipped one after another. Two of them changed how the project works. The page showed no release number and the package sat at `1.0.0`, so there was no way to tell which build a listener was using. `59da218` put a calendar version in the header and the document title ([59da218](https://github.com/charlesroper/C64_music/commit/59da218)), and `bcb7ace` added a script that bumps `package.json`, `index.html` and `src/version.js` together ([bcb7ace](https://github.com/charlesroper/C64_music/commit/bcb7ace)). The script adds a fourth segment when several releases land on one day, which is how so many commits in a single day each got a distinct number.
+
+The same day produced [AGENTS.md](https://github.com/charlesroper/C64_music/blob/main/AGENTS.md), which states the rules that had been learned the hard way: the historical sources are immutable, documentation changes with the code, test counts must match, and no em-dashes. `84ff480` strengthened the documentation sync rule after a feature shipped with stale docs ([84ff480](https://github.com/charlesroper/C64_music/commit/84ff480)). A test now checks that the badge sits immediately after the app title, so the rule holds without a human looking.
+
+### 30 October 2026: three names in one day
+
+The workbench was first called Galway26, then Galway 64, then Galway 2664. Each rename touched about a dozen files: the page title, the header, the package name, the version script, the character ROM, the tests and both documents ([7a3ca0d](https://github.com/charlesroper/C64_music/commit/7a3ca0d), [3a7f8e1](https://github.com/charlesroper/C64_music/commit/3a7f8e1), [daf82a4](https://github.com/charlesroper/C64_music/commit/daf82a4)). The cost comes from the name being encoded in a test as well as in the page, so a rename means editing assertions about the header before the build passes again.
+
+The final name comes from the two facts in the README: Galway released the music in 2026 and wrote it for the Commodore 64, so the number echoes the four-digit chip designators in the machine, the MOS 6502 and the 6581 SID. The two earlier names each captured half of that. The same commit fixed voice following for the hybrid Arkanoid Digi-Drums, where the DRM chip now loads `arkadrum.asm` while the voice chips stay on `arkanoid.asm`.
+
+### 31 October 2026: smooth scrolling broke, then came back
+
+`51dab0a` rewrote the rendering loop and the line highlighting to cut per-frame work ([51dab0a](https://github.com/charlesroper/C64_music/commit/51dab0a)). It also moved the source viewer onto `scrollTo({ behavior: "smooth" })`. The change looked like a speed improvement and broke tracking on WebKit, where smooth scrolling inside an overflow container fails without an error.
+
+`889c372` replaced it with requestAnimationFrame interpolation ([889c372](https://github.com/charlesroper/C64_music/commit/889c372)). The commit body explains the two faults: browser transitions restarted whenever a 100 to 200 millisecond note step interrupted a 400 millisecond animation, and sampling bounding rectangles mid-animation caused jitter. The replacement computes targets from `offsetTop`, eases short steps over 90 milliseconds and jumps most of a long distance before easing the final 40 pixels. It added 97 lines of tests, including cancellation on user touch.
+
+The regression lasted one day. Catching it depended on watching the viewer during fast passages, which no test did at the time. The new test does.
