@@ -78,3 +78,17 @@ This runs the full test suite (`npm test`) and pushes to `fork/main`.
 3. **Commit**: Commit changes following Chris Beams standards (Section 5).
 4. **Deploy**: Run `npm run deploy` (or `git push fork main`).
 5. **Verification**: Confirm the build at `gh api repos/charlesroper/C64_music/pages/builds/latest` or curl `https://charlesroper.github.io/C64_music/`. Report the live URL, CalVer version, and commit hash.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as GitHub issues in `charlesroper/C64_music`, driven by the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles map to their own names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
