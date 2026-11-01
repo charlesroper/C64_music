@@ -10,9 +10,9 @@ Galway 2664 is a web workbench for Martin Galway's Commodore 64 game music. The 
 
 The player does not play recordings. Galway wrote his music as program text for the Commodore 64's processor. This player turns that text into machine code in your browser, then runs it on a software copy of the computer's processor and sound chip. What you hear is the original program making the sound.
 
-Galway published the source files in 2026. They include the music and sound effects for Wizball, Arkanoid, Rambo: First Blood Part II, Green Beret and Game Over, plus his notes on the assembler Ocean used.
+The initial source files were uploaded by Galway in April and May 2026. In October 2026, Charles Roper forked the repository to build this player, working with Gemini (Argon and Flash) in Google's Antigravity. The files include the music and sound effects for Wizball, Arkanoid, Rambo: First Blood Part II, Green Beret and Game Over, plus Galway's notes on the assembler Ocean used.
 
-This page describes what he built and how the player works. The first sections need no technical background. The later ones go into the code.
+The first sections need no technical background. The later ones go into the code.
 
 ---
 
@@ -32,12 +32,15 @@ Galway's sources show him working around those limits:
 
 ## 3. What you see in the player
 
-* **Header, logo and version.** The top banner displays the white Galway 2664 logo rendered with authentic Commodore 64 PETSCII character ROM glyphs, featuring a retro light reflection sparkle cycling valid VIC-II colours, the WebAssembly engine status light, and the subtle CalVer release pill, formatted cleanly across desktop and mobile screens.
+* **Header, logo and version.** The banner shows the white Galway 2664 logo, drawn with glyphs from the Commodore 64 PETSCII character ROM, which sparkles through VIC-II colours. It also shows the WebAssembly engine status light and the CalVer release pill.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
 * **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
-* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score using adaptive smooth scrolling that keeps pace with fast 16th notes and eases large leaps without lagging. Interactive chips let you select which voice (V1, V2, V3, or DRM) to follow in real time with an optional Follow Voice toggle. For hybrid pieces like Arkanoid Digi-Drums, selecting DRM tracks the drum sequencer in arkadrum.asm while selecting voices switches to arkanoid.asm. At the bottom, a responsive SID register strip ($D400-$D418) displays live hex values in four color-coded voice and filter groups that illuminate when voices sound. You can also edit the source and rerun it.
-* **Hardware options.** Switch between the two SID chip models, PAL and NTSC timing, and the strength of the drum sounds.
+* **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. Scrolling keeps pace with fast 16th notes and eases large leaps. Chips (V1, V2, V3 or DRM) select which voice to follow, and the Follow Voice toggle turns following on. In hybrid pieces such as Arkanoid Digi-Drums, DRM tracks the drum sequencer in `arkadrum.asm`, and the voice chips switch to `arkanoid.asm`. A SID register strip ($D400-$D418) at the bottom shows live hex values in four colour-coded voice and filter groups that light up when voices sound. You can also edit the source and rerun it.
+* **Hardware options.** Switch between chip models, video standards and drum levels:
+  * **SID chip.** Select the 1982 MOS 6581 or the 1987 MOS 8580. The 6581 has an analogue filter with non-linear resistance and mild saturation, plus quirks on combined waveforms. The 8580 uses a cleaner switched-capacitor filter. If a tune does not use the filter or combined waveforms, both chips sound identical. Where a filter is active, the difference is a subtle change in warmth and resonance.
+  * **Clock and VIC.** Toggle between European PAL (50Hz, 985.2 kHz, 312 lines) and North American NTSC (60Hz, 1.023 MHz, 263 lines). Although NTSC runs at a higher clock frequency, switching to NTSC slows many tunes down. Galway composed for PAL machines and hardcoded PAL raster line counts into his music drivers. In Wizball, the 200Hz routine waits for raster lines 32, 110, 188 and 266. NTSC displays only have 263 scanlines (lines 0 to 262), so line 266 never arrives. The wait loop must roll over an entire extra frame to escape, stalling the sequencer and dragging the tempo down.
+  * **$D418 digi slider.** Adjust the volume boost (0.0x to 3.0x) for Galway's 4-bit digital-to-analogue percussion on register `$D418`. Tracks using pure three-voice SID synthesis (such as Wizball, Green Beret and Rambo) set the master volume once and never modulate `$D418`, so the slider has no effect. It alters drum levels only on pieces with dedicated percussion routines: the hybrid Arkanoid Digi-Drums (`arkadrum.asm`) and Game Over (`gameover.asm`). Setting the slider to 0.0x silences the drums, while 3.0x boosts them over the musical chords.
 
 A short glossary for the sections below:
 
@@ -149,6 +152,18 @@ Each voice has a 16-bit pointer (`PC0`, `PC1`, `PC2`) into its own score. Values
 
 ---
 
+## 4.1. Community analysis: toolchains and modern re-assembly
+
+When Galway released the source files in April 2026, a [Hacker News discussion](https://news.ycombinator.com/item?id=47900398) examined the history, toolchains and preservation hurdles behind the code:
+
+* **Cross-development on host machines.** Ocean developers rarely assembled code on the Commodore 64 itself. They worked on dedicated host machines, primarily the Tatung Einstein or early MS-DOS PCs, running proprietary cross-assemblers and piping binaries over a cable to test on the C64. This stopped code loss whenever an experimental routine crashed the machine.
+* **Proprietary assembler directives.** Galway's source used in-house Ocean assembler syntax, including directives such as `ORG`, `DSP`, `DFS`, `ADD` (which combined `CLC` and `ADC`), `SUB` (combining `SEC` and `SBC`) and caret notation (`^`) for high bytes.
+* **Modern re-assembly hurdles.** Developers attempting to assemble Galway's original files found that modern open-source 6502 toolchains (such as `acme`, `xa65` or `ca65`) rejected Ocean's custom directives. Compiling Galway's raw source required syntax translation or a dedicated assembler written for Ocean's 1980s dialect.
+* **Early browser experiments.** Within hours of the release, readers used large language models to transcribe Galway's custom bytecode tables and build experimental JavaScript and Web Audio players.
+* **Legal provenance.** Commenters praised Galway for securing a clean rights recovery from Infogrames and publishing the work under GPL-3.0, avoiding the corporate archive limbo typical of vintage commercial games.
+
+---
+
 ## 5. How the player works
 
 ### Assembler (`src/ocean_assembler.js`)
@@ -174,10 +189,10 @@ The player picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tell
 The workbench layout adapts to the screen size:
 
 * **Desktop.** Three columns show the tunes and controls on the left, the live C64 monitor and oscilloscopes in the centre, and the assembly source viewer on the right.
-* **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side while the assembly source spans the full width below, preserving natural vertical scrolling.
-* **Mobile.** On narrow screens, a single column provides dedicated tabs for the monitor, tunes and source, with the brand header neatly framing the Galway 2664 logo and version.
-* **Adaptive code viewer.** Assembly tracking uses requestAnimationFrame interpolation tailored to step distance: 90ms ease-out curves track rapid 16th notes cleanly without lag, while large jumps across hundreds of lines pre-position near the target and ease the final 40 pixels over 70ms to prevent visual disorientation. Touch or mouse scrolling instantly cancels active transitions.
-* **Character display and logo.** Screen memory at `$0400` and the Galway 2664 header logo render with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text. The white logo glints with a retro light sparkle effect cycling valid Commodore 64 palette colours on click or every 10 seconds.
+* **Laptop and tablet.** On medium-width screens (821px to 1200px) or shorter viewports, the monitor and tune controls sit side by side and the assembly source spans the full width below.
+* **Mobile.** On narrow screens, a single column has tabs for the monitor, tunes and source, with the Galway 2664 logo and version in the header.
+* **Adaptive code viewer.** Assembly tracking uses requestAnimationFrame interpolation tailored to step distance: 90ms ease-out curves track rapid 16th notes, while large jumps across hundreds of lines pre-position near the target and ease the final 40 pixels over 70ms. Touch or mouse scrolling instantly cancels active transitions.
+* **Character display and logo.** Screen memory at `$0400` and the Galway 2664 header logo render with authentic 8x8 glyphs for all 256 PETSCII characters (`src/c64_charset.js`), supporting both uppercase and lowercase text. The white logo sparkles through Commodore 64 palette colours on click or every 10 seconds.
 
 ---
 
@@ -213,7 +228,7 @@ The header of `gameover.asm` reads:
 
 ## 7. How it was made and tested
 
-The player was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with a human listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
+Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
 `npm test` runs 20 automated checks across four test files:
 
@@ -223,10 +238,10 @@ The player was built by vibe coding with Gemini (Argon and Flash) in Google's An
 * **Drums.** The `$D418` drum routines produce sound, and the volume control for them works.
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download, and starts playback cleanly.
 * **Versioning and deployment.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`), with automated deployments pushed directly to GitHub Pages (`scripts/deploy.mjs`).
-* **Responsive layouts.** The interface maintains vertical scrolling and proper element sizing across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
-* **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 2664 brand logo features a retro reflection sparkle cycling valid VIC-II colours.
-* **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronize on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.
-* **Smooth code tracking.** The assembly viewer uses adaptive requestAnimationFrame timing to follow fast 16th notes without lag, pre-positions large leaps near destination targets, and yields immediately on user gestures.
+* **Responsive layouts.** The interface scrolls vertically and sizes elements correctly across mobile (375x812) and laptop (1024x768, 1100x700) viewports.
+* **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation, and the white Galway 2664 brand logo sparkles through valid VIC-II colours.
+* **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronise on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.
+* **Smooth code tracking.** The assembly viewer uses adaptive requestAnimationFrame timing to follow fast 16th notes without lag, pre-positions large leaps near their targets and yields immediately on user gestures.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.
@@ -239,9 +254,9 @@ These checks show that the player behaves consistently. They do not prove it is 
 
 The release note is dated 14 April 2026 and is preserved in [README.md](https://github.com/charlesroper/C64_music/blob/main/README.md). Galway explains why the files are public: "So that folks can read through, analyse & understand the music players and how I went about doing my work." He also sets the terms. He retains copyright, having acquired the rights from Infogrames, and asks for credit.
 
-The note matters for anyone editing this repository. It sets the licence position and explains why the sources are treated as historical documents rather than working files. It also explains the two generations of player. Wizball uses the first, whose design had been in use since 1984 until about mid-1987. The second began with Athena and continued into Times of Lore and Insects In Space.
+The note matters for anyone editing this repository. It sets the licence position and explains why the sources are treated as historical documents rather than working files. It also explains the two generations of player. Wizball uses the first, whose design had been in use since 1984 until about mid-1987. The second began with Athena and continued into Times of Lore and Insects in Space.
 
-Two days passed between the note and the first upload. The gap is small, and it matches the order of the repository: the statement of intent came first, and the code followed.
+Two days passed between the note and the first upload.
 
 [Evidence](https://github.com/charlesroper/C64_music/commit/312c429)
 
@@ -249,15 +264,17 @@ Two days passed between the note and the first upload. The gap is small, and it 
 
 Galway uploaded the files over four weeks, mostly through GitHub's web interface, which is why the commit messages read "Add files via upload". Wizball arrived first on 16 April ([2a7a561](https://github.com/charlesroper/C64_music/commit/2a7a561)), followed by the assembler notes on 18 April ([a19961a](https://github.com/charlesroper/C64_music/commit/a19961a)), Game Over on 21 April ([11b9332](https://github.com/charlesroper/C64_music/commit/11b9332)), Arkanoid and the drum routine on 4 May ([fe93226](https://github.com/charlesroper/C64_music/commit/fe93226)), the Rambo loader the same day ([77dc334](https://github.com/charlesroper/C64_music/commit/77dc334)), and Green Beret on 12 May ([a458a36](https://github.com/charlesroper/C64_music/commit/a458a36)).
 
-The assembler notes were edited four times over the same period, which suggests Galway was answering questions as readers found them. The files carry the dates of composition in their contents, from the Rambo loader in November 1985 to Game Over in July 1987.
+The assembler notes were edited four times over the same period, which suggests Galway was answering questions as readers found them. The files carry the dates of composition in their contents, from the Rambo loader in November 1985 to Game Over in July 1987. These initial uploads established Galway's historical archive, which then sat untouched for five months.
 
-### 29 October 2026: one large commit, then silence
+### 29 October 2026: Roper forks the repo and builds the player with Argon and Flash
 
-The first build landed as a single commit of 5,347 lines: a 370-line page, a 1,300-line application, a 470-line assembler, an 854-line catalogue, a 1,109-line stylesheet, and a 1,111-line C core compiled to a 24,961 byte WebAssembly module ([d70dc1a](https://github.com/charlesroper/C64_music/commit/d70dc1a)). It looked finished. Pressing play produced nothing.
+In October 2026, Charles Roper forked the repository. The new application was built from the fork by Roper, Argon and Flash, vibe coding in Google's Antigravity.
+
+The first build landed on 29 October as a single commit of 5,347 lines: a 370-line page, a 1,300-line application, a 470-line assembler, an 854-line catalogue, a 1,109-line stylesheet and a 1,111-line C core compiled to a 24,961-byte WebAssembly module ([d70dc1a](https://github.com/charlesroper/C64_music/commit/d70dc1a)). It looked finished, but pressing play produced nothing.
 
 The cause was a missing export. `ensureAudioContext()` called `wasm_set_sample_rate()`, which had not been exported from the C core. The call threw a `TypeError` after the audio context was assigned but before the processing node was connected, so every later click failed as well. The fix exported the function, added a 15Hz AC coupling filter to remove the DC offset from narrow pulses, and moved the audio work into `src/player_engine.js` ([cde6239](https://github.com/charlesroper/C64_music/commit/cde6239)).
 
-That commit also started the test suite, with three files covering mobile layout, pitch and boot. The lesson held for the rest of the build: a silent output is a wiring fault, not a synthesis fault, and the wiring needs a test that clicks play.
+That commit also started the test suite, with three files covering mobile layout, pitch and boot. The lesson held for the rest of the build: silence points to a wiring fault, so the wiring needs a test that clicks play.
 
 ### 29 October 2026: the typo that made two narratives
 
@@ -289,6 +306,6 @@ The final name comes from the two facts in the README: Galway released the music
 
 `51dab0a` rewrote the rendering loop and the line highlighting to cut per-frame work ([51dab0a](https://github.com/charlesroper/C64_music/commit/51dab0a)). It also moved the source viewer onto `scrollTo({ behavior: "smooth" })`. The change looked like a speed improvement and broke tracking on WebKit, where smooth scrolling inside an overflow container fails without an error.
 
-`889c372` replaced it with requestAnimationFrame interpolation ([889c372](https://github.com/charlesroper/C64_music/commit/889c372)). The commit body explains the two faults: browser transitions restarted whenever a 100 to 200 millisecond note step interrupted a 400 millisecond animation, and sampling bounding rectangles mid-animation caused jitter. The replacement computes targets from `offsetTop`, eases short steps over 90 milliseconds and jumps most of a long distance before easing the final 40 pixels. It added 97 lines of tests, including cancellation on user touch.
+`889c372` replaced it with requestAnimationFrame interpolation ([889c372](https://github.com/charlesroper/C64_music/commit/889c372)). The commit body explains the two faults: browser transitions restarted whenever a 100 to 200-millisecond note step interrupted a 400-millisecond animation, and sampling bounding rectangles mid-animation caused jitter. The replacement computes targets from `offsetTop`, eases short steps over 90 milliseconds and jumps most of a long distance before easing the final 40 pixels. It added 97 lines of tests, including cancellation on user touch.
 
-The regression lasted one day. Catching it depended on watching the viewer during fast passages, which no test did at the time. The new test does.
+The regression lasted one day. No test had watched the viewer during fast passages, so the new test does.
