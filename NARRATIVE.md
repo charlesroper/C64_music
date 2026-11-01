@@ -8,7 +8,7 @@
 
 Galway 2664 is a web workbench for Martin Galway's Commodore 64 game music. The name nods to Martin Galway releasing his source code on GitHub in 2026 and writing the music for the Commodore 64, echoing four-digit chip numbers like the MOS 6502 processor and 6581 SID. It is built from the source code he wrote for Ocean Software in 1985 to 1987.
 
-The player does not play recordings. Galway wrote his music as program text for the Commodore 64's processor. This player turns that text into machine code in your browser, then runs it on a software copy of the computer's processor and sound chip. What you hear is the original program making the sound.
+The player does not play recordings. Galway wrote his music as a program for the Commodore 64's processor. This player turns that program into machine code in your browser, then runs it on a software copy of the computer's processor and sound chip. What you hear is the browser itself mimicking a 1980s machine's physical silicon chips, computing the sound live from Galway's raw code and playing it through your computer's audio hardware.
 
 The initial source files were uploaded by Galway in April and May 2026. In October 2026, Charles Roper forked the repository to build this player, working with Gemini (Argon and Flash) in Google's Antigravity. The files include the music and sound effects for Wizball, Arkanoid, Rambo: First Blood Part II, Green Beret and Game Over, plus Galway's notes on the assembler Ocean used.
 
