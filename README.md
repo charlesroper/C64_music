@@ -172,5 +172,5 @@ The application is structured into five focused modules:
 
 ## License and credits
 
-* **Original music and 6502 assembly code**: Copyright (C) Martin Galway. Preserved and published under fair reference and educational study.
-* **Web emulator, assembler, and workbench interface**: MIT License. See [LICENSE](LICENSE) for details.
+* **Original music and 6502 assembly code**: Copyright (C) Martin Galway. Preserved and published under the GNU General Public License v3.0 (GPL-3.0).
+* **Web emulator, assembler, and workbench interface**: GNU General Public License v3.0 (GPL-3.0). See [LICENSE](LICENSE) for details.

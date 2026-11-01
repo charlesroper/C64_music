@@ -123,7 +123,9 @@ When the table ends, the routine restores the normal music driver.
 
 ### The border as a profiler
 
-At the start of its music update, `REFRESH` in `wizball.asm` increments the border colour register, `BDR` (`$D020`). At the end it decrements it:
+In 1987, developers had no performance profilers or debugging overlays. To measure how many clock cycles his music routines used, Galway turned the Commodore 64's video border into an oscilloscope.
+
+The VIC-II video chip drew the television picture line by line from top to bottom (312 scanlines per frame on a European PAL display). At the start of the music interrupt, `REFRESH` in `wizball.asm` increments the border colour register, `BDR` (`$D020`), turning the border white. At the end of the update, it decrements the register back to black:
 
 ```assembly
 REFRESH        PHP
@@ -132,13 +134,16 @@ REFRESH        PHP
                BEQ xit
                INC BDR
                JSR FILTER
+               ; ... (Voice routines MUSIC0..2 and SOUND0..2)
 xit            DEC BDR
                RTS
 ```
 
-The listing omits the voice routines between `JSR FILTER` and `xit`. While the music code runs, the border has a different colour, so the height of that band on screen is proportional to the time spent. The same program writes status text, such as voice pointers, clocks and filter values, into screen memory at `$0400`.
+While the processor was busy computing music tables and updating SID registers, the television electron beam kept sweeping downwards. Turning the border white at the start and black at the exit painted a horizontal stripe across the screen border. The vertical thickness (height in scanlines) showed Galway exactly how much processor time the music consumed per frame. If the white bar grew too tall, the music was stealing too many cycles from game graphics and sprite routines.
 
-`DREFCOLOUR EQU 15` in `wizball.asm` (line 418) sets that display to light grey on black, which is why the Wizball monitor in this player is grey. The Arkanoid and Game Over files set `DREFCOLOUR` to 0.
+The WebAssembly emulator (`src/wasm/c64_engine.c`) reproduces this by recording the active border colour for each of the 312 scanlines into a buffer whenever code writes to `$D020`. The web canvas then draws the border scanline by scanline, so Galway's debug raster bars flicker and resize in real time exactly as they did on his workbench monitor in 1987.
+
+In the same file, `DREFCOLOUR EQU 15` in `wizball.asm` (line 418) temporarily turns the border light grey while copying debug telemetry (voice pointers, clocks and filter values) into screen memory at `$0400`. The Arkanoid and Game Over files set `DREFCOLOUR` to 0.
 
 ### A bytecode score
 
