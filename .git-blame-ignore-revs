@@ -1,0 +1,6 @@
+# Mechanical formatting commits. Tell git to skip them in blame:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub honours this file automatically.
+
+# Format code with Biome and fix lint findings
+0937522
