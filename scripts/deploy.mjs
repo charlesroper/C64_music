@@ -6,13 +6,16 @@ function run(cmd) {
   return execSync(cmd, { stdio: "inherit" });
 }
 
-console.log("1. Running automated test suite...");
+console.log("1. Running lint and format check...");
+run("npm run lint");
+
+console.log("2. Running automated test suite...");
 run("npm test");
 
-console.log("2. Pushing to GitHub Pages (fork/main)...");
+console.log("3. Pushing to GitHub Pages (fork/main)...");
 run("git push fork main");
 
-console.log("3. Deployment status:");
+console.log("4. Deployment status:");
 try {
   const commit = execSync("git rev-parse --short HEAD").toString().trim();
   console.log(`Successfully pushed commit ${commit} to fork/main.`);

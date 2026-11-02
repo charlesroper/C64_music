@@ -1,2 +1,5 @@
 # Machine-local agent state
 .projectmem/
+
+# Dependencies
+node_modules/

@@ -111,6 +111,24 @@ The script (`scripts/bump_version.mjs`) updates `package.json`, `index.html` (he
 
 ---
 
+## Linting and formatting
+
+Code style is enforced by [Biome](https://biomejs.dev/), the project's only linter and formatter. It covers JavaScript, JSON and CSS. Markdown, the historical assembly sources and the C sound core are not formatted by it.
+
+Check the tree without changing it:
+```bash
+npm run lint
+```
+
+Apply formatting and safe fixes:
+```bash
+npm run format
+```
+
+Biome skips `node_modules`, `.agents`, `.codegraph` and `.projectmem`. The first formatting pass was committed on its own and recorded in `.git-blame-ignore-revs`, so `git blame` skips it.
+
+---
+
 ## Deploying to GitHub Pages
 
 The application deploys as a static site hosted on GitHub Pages at [https://charlesroper.github.io/C64_music/](https://charlesroper.github.io/C64_music/).
@@ -120,7 +138,7 @@ To run the automated deployment:
 npm run deploy
 ```
 
-The deploy script (`scripts/deploy.mjs`) executes the full test suite (`npm test`) and pushes the release to `fork/main`.
+The deploy script (`scripts/deploy.mjs`) runs the lint and format check (`npm run lint`), then the full test suite (`npm test`), then pushes the release to `fork/main`.
 
 ---
 
