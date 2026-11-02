@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -74,9 +74,7 @@ function matchesMedia(mediaQuery, { width, height }) {
 }
 
 function computeStyleForSelector(rules, targetSelectors, viewport) {
-  const selectorSet = new Set(
-    Array.isArray(targetSelectors) ? targetSelectors : [targetSelectors]
-  );
+  const selectorSet = new Set(Array.isArray(targetSelectors) ? targetSelectors : [targetSelectors]);
   const computed = {};
   for (const rule of rules) {
     if (!matchesMedia(rule.mediaQuery, viewport)) continue;
@@ -103,7 +101,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.match(
     html,
     /<meta\s+name="viewport"\s+content="[^"]*width=device-width[^"]*"/i,
-    "index.html must include responsive viewport meta tag"
+    "index.html must include responsive viewport meta tag",
   );
 
   const desktop = { width: 1440, height: 900 };
@@ -117,12 +115,12 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(
     mobBody["overflow-y"],
     "auto",
-    "Mobile html/body must allow vertical scrolling (overflow-y: auto)"
+    "Mobile html/body must allow vertical scrolling (overflow-y: auto)",
   );
   assert.equal(
     mobBody["overflow-x"],
     "hidden",
-    "Mobile html/body must prevent horizontal page overflow (overflow-x: hidden)"
+    "Mobile html/body must prevent horizontal page overflow (overflow-x: hidden)",
   );
 
   const mobShell = computeStyleForSelector(rules, [".app-shell"], mobile);
@@ -137,7 +135,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.ok(
     mobGrid["grid-template-columns"] === "1fr" ||
       mobGrid["grid-template-columns"] === "minmax(0, 1fr)",
-    `Mobile .workbench-grid must collapse to a single column, got: ${mobGrid["grid-template-columns"]}`
+    `Mobile .workbench-grid must collapse to a single column, got: ${mobGrid["grid-template-columns"]}`,
   );
 
   // 3. Top bar, transport bar, panel headers, and source toolbar wrap cleanly on 375px phone
@@ -146,7 +144,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     assert.equal(
       style["flex-wrap"],
       "wrap",
-      `Mobile ${sel} must wrap (flex-wrap: wrap) to prevent off-screen clipping`
+      `Mobile ${sel} must wrap (flex-wrap: wrap) to prevent off-screen clipping`,
     );
   }
 
@@ -155,44 +153,44 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(
     mobScopes["grid-template-columns"],
     "1fr",
-    "Narrow mobile .scopes-grid must stack 1fr so voice headers and waveforms fit"
+    "Narrow mobile .scopes-grid must stack 1fr so voice headers and waveforms fit",
   );
 
   const mobModalCols = computeStyleForSelector(rules, [".modal-cols"], mobile);
   assert.equal(
     mobModalCols["grid-template-columns"],
     "1fr",
-    "Mobile .modal-cols must stack 1fr so assembler docs are readable"
+    "Mobile .modal-cols must stack 1fr so assembler docs are readable",
   );
 
   // 5. Track list and .ASM source viewer have bounded mobile heights (preventing 40,000px scroll)
   const mobTrackList = computeStyleForSelector(rules, [".track-list"], mobile);
   assert.ok(
     mobTrackList["max-height"] && mobTrackList["max-height"] !== "none",
-    "Mobile .track-list must set a bounded max-height"
+    "Mobile .track-list must set a bounded max-height",
   );
 
   const mobSourceViewer = computeStyleForSelector(rules, [".source-viewer"], mobile);
   assert.ok(
     mobSourceViewer["height"] || mobSourceViewer["max-height"],
-    "Mobile .source-viewer must constrain height so 2,300 .asm lines do not stretch the page"
+    "Mobile .source-viewer must constrain height so 2,300 .asm lines do not stretch the page",
   );
 
   // 6. Touch targets (>= 34px) and iOS Safari 16px anti-zoom on inputs/selects
   const mobTransportBtn = computeStyleForSelector(
     rules,
     ["button", ".transport-bar button"],
-    mobile
+    mobile,
   );
   assert.ok(
     parseInt(mobTransportBtn["min-height"] || "0", 10) >= 36,
-    `Mobile transport buttons must be >= 36px tall, got ${mobTransportBtn["min-height"]}`
+    `Mobile transport buttons must be >= 36px tall, got ${mobTransportBtn["min-height"]}`,
   );
 
   const mobKeyBtn = computeStyleForSelector(rules, ["button", ".key-btn"], mobile);
   assert.ok(
     parseInt(mobKeyBtn["min-height"] || "0", 10) >= 34,
-    `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`
+    `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`,
   );
 
   for (const inputSel of [".hw-select", ".symbol-select", ".source-search", ".source-editor"]) {
@@ -200,7 +198,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     assert.equal(
       st["font-size"],
       "16px",
-      `Mobile ${inputSel} should use 16px font-size to prevent iOS Safari auto-zoom on focus`
+      `Mobile ${inputSel} should use 16px font-size to prevent iOS Safari auto-zoom on focus`,
     );
   }
 
@@ -209,7 +207,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(
     mobSliderGroup["grid-column"],
     "1 / -1",
-    "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width"
+    "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
   );
 
   const mobDocsBtn = computeStyleForSelector(rules, ["#btn-directives-modal"], mobile);
@@ -218,11 +216,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(mobStoryBtn["width"], "100%", "Mobile story button must be width: 100%");
   assert.ok(
     parseInt(mobDocsBtn["min-height"] || "0", 10) >= 36,
-    "Mobile docs button must be >= 36px tall"
+    "Mobile docs button must be >= 36px tall",
   );
   assert.ok(
     parseInt(mobStoryBtn["min-height"] || "0", 10) >= 36,
-    "Mobile story button must be >= 36px tall"
+    "Mobile story button must be >= 36px tall",
   );
 
   // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)
@@ -231,7 +229,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /#ffffff/);
 
-  const v3FollowStyle = computeStyleForSelector(rules, [".legend-chip[data-voice=\"2\"].active-followed"], mobile);
+  const v3FollowStyle = computeStyleForSelector(
+    rules,
+    ['.legend-chip[data-voice="2"].active-followed'],
+    mobile,
+  );
   assert.match(v3FollowStyle["border-color"], /var\(--accent-yellow\)/);
   assert.match(v3FollowStyle["background"], /rgba\(255,\s*170,\s*0/);
 });
@@ -241,7 +243,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
   assert.match(
     html,
     /id="mobile-view-tabs"/,
-    "index.html must render #mobile-view-tabs for quick mobile panel switching"
+    "index.html must render #mobile-view-tabs for quick mobile panel switching",
   );
 
   const elementsById = new Map();
@@ -265,8 +267,16 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       this.height = 272;
       this.classList = {
         _set: new Set(),
-        add: (...c) => c.forEach((x) => this.classList._set.add(x)),
-        remove: (...c) => c.forEach((x) => this.classList._set.delete(x)),
+        add: (...c) => {
+          c.forEach((x) => {
+            this.classList._set.add(x);
+          });
+        },
+        remove: (...c) => {
+          c.forEach((x) => {
+            this.classList._set.delete(x);
+          });
+        },
         toggle: (c, force) => {
           const should = force === undefined ? !this.classList._set.has(c) : Boolean(force);
           if (should) this.classList._set.add(c);
@@ -289,7 +299,8 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       return child;
     }
     addEventListener(type, fn) {
-      (this.listeners[type] ||= []).push(fn);
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(fn);
     }
     dispatchEvent(type, extra = {}) {
       for (const fn of this.listeners[type] || []) {
@@ -431,8 +442,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     const buf = fs.readFileSync(path.join(ROOT, clean));
     return {
       ok: true,
-      arrayBuffer: async () =>
-        buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+      arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
       text: async () => buf.toString("utf8"),
     };
   };
@@ -462,7 +472,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.equal(
       grid.dataset.mobileView,
       "asm",
-      "Tapping PC0 tag on mobile monitor view must reveal the ASM panel"
+      "Tapping PC0 tag on mobile monitor view must reveal the ASM panel",
     );
     assert.ok(scrolledElements.length > 0, "Expected scrollIntoView on target ASM line");
 
@@ -473,7 +483,11 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(v1Chip, "Expected Voice 2 legend chip");
     v1Chip.click();
     assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow Voice");
-    assert.equal(v1Chip.classList.contains("active-followed"), true, "Voice 2 chip must be active-followed");
+    assert.equal(
+      v1Chip.classList.contains("active-followed"),
+      true,
+      "Voice 2 chip must be active-followed",
+    );
 
     // 5. Following a voice adds high-visibility .pc-followed highlight to active source line
     if (rafCb) rafCb();
@@ -481,12 +495,22 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(v1LineNo > 0, "Expected Voice 2 line number on v1-pc");
     const followedEl = elementsById.get(`asm-L${v1LineNo}`);
     assert.ok(followedEl, "Expected an active .asm-line element");
-    assert.equal(followedEl.classList.contains("pc-followed"), true, "Followed line must carry .pc-followed");
-    assert.equal(followedEl.classList.contains("pc-v1"), true, ".pc-followed must match selected Voice 2");
+    assert.equal(
+      followedEl.classList.contains("pc-followed"),
+      true,
+      "Followed line must carry .pc-followed",
+    );
+    assert.equal(
+      followedEl.classList.contains("pc-v1"),
+      true,
+      ".pc-followed must match selected Voice 2",
+    );
 
     // 6. DRM chip switches to arkadrum.asm and tapping V1/V2/V3 switches back to arkanoid.asm
     const gameList = elementsById.get("game-list");
-    const arkadrumItem = gameList.children.find((c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"));
+    const arkadrumItem = gameList.children.find(
+      (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
+    );
     assert.ok(arkadrumItem, "Expected arkadrum.asm in game list");
     arkadrumItem.click();
     if (rafCb) rafCb();
@@ -495,23 +519,47 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     const v3Chip = legendChips.find((c) => c.dataset.voice === "2");
     assert.ok(drmChip, "Expected DRM chip");
     assert.ok(v3Chip, "Expected Voice 3 chip");
-    assert.equal(drmChip.classList.contains("disabled"), false, "DRM chip must be enabled for arkadrum.asm");
+    assert.equal(
+      drmChip.classList.contains("disabled"),
+      false,
+      "DRM chip must be enabled for arkadrum.asm",
+    );
 
     // Click DRM chip -> follow DRM in arkadrum.asm
     drmChip.click();
-    assert.equal(drmChip.classList.contains("active-followed"), true, "DRM chip must be active-followed");
-    assert.equal(v3Chip.classList.contains("active-followed"), false, "Voice 3 chip must not be active-followed");
+    assert.equal(
+      drmChip.classList.contains("active-followed"),
+      true,
+      "DRM chip must be active-followed",
+    );
+    assert.equal(
+      v3Chip.classList.contains("active-followed"),
+      false,
+      "Voice 3 chip must not be active-followed",
+    );
     assert.match(elementsById.get("source-file-title").textContent, /ARKADRUM\.ASM/);
 
     // Click Voice 3 chip -> switch back to arkanoid.asm and follow V3
     v3Chip.click();
-    assert.equal(v3Chip.classList.contains("active-followed"), true, "Voice 3 chip must be active-followed");
-    assert.equal(drmChip.classList.contains("active-followed"), false, "DRM chip must not be active-followed");
+    assert.equal(
+      v3Chip.classList.contains("active-followed"),
+      true,
+      "Voice 3 chip must be active-followed",
+    );
+    assert.equal(
+      drmChip.classList.contains("active-followed"),
+      false,
+      "DRM chip must not be active-followed",
+    );
     assert.match(elementsById.get("source-file-title").textContent, /ARKANOID\.ASM/);
 
     // Click DRM chip again -> switch back to arkadrum.asm
     drmChip.click();
-    assert.equal(drmChip.classList.contains("active-followed"), true, "DRM chip must be active-followed again");
+    assert.equal(
+      drmChip.classList.contains("active-followed"),
+      true,
+      "DRM chip must be active-followed again",
+    );
     assert.match(elementsById.get("source-file-title").textContent, /ARKADRUM\.ASM/);
 
     // 7. SID Hex Strip renders all 4 labeled voice groups
@@ -538,7 +586,11 @@ test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, preven
   const laptop = { width: 1024, height: 768 };
 
   const bodyStyle = computeStyleForSelector(rules, ["html", "body"], laptop);
-  assert.equal(bodyStyle["overflow-y"], "auto", "Laptop html/body must allow vertical page scrolling");
+  assert.equal(
+    bodyStyle["overflow-y"],
+    "auto",
+    "Laptop html/body must allow vertical page scrolling",
+  );
 
   const gridStyle = computeStyleForSelector(rules, [".workbench-grid"], laptop);
   assert.match(gridStyle["grid-template-columns"], /310px/);
@@ -546,24 +598,24 @@ test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, preven
   const panelCenter = computeStyleForSelector(rules, [".panel-center"], laptop);
   assert.ok(
     parseInt(panelCenter["min-height"] || "0", 10) >= 500,
-    "Laptop .panel-center must have min-height >= 500px to prevent C64 monitor squashing"
+    "Laptop .panel-center must have min-height >= 500px to prevent C64 monitor squashing",
   );
 
   const panelLeft = computeStyleForSelector(rules, [".panel-left"], laptop);
   assert.ok(
     parseInt(panelLeft["min-height"] || "0", 10) >= 500,
-    "Laptop .panel-left must have min-height >= 500px to keep Panel 2 tunes visible"
+    "Laptop .panel-left must have min-height >= 500px to keep Panel 2 tunes visible",
   );
 
   const panelRight = computeStyleForSelector(rules, [".panel-right"], laptop);
   assert.equal(
     panelRight["grid-column"],
     "1 / -1",
-    "Laptop .panel-right must span all columns (1 / -1)"
+    "Laptop .panel-right must span all columns (1 / -1)",
   );
   assert.ok(
     parseInt(panelRight["min-height"] || "0", 10) >= 400,
-    "Laptop .panel-right must have min-height >= 400px"
+    "Laptop .panel-right must have min-height >= 400px",
   );
 });
 
@@ -573,27 +625,28 @@ test("C64 character ROM contains authentic 8x8 glyphs for all 256 characters wit
 
   // Verify lowercase 'a' (code 0x61 = 97) is not a solid middle line hieroglyph
   const glyphA = Array.from(C64_CHAR_ROM.slice(97 * 8, 97 * 8 + 8));
-  assert.notEqual(glyphA[3], 0xFF, "Lowercase 'a' must not be replaced with a solid-line hieroglyph");
+  assert.notEqual(
+    glyphA[3],
+    0xff,
+    "Lowercase 'a' must not be replaced with a solid-line hieroglyph",
+  );
   assert.equal(glyphA[0], 0x00, "Lowercase 'a' top row must be 0x00");
 
   // Verify letters 'A'..'Z' ($41..$5A) have non-empty valid rows
-  for (let c = 0x41; c <= 0x5A; c++) {
+  for (let c = 0x41; c <= 0x5a; c++) {
     const rows = Array.from(C64_CHAR_ROM.slice(c * 8, c * 8 + 8));
     const nonZero = rows.filter((r) => r !== 0);
     assert.ok(
       nonZero.length >= 4,
-      `Character code ${c} ($${c.toString(16)}) must have a readable letter glyph`
+      `Character code ${c} ($${c.toString(16)}) must have a readable letter glyph`,
     );
   }
 
   // Verify brackets, braces, and vertical bar ($5B, $5D, $7B, $7C, $7D)
-  for (const c of [0x5B, 0x5D, 0x7B, 0x7C, 0x7D]) {
+  for (const c of [0x5b, 0x5d, 0x7b, 0x7c, 0x7d]) {
     const rows = Array.from(C64_CHAR_ROM.slice(c * 8, c * 8 + 8));
     const nonZero = rows.filter((r) => r !== 0);
-    assert.ok(
-      nonZero.length >= 4,
-      `Punctuation code ${c} ($${c.toString(16)}) must be defined`
-    );
+    assert.ok(nonZero.length >= 4, `Punctuation code ${c} ($${c.toString(16)}) must be defined`);
   }
 });
 
@@ -604,42 +657,30 @@ test("HUD row guide and Follow Voice initial states match markup defaults and st
   assert.match(
     html,
     /<input type="checkbox" id="chk-hud-overlay" \/>/,
-    "HUD Row Guide checkbox must be unchecked by default in index.html"
+    "HUD Row Guide checkbox must be unchecked by default in index.html",
   );
   assert.match(
     html,
     /<div class="hud-guide-overlay hidden" id="hud-guide-overlay"><\/div>/,
-    "HUD Row Guide overlay element must start with 'hidden' class in index.html"
+    "HUD Row Guide overlay element must start with 'hidden' class in index.html",
   );
 
   // chk-follow-pc must be unchecked by default with 'Follow Voice' label
   assert.match(
     html,
     /<input type="checkbox" id="chk-follow-pc" \/>\s*<span>Follow Voice<\/span>/,
-    "Follow Voice checkbox must be unchecked by default in index.html"
+    "Follow Voice checkbox must be unchecked by default in index.html",
   );
 
   // Interactive voice legend chips must be present with V1 active by default
   assert.match(
     html,
     /class="legend-chip active-followed"[^>]*data-voice="0"/,
-    "Voice 1 legend chip must be selected by default"
+    "Voice 1 legend chip must be selected by default",
   );
-  assert.match(
-    html,
-    /data-voice="1"/,
-    "Voice 2 legend chip must be present"
-  );
-  assert.match(
-    html,
-    /data-voice="2"/,
-    "Voice 3 legend chip must be present"
-  );
-  assert.match(
-    html,
-    /data-voice="seq"/,
-    "Drum sequencer legend chip must be present"
-  );
+  assert.match(html, /data-voice="1"/, "Voice 2 legend chip must be present");
+  assert.match(html, /data-voice="2"/, "Voice 3 legend chip must be present");
+  assert.match(html, /data-voice="seq"/, "Drum sequencer legend chip must be present");
 });
 
 test("SID hardware register strip ($D400-$D418) groups voices into labeled sections and stacks responsively on mobile", () => {
@@ -658,46 +699,42 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   assert.equal(
     stripMobile["flex-direction"],
     "column",
-    ".sid-hex-strip must switch to column on mobile"
+    ".sid-hex-strip must switch to column on mobile",
   );
   assert.equal(
     stripMobile["overflow-x"],
     "hidden",
-    ".sid-hex-strip must eliminate horizontal scroll on mobile"
+    ".sid-hex-strip must eliminate horizontal scroll on mobile",
   );
 
   const cellsMobile = computeStyleForSelector(rules, [".sid-hex-cells"], mobile);
   assert.equal(
     cellsMobile["flex-direction"],
     "column",
-    ".sid-hex-cells must stack sections vertically on mobile"
+    ".sid-hex-cells must stack sections vertically on mobile",
   );
 
   const groupMobile = computeStyleForSelector(rules, [".sid-hex-group"], mobile);
   assert.equal(
     groupMobile.width,
     "100%",
-    ".sid-hex-group must stack as full-width rows on mobile viewports"
+    ".sid-hex-group must stack as full-width rows on mobile viewports",
   );
 
   const viewerDesktop = computeStyleForSelector(rules, [".source-viewer"], desktop);
   assert.equal(
     viewerDesktop.position,
     "relative",
-    ".source-viewer must be position: relative for accurate element centering"
+    ".source-viewer must be position: relative for accurate element centering",
   );
 
   const lineDesktop = computeStyleForSelector(rules, [".asm-line"], desktop);
   assert.equal(
     lineDesktop["min-width"],
     "100%",
-    ".asm-line must be min-width: 100% to fill scrollable code viewer"
+    ".asm-line must be min-width: 100% to fill scrollable code viewer",
   );
-  assert.equal(
-    lineDesktop["box-sizing"],
-    "border-box",
-    ".asm-line must use border-box sizing"
-  );
+  assert.equal(lineDesktop["box-sizing"], "border-box", ".asm-line must use border-box sizing");
 });
 
 test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlighted numbers sit still without jitter", () => {
@@ -709,33 +746,33 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
   assert.equal(
     telSummary["font-variant-numeric"],
     "tabular-nums",
-    ".telemetry-summary must enforce tabular-nums"
+    ".telemetry-summary must enforce tabular-nums",
   );
   assert.equal(
     telSummary["white-space"],
     "nowrap",
-    ".telemetry-summary must have white-space: nowrap"
+    ".telemetry-summary must have white-space: nowrap",
   );
 
   const telFrame = computeStyleForSelector(rules, ["#tel-frame"], desktop);
   assert.equal(
     telFrame["min-width"],
     "5.5ch",
-    "#tel-frame must have fixed min-width: 5.5ch to prevent number jitter"
+    "#tel-frame must have fixed min-width: 5.5ch to prevent number jitter",
   );
 
   const telPc = computeStyleForSelector(rules, ["#tel-pc"], desktop);
   assert.equal(
     telPc["min-width"],
     "5ch",
-    "#tel-pc must have fixed min-width: 5ch to prevent hex address jitter"
+    "#tel-pc must have fixed min-width: 5ch to prevent hex address jitter",
   );
 
   const telD418 = computeStyleForSelector(rules, ["#tel-d418"], desktop);
   assert.equal(
     telD418["min-width"],
     "2.5ch",
-    "#tel-d418 must have fixed min-width: 2.5ch to prevent drum write jitter"
+    "#tel-d418 must have fixed min-width: 2.5ch to prevent drum write jitter",
   );
 });
 
@@ -786,7 +823,7 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     advanceTime(45);
     assert.ok(
       viewer.scrollTop >= 145 && viewer.scrollTop <= 150,
-      `Expected fast ease-out tracking near target at halfway mark, got ${viewer.scrollTop}`
+      `Expected fast ease-out tracking near target at halfway mark, got ${viewer.scrollTop}`,
     );
 
     // At 90ms, scroll settles precisely at target and clears active animation
@@ -801,12 +838,12 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     assert.equal(
       viewer.scrollTop,
       1260,
-      "Long jump must immediately pre-position within 40px of targetTop to avoid crawling delay"
+      "Long jump must immediately pre-position within 40px of targetTop to avoid crawling delay",
     );
     advanceTime(35);
     assert.ok(
       viewer.scrollTop > 1260 && viewer.scrollTop < 1300,
-      `Final 40px must ease smoothly toward target, got ${viewer.scrollTop}`
+      `Final 40px must ease smoothly toward target, got ${viewer.scrollTop}`,
     );
     advanceTime(35);
     assert.equal(viewer.scrollTop, 1300, "Long jump must settle precisely at 1300 after 70ms");
@@ -818,7 +855,7 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     assert.equal(
       viewer.scrollTop,
       240,
-      "Backward long jump must pre-position within +40px of targetTop"
+      "Backward long jump must pre-position within +40px of targetTop",
     );
     advanceTime(70);
     assert.equal(viewer.scrollTop, 200, "Backward long jump must settle at targetTop");
@@ -828,7 +865,11 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     smoothScrollSourceViewer(viewer, 300);
     assert.ok(scheduledCallbacks.length > 0);
     cancelViewerSmoothScroll();
-    assert.equal(scheduledCallbacks.length, 0, "cancelViewerSmoothScroll must cancel active RAF loop");
+    assert.equal(
+      scheduledCallbacks.length,
+      0,
+      "cancelViewerSmoothScroll must cancel active RAF loop",
+    );
   } finally {
     globalThis.performance = prevPerf;
     globalThis.requestAnimationFrame = prevRaf;

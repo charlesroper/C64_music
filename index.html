@@ -14,6 +14,7 @@
         <div class="brand-led" id="status-led" title="WASM 6510 + SID Engine Ready"></div>
         <div>
           <div class="brand-title">
+            <!-- biome-ignore lint/a11y/useSemanticElements: the brand mark is a decorative wordmark, not a control surface; a real button element would fight the layout styling -->
             <span class="brand-logo" role="button" tabindex="0" aria-label="Galway 2664" title="Galway 2664 (Click for retro C64 sparkle)">
               <svg class="c64-logo-svg" viewBox="0 0 90 10" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Galway 2664" shape-rendering="crispEdges">
                 <title>Galway 2664</title>
@@ -39,19 +40,19 @@
       </div>
 
       <div class="transport-bar">
-        <button id="btn-prev" class="btn-icon" title="Previous Track ([)">
+        <button type="button" id="btn-prev" class="btn-icon" title="Previous Track ([)">
           <span>&#9664;&#9664;</span>
         </button>
-        <button id="btn-play" class="btn-primary" title="Play / Pause (Space)">
+        <button type="button" id="btn-play" class="btn-primary" title="Play / Pause (Space)">
           <span id="play-icon">&#9654;</span> <span id="play-label">PLAY</span>
         </button>
-        <button id="btn-restart" class="btn-icon" title="Restart Current Track (R)">
+        <button type="button" id="btn-restart" class="btn-icon" title="Restart Current Track (R)">
           <span>&#8634;</span> RESTART
         </button>
-        <button id="btn-next" class="btn-icon" title="Next Track (])">
+        <button type="button" id="btn-next" class="btn-icon" title="Next Track (])">
           <span>&#9654;&#9654;</span>
         </button>
-        <button id="btn-ffwd" class="btn-icon" title="Hold to Fast-Forward 4x (F)">
+        <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to Fast-Forward 4x (F)">
           <span>&#9654;&#9654;|</span> 4x FFWD
         </button>
       </div>
@@ -88,11 +89,11 @@
           />
         </div>
 
-        <button id="btn-directives-modal" class="btn-secondary" title="Ocean 1987 Assembler Manual &amp; Architecture">
+        <button type="button" id="btn-directives-modal" class="btn-secondary" title="Ocean 1987 Assembler Manual &amp; Architecture">
           OCEAN ASM DOCS
         </button>
 
-        <button id="btn-narrative-modal" class="btn-secondary" title="The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets">
+        <button type="button" id="btn-narrative-modal" class="btn-secondary" title="The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets">
           THE STORY
         </button>
       </div>
@@ -120,9 +121,9 @@
         <div class="panel-header panel-subheader">
           <span class="panel-title" id="tracks-panel-title">2. TUNES &amp; ARCADE SFX</span>
           <div class="filter-pills">
-            <button class="pill active" data-filter="all">ALL</button>
-            <button class="pill" data-filter="music">MUSIC</button>
-            <button class="pill" data-filter="sfx">SFX / DRUMS</button>
+            <button type="button" class="pill active" data-filter="all">ALL</button>
+            <button type="button" class="pill" data-filter="music">MUSIC</button>
+            <button type="button" class="pill" data-filter="sfx">SFX / DRUMS</button>
           </div>
         </div>
 
@@ -197,8 +198,8 @@
               </div>
               <div class="voice-controls">
                 <span class="voice-pc-tag" id="v0-pc" title="Click to jump to Voice 1 sequence pointer in source">PC0: $----</span>
-                <button class="btn-mini" data-mute="0" title="Mute Voice 1 (Digit 1)">M</button>
-                <button class="btn-mini" data-solo="0" title="Solo Voice 1">S</button>
+                <button type="button" class="btn-mini" data-mute="0" title="Mute Voice 1 (Digit 1)">M</button>
+                <button type="button" class="btn-mini" data-solo="0" title="Solo Voice 1">S</button>
               </div>
             </div>
             <canvas class="scope-canvas" id="scope-v0" width="260" height="68"></canvas>
@@ -220,8 +221,8 @@
               </div>
               <div class="voice-controls">
                 <span class="voice-pc-tag" id="v1-pc" title="Click to jump to Voice 2 sequence pointer in source">PC1: $----</span>
-                <button class="btn-mini" data-mute="1" title="Mute Voice 2 (Digit 2)">M</button>
-                <button class="btn-mini" data-solo="1" title="Solo Voice 2">S</button>
+                <button type="button" class="btn-mini" data-mute="1" title="Mute Voice 2 (Digit 2)">M</button>
+                <button type="button" class="btn-mini" data-solo="1" title="Solo Voice 2">S</button>
               </div>
             </div>
             <canvas class="scope-canvas" id="scope-v1" width="260" height="68"></canvas>
@@ -243,8 +244,8 @@
               </div>
               <div class="voice-controls">
                 <span class="voice-pc-tag" id="v2-pc" title="Click to jump to Voice 3 sequence pointer in source">PC2: $----</span>
-                <button class="btn-mini" data-mute="2" title="Mute Voice 3 (Digit 3)">M</button>
-                <button class="btn-mini" data-solo="2" title="Solo Voice 3">S</button>
+                <button type="button" class="btn-mini" data-mute="2" title="Mute Voice 3 (Digit 3)">M</button>
+                <button type="button" class="btn-mini" data-solo="2" title="Solo Voice 3">S</button>
               </div>
             </div>
             <canvas class="scope-canvas" id="scope-v2" width="260" height="68"></canvas>
@@ -266,7 +267,7 @@
               </div>
               <div class="voice-controls">
                 <span class="voice-pc-tag" id="seq-pc" title="Click to jump to Drum Sequencer pointer (seqPC) in source">DRUM: ----</span>
-                <button class="btn-mini" data-mute="3" title="Mute $D418 Digi-Drums (Digit 4)">DIGI M</button>
+                <button type="button" class="btn-mini" data-mute="3" title="Mute $D418 Digi-Drums (Digit 4)">DIGI M</button>
               </div>
             </div>
             <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>
@@ -292,10 +293,10 @@
               <input type="checkbox" id="chk-follow-pc" />
               <span>Follow Voice</span>
             </label>
-            <button id="btn-toggle-edit" class="btn-mini-action" title="Edit .asm source and re-assemble in browser">
+            <button type="button" id="btn-toggle-edit" class="btn-mini-action" title="Edit .asm source and re-assemble in browser">
               EDIT .ASM
             </button>
-            <button id="btn-reassemble" class="btn-mini-action btn-accent hidden" title="Assemble modified source and hot-reload into C64 RAM">
+            <button type="button" id="btn-reassemble" class="btn-mini-action btn-accent hidden" title="Assemble modified source and hot-reload into C64 RAM">
               ASSEMBLE &amp; RUN
             </button>
           </div>
@@ -312,6 +313,7 @@
             class="source-search"
             placeholder="Find label, opcode, comment..."
           />
+          <!-- biome-ignore lint/a11y/useSemanticElements: this is a radio-style control group styled as a legend strip; fieldset semantics would change the existing layout and test contract -->
           <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
             <button type="button" class="legend-chip active-followed" data-voice="0" title="Follow Voice 1 (PC0)"><i class="dot-v0"></i>V1</button>
             <button type="button" class="legend-chip" data-voice="1" title="Follow Voice 2 (PC1)"><i class="dot-v1"></i>V2</button>
@@ -344,7 +346,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Ocean Software 1987 6502 Assembler &amp; Galway Engine Reference</h2>
-        <button id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
+        <button type="button" id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
       </div>
       <div class="modal-body">
         <div class="modal-cols">
@@ -398,7 +400,7 @@
     <div class="modal-card modal-card-narrative">
       <div class="modal-header">
         <h2>The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets</h2>
-        <button id="btn-close-narrative-modal" class="btn-icon">&times; CLOSE</button>
+        <button type="button" id="btn-close-narrative-modal" class="btn-icon">&times; CLOSE</button>
       </div>
       <div class="modal-body narrative-modal-body" id="narrative-modal-body"></div>
     </div>

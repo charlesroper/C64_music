@@ -6,12 +6,7 @@
 import { assembleOceanSource } from "./ocean_assembler.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
-export function createWorkbenchPlayer({
-  wasm,
-  rawSources,
-  createAudioContext,
-  navigatorObj,
-}) {
+export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, navigatorObj }) {
   const sources = { ...rawSources };
   const assembledCache = {};
 
@@ -47,7 +42,12 @@ export function createWorkbenchPlayer({
       wasm.wasm_set_voice_mute_mask(0x07);
       return;
     }
-    if (activeTrack && activeTrack.mode === "morse_solo" && state.soloVoice < 0 && state.muteMask === 0) {
+    if (
+      activeTrack &&
+      activeTrack.mode === "morse_solo" &&
+      state.soloVoice < 0 &&
+      state.muteMask === 0
+    ) {
       wasm.wasm_set_voice_mute_mask(0x06);
       return;
     }
@@ -78,13 +78,13 @@ export function createWorkbenchPlayer({
   function initRamboMonitorScreen(ram) {
     for (let i = 0; i < 1000; i++) {
       ram[0x0400 + i] = 0x20;
-      ram[0xD800 + i] = 15;
+      ram[0xd800 + i] = 15;
     }
     const writeStr = (row, col, text, color = 1) => {
       const base = row * 40 + col;
       for (let i = 0; i < text.length && col + i < 40; i++) {
         ram[0x0400 + base + i] = text.charCodeAt(i);
-        ram[0xD800 + base + i] = color;
+        ram[0xd800 + base + i] = color;
       }
     };
     writeStr(1, 2, "R.A.M.B.O. FIRST BLOOD PART II (1985)", 7);
@@ -130,10 +130,10 @@ export function createWorkbenchPlayer({
         ram[s.D1 + s.PMC] = 0;
       }
       const refsp = track.refsp || 0x0040;
-      ram[s.Refsp] = refsp & 0xFF;
-      ram[s.Refsp + 1] = (refsp >> 8) & 0xFF;
+      ram[s.Refsp] = refsp & 0xff;
+      ram[s.Refsp + 1] = (refsp >> 8) & 0xff;
       wasm.wasm_inject_key(keyChar);
-      wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xFD, 0x24);
+      wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xfd, 0x24);
       updateEffectiveMuteMask();
       return;
     }
@@ -155,26 +155,20 @@ export function createWorkbenchPlayer({
         wasm.wasm_jsr(sD.INITSOUND, 0, 0, 0, 50000);
         const riffAddr = track.riff === "eNTERDATA" ? sD.eNTERDATA : sD.TITLEDATA;
         const riffClk = track.riffClk || 2;
-        wasm.wasm_jsr(
-          sD.RIFF,
-          riffClk,
-          riffAddr & 0xFF,
-          (riffAddr >> 8) & 0xFF,
-          10000
-        );
+        wasm.wasm_jsr(sD.RIFF, riffClk, riffAddr & 0xff, (riffAddr >> 8) & 0xff, 10000);
         wasm.wasm_jsr(sD.TUNE, 0, 0, track.tuneY, 50000);
-        wasm.wasm_set_cpu_state(sD.MAIN, 0, 0, 0, 0xFD, 0x20);
+        wasm.wasm_set_cpu_state(sD.MAIN, 0, 0, 0, 0xfd, 0x20);
       } else {
         wasm.wasm_jsr(sA.InitScreen, 0, 0, 0, 200000);
         wasm.wasm_jsr(sA.INITSOUND, 0, 0, 0, 50000);
-        wasm.wasm_write_bus(0xD418, 0x0F);
-        if (sA.D418 !== undefined) ram[sA.D418] = 0x0F;
+        wasm.wasm_write_bus(0xd418, 0x0f);
+        if (sA.D418 !== undefined) ram[sA.D418] = 0x0f;
         ram[sA.RF] = 7;
         const refsp = track.refsp || 0x0080;
-        ram[sA.Refsp] = refsp & 0xFF;
-        ram[sA.Refsp + 1] = (refsp >> 8) & 0xFF;
+        ram[sA.Refsp] = refsp & 0xff;
+        ram[sA.Refsp + 1] = (refsp >> 8) & 0xff;
         wasm.wasm_inject_key(track.key.charCodeAt(0));
-        wasm.wasm_set_cpu_state(sA.DLoop, 0, 0, 0, 0xFD, 0x24);
+        wasm.wasm_set_cpu_state(sA.DLoop, 0, 0, 0, 0xfd, 0x24);
       }
       updateEffectiveMuteMask();
       return;
@@ -186,20 +180,20 @@ export function createWorkbenchPlayer({
       const s = asm.symbols;
 
       if (track.withDrums) {
-        wasm.wasm_set_cpu_state(s.Start, 0, 0, 0, 0xFD, 0x24);
+        wasm.wasm_set_cpu_state(s.Start, 0, 0, 0, 0xfd, 0x24);
         if (track.skipFrames && track.skipFrames > 0) {
           wasm.wasm_fast_forward_frames(track.skipFrames);
         }
       } else {
         wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
         wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-        wasm.wasm_write_bus(0xD418, 0x0F);
+        wasm.wasm_write_bus(0xd418, 0x0f);
         ram[s.RF] = 7;
         const refsp = track.refsp || 0x0040;
-        ram[s.Refsp] = refsp & 0xFF;
-        ram[s.Refsp + 1] = (refsp >> 8) & 0xFF;
+        ram[s.Refsp] = refsp & 0xff;
+        ram[s.Refsp + 1] = (refsp >> 8) & 0xff;
         wasm.wasm_inject_key(track.key.charCodeAt(0));
-        wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xFD, 0x24);
+        wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xfd, 0x24);
       }
       updateEffectiveMuteMask();
       return;
@@ -211,7 +205,7 @@ export function createWorkbenchPlayer({
       const s = asm.symbols;
       wasm.wasm_jsr(s.setscreen, 0, 0, 0, 200000);
       wasm.wasm_jsr(s.FULLRESET, 0, 0, 0, 50000);
-      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xFD, 0x24);
+      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xfd, 0x24);
       wasm.wasm_inject_key(track.key.charCodeAt(0));
       updateEffectiveMuteMask();
       return;
@@ -222,10 +216,10 @@ export function createWorkbenchPlayer({
       ram.set(asm.mem);
       const s = asm.symbols;
       initRamboMonitorScreen(ram);
-      ram[s.START + 6] = 0x4C;
-      ram[s.START + 7] = (s.L - 3) & 0xFF;
-      ram[s.START + 8] = ((s.L - 3) >> 8) & 0xFF;
-      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xFD, 0x24);
+      ram[s.START + 6] = 0x4c;
+      ram[s.START + 7] = (s.L - 3) & 0xff;
+      ram[s.START + 8] = ((s.L - 3) >> 8) & 0xff;
+      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xfd, 0x24);
 
       if (track.skipFrames && track.skipFrames > 0) {
         wasm.wasm_fast_forward_frames(track.skipFrames);
@@ -248,16 +242,8 @@ export function createWorkbenchPlayer({
     }
 
     wasm.wasm_render_audio(n);
-    const wasmL = new Float32Array(
-      wasm.memory.buffer,
-      wasm.wasm_get_audio_l_ptr(),
-      n
-    );
-    const wasmR = new Float32Array(
-      wasm.memory.buffer,
-      wasm.wasm_get_audio_r_ptr(),
-      n
-    );
+    const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), n);
+    const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
     outL.set(wasmL);
     outR.set(wasmR);
   }
@@ -343,14 +329,14 @@ export function createWorkbenchPlayer({
   }
 
   function injectKey(charCode) {
-    wasm.wasm_inject_key(charCode & 0xFF);
+    wasm.wasm_inject_key(charCode & 0xff);
   }
 
   function setHardwareOptions(opts = {}) {
     if (opts.sidModel8580 !== undefined) state.sidModel8580 = Boolean(opts.sidModel8580);
     if (opts.videoNtsc !== undefined) state.videoNtsc = Boolean(opts.videoNtsc);
     if (opts.digiBoost !== undefined) state.digiBoost = Number(opts.digiBoost);
-    if (opts.muteMask !== undefined) state.muteMask = opts.muteMask & 0x0F;
+    if (opts.muteMask !== undefined) state.muteMask = opts.muteMask & 0x0f;
     if (opts.soloVoice !== undefined) state.soloVoice = opts.soloVoice;
     if (opts.isFastForward !== undefined) state.isFastForward = Boolean(opts.isFastForward);
     if (opts.sampleRate !== undefined) state.sampleRate = Number(opts.sampleRate);

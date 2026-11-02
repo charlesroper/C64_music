@@ -1,7 +1,7 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 
@@ -31,8 +31,16 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
       this.height = 272;
       this.classList = {
         _set: new Set(),
-        add: (...c) => c.forEach((x) => this.classList._set.add(x)),
-        remove: (...c) => c.forEach((x) => this.classList._set.delete(x)),
+        add: (...c) => {
+          c.forEach((x) => {
+            this.classList._set.add(x);
+          });
+        },
+        remove: (...c) => {
+          c.forEach((x) => {
+            this.classList._set.delete(x);
+          });
+        },
         toggle: (c, force) => {
           const should = force === undefined ? !this.classList._set.has(c) : Boolean(force);
           if (should) this.classList._set.add(c);
@@ -57,7 +65,8 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
       return child;
     }
     addEventListener(type, fn) {
-      (this.listeners[type] ||= []).push(fn);
+      if (!this.listeners[type]) this.listeners[type] = [];
+      this.listeners[type].push(fn);
     }
     dispatchEvent(type, extra = {}) {
       for (const fn of this.listeners[type] || []) {
@@ -218,14 +227,20 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
       assert.ok(audioState.ctx, "AudioContext was not created");
       assert.equal(audioState.ctx.state, "running", "AudioContext was not resumed");
       assert.ok(audioState.processor, "ScriptProcessorNode was not created");
-      assert.equal(typeof audioState.processor.onaudioprocess, "function", "onaudioprocess missing");
+      assert.equal(
+        typeof audioState.processor.onaudioprocess,
+        "function",
+        "onaudioprocess missing",
+      );
       assert.ok(
-        audioState.processor.inCh >= 1 && audioState.upstreamConnectedToProcessor && audioState.upstreamSourcesStarted >= 1,
-        "WebKit requires >=1 input channel and a started upstream source connected to ScriptProcessorNode"
+        audioState.processor.inCh >= 1 &&
+          audioState.upstreamConnectedToProcessor &&
+          audioState.upstreamSourcesStarted >= 1,
+        "WebKit requires >=1 input channel and a started upstream source connected to ScriptProcessorNode",
       );
       assert.ok(
         audioState.processorConnectedToDestination,
-        "ScriptProcessorNode must be connected to audioCtx.destination"
+        "ScriptProcessorNode must be connected to audioCtx.destination",
       );
 
       const n = audioState.processor.bufferSize;
@@ -317,7 +332,10 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   // Wait for fetches + WASM assembly to complete
   await bootPromise;
   const deadline = Date.now() + 5000;
-  while (harness.elementsById.get("play-label").textContent === "LOADING..." && Date.now() < deadline) {
+  while (
+    harness.elementsById.get("play-label").textContent === "LOADING..." &&
+    Date.now() < deadline
+  ) {
     await new Promise((r) => setTimeout(r, 20));
   }
 
@@ -329,16 +347,16 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
 test("CalVer version number appears immediately after the title of the app", async () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
-  
+
   // Brand title contains Galway 2664 logo with accessible text and brand-version badge
   const match = html.match(/<div class="brand-title">([\s\S]*?)<\/div>/);
   assert.ok(match, "index.html must contain brand-title");
-  
+
   const titleContent = match[1];
   assert.match(
     titleContent,
     /<span class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[^>]*>[\s\S]*?<span class="sr-only">Galway 2664<\/span>\s*<\/span>\s*<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
-    "Version badge must be placed immediately after the app title"
+    "Version badge must be placed immediately after the app title",
   );
 
   const calver = titleContent.match(/id="app-version">v([^<]+)<\/span>/)[1];
@@ -357,16 +375,31 @@ test("CalVer version number appears immediately after the title of the app", asy
   assert.equal(computeNextVersion("2026.10.30.4", mockDate), "2026.10.30.5");
 
   // Verify Galway 2664 C64 logo generator defaults to pure white and uses authentic character ROM
-  const { getGalway2664LogoSvg, generateC64TextSvg, C64_RAINBOW_PALETTE, C64_SPARKLE_PALETTE, VIC_PALETTE } = await import("../src/c64_charset.js");
+  const {
+    getGalway2664LogoSvg,
+    generateC64TextSvg,
+    C64_RAINBOW_PALETTE,
+    C64_SPARKLE_PALETTE,
+    VIC_PALETTE,
+  } = await import("../src/c64_charset.js");
   const svg = getGalway2664LogoSvg();
-  assert.ok(svg.includes('aria-label="Galway 2664"'), "Logo SVG must contain accessible aria-label");
-  assert.ok(svg.includes('<title>Galway 2664</title>'), "Logo SVG must contain accessible title");
+  assert.ok(
+    svg.includes('aria-label="Galway 2664"'),
+    "Logo SVG must contain accessible aria-label",
+  );
+  assert.ok(svg.includes("<title>Galway 2664</title>"), "Logo SVG must contain accessible title");
   assert.ok(svg.includes('shape-rendering="crispEdges"'), "Logo SVG must specify crispEdges");
-  assert.ok(svg.includes(`fill="${VIC_PALETTE[1]}"`), "Logo SVG must default to authentic VIC White (#FFFFFF)");
+  assert.ok(
+    svg.includes(`fill="${VIC_PALETTE[1]}"`),
+    "Logo SVG must default to authentic VIC White (#FFFFFF)",
+  );
 
   // Rainbow palette is preserved for custom color runs
   const rainbowSvg = generateC64TextSvg("GALWAY 64", { colors: C64_RAINBOW_PALETTE });
-  assert.ok(rainbowSvg.includes(`fill="${VIC_PALETTE[10]}"`), "Custom rainbow logo must support Light Red");
+  assert.ok(
+    rainbowSvg.includes(`fill="${VIC_PALETTE[10]}"`),
+    "Custom rainbow logo must support Light Red",
+  );
   assert.equal(C64_RAINBOW_PALETTE.length, 8, "C64 rainbow palette must have 8 authentic colors");
 
   // Verify sparkle reflection palette and CSS rules
@@ -375,6 +408,12 @@ test("CalVer version number appears immediately after the title of the app", asy
   assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[1]), "Sparkle palette must include White");
 
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  assert.ok(css.includes("@keyframes c64-sparkle-sweep"), "CSS must contain c64-sparkle-sweep keyframes");
-  assert.ok(css.includes(".brand-logo.sparkle-active"), "CSS must contain sparkle-active class selector");
+  assert.ok(
+    css.includes("@keyframes c64-sparkle-sweep"),
+    "CSS must contain c64-sparkle-sweep keyframes",
+  );
+  assert.ok(
+    css.includes(".brand-logo.sparkle-active"),
+    "CSS must contain sparkle-active class selector",
+  );
 });

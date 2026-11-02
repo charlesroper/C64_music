@@ -1,9 +1,9 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { renderMarkdownToHtml, formatMarkdownInline } from "../src/markdown.js";
+import { formatMarkdownInline, renderMarkdownToHtml } from "../src/markdown.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "latin1").replace(/\r/g, "");
@@ -11,15 +11,18 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), "latin1").replace(/\r/g,
 test("markdown renderer handles links, nested and numbered lists, and code spans", () => {
   assert.equal(
     formatMarkdownInline("[x](https://example.com/a?b=1&c=2)"),
-    '<a href="https://example.com/a?b=1&amp;c=2" target="_blank" rel="noopener noreferrer">x</a>'
+    '<a href="https://example.com/a?b=1&amp;c=2" target="_blank" rel="noopener noreferrer">x</a>',
   );
   assert.equal(formatMarkdownInline("[x](javascript:alert(1))"), "[x](javascript:alert(1))");
-  assert.equal(formatMarkdownInline('`2*"B"` and *it*'), "<code>2*&quot;B&quot;</code> and <em>it</em>");
+  assert.equal(
+    formatMarkdownInline('`2*"B"` and *it*'),
+    "<code>2*&quot;B&quot;</code> and <em>it</em>",
+  );
 
   const html = renderMarkdownToHtml("* a\n  * b\n  * c\n* d\n\n1. one\n2. two\n\ntext");
   assert.equal(
     html,
-    "<ul>\n<li>\na\n<ul>\n<li>\nb\n</li>\n<li>\nc\n</li></ul>\n</li>\n<li>\nd\n</li></ul>\n<ol>\n<li>\none\n</li>\n<li>\ntwo\n</li></ol>\n<p>text</p>"
+    "<ul>\n<li>\na\n<ul>\n<li>\nb\n</li>\n<li>\nc\n</li></ul>\n</li>\n<li>\nd\n</li></ul>\n<ol>\n<li>\none\n</li>\n<li>\ntwo\n</li></ol>\n<p>text</p>",
   );
 });
 

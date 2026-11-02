@@ -23,9 +23,11 @@ export function formatMarkdownInline(str) {
   s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
   s = s.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
   );
-  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codeSpans[Number(i)])}</code>`);
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: NUL is the private sentinel the renderer uses to protect inline code spans from the later link pass
+  const CODE_SENTINEL = /\u0000(\d+)\u0000/g;
+  return s.replace(CODE_SENTINEL, (_, i) => `<code>${escapeHtml(codeSpans[Number(i)])}</code>`);
 }
 
 const LIST_ITEM = /^(\s*)([*-]|\d+\.)\s+(.*)$/;
@@ -38,7 +40,7 @@ export function renderMarkdownToHtml(md) {
   let codeLang = "";
   let codeLines = [];
   // Stack of open lists: { indent, tag }
-  let lists = [];
+  const lists = [];
 
   const closeListsTo = (indent) => {
     while (lists.length && lists[lists.length - 1].indent > indent) {
@@ -52,7 +54,9 @@ export function renderMarkdownToHtml(md) {
 
     if (line.startsWith("```")) {
       if (inCode) {
-        out.push(`<pre><code class="lang-${escapeHtml(codeLang)}">${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        out.push(
+          `<pre><code class="lang-${escapeHtml(codeLang)}">${escapeHtml(codeLines.join("\n"))}</code></pre>`,
+        );
         inCode = false;
         codeLines = [];
       } else {
@@ -105,7 +109,6 @@ export function renderMarkdownToHtml(md) {
     } else if (line.startsWith("> ")) {
       out.push(`<blockquote><p>${formatMarkdownInline(line.slice(2))}</p></blockquote>`);
     } else if (line === ">") {
-      continue;
     } else {
       out.push(`<p>${formatMarkdownInline(line)}</p>`);
     }

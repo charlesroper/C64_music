@@ -2,10 +2,10 @@
 // Galway 2664 // Ocean 6502-SID Workbench Main Application
 // ============================================================================
 
-import { GAME_FILES } from "./tracks_catalog.js";
 import { C64_CHAR_ROM, VIC_PALETTE_RGBA } from "./c64_charset.js";
-import { createWorkbenchPlayer } from "./player_engine.js";
 import { renderMarkdownToHtml } from "./markdown.js";
+import { createWorkbenchPlayer } from "./player_engine.js";
+import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
 
@@ -146,16 +146,16 @@ function updateRamboMonitorScreen(ram, asm) {
   const s = asm.symbols;
   for (let i = 0; i < 16; i++) {
     ram[0x0400 + 5 * 40 + 2 + i] = ram[0x10 + i];
-    ram[0xD800 + 5 * 40 + 2 + i] = 3;
+    ram[0xd800 + 5 * 40 + 2 + i] = 3;
   }
   if (s.SB0 && s.SB1 && s.SB2) {
     for (let i = 0; i < 38; i++) {
       ram[0x0400 + 14 * 40 + 1 + i] = ram[s.SB0 + i];
-      ram[0xD800 + 14 * 40 + 1 + i] = 3;
+      ram[0xd800 + 14 * 40 + 1 + i] = 3;
       ram[0x0400 + 16 * 40 + 1 + i] = ram[s.SB1 + i];
-      ram[0xD800 + 16 * 40 + 1 + i] = 4;
+      ram[0xd800 + 16 * 40 + 1 + i] = 4;
       ram[0x0400 + 18 * 40 + 1 + i] = ram[s.SB2 + i];
-      ram[0xD800 + 18 * 40 + 1 + i] = 7;
+      ram[0xd800 + 18 * 40 + 1 + i] = 7;
     }
   }
 }
@@ -179,8 +179,8 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
     game.id === "arkadrum.asm" && state.followVoice === "seq"
       ? "arkadrum.asm"
       : game.id === "arkadrum.asm"
-      ? "arkanoid.asm"
-      : game.id;
+        ? "arkanoid.asm"
+        : game.id;
 
   if (
     prevGameId !== game.id ||
@@ -198,8 +198,7 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
     morseBanner.classList.add("hidden");
   }
 
-  document.getElementById("now-playing-pill").textContent =
-    `${game.title}: ${track.name}`;
+  document.getElementById("now-playing-pill").textContent = `${game.title}: ${track.name}`;
 
   updateDrmChipState();
 
@@ -243,15 +242,10 @@ function renderTrackList() {
     const div = document.createElement("div");
     div.className = `track-item${track.id === state.activeTrackId ? " active" : ""}`;
 
-    const hzClass =
-      track.hz === 200 ? "hz-200" : track.hz === 100 ? "hz-100" : "hz-50";
+    const hzClass = track.hz === 200 ? "hz-200" : track.hz === 100 ? "hz-100" : "hz-50";
     const hzText = track.withDrums ? `${track.hz}Hz + DIGI` : `${track.hz}Hz`;
-    const keyBadge = track.key
-      ? `<span class="t-badge key-tag">KEY [${track.key}]</span>`
-      : "";
-    const durBadge = track.durationHint
-      ? `<span class="t-badge">${track.durationHint}</span>`
-      : "";
+    const keyBadge = track.key ? `<span class="t-badge key-tag">KEY [${track.key}]</span>` : "";
+    const durBadge = track.durationHint ? `<span class="t-badge">${track.durationHint}</span>` : "";
 
     div.innerHTML = `
       <div class="track-row-top">
@@ -284,14 +278,7 @@ function renderGameMetaCard(game) {
 
 function renderKeypadButtons() {
   const container = document.getElementById("c64-keypad-buttons");
-  const keys = [
-    ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
-    "+",
-    "-",
-    "@",
-    "*",
-    "RET",
-  ];
+  const keys = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), "+", "-", "@", "*", "RET"];
   container.innerHTML = "";
   for (const k of keys) {
     const btn = document.createElement("button");
@@ -301,12 +288,12 @@ function renderKeypadButtons() {
       k === "RET"
         ? "Inject RETURN (13) to cycle channel mask RF"
         : k === "+" || k === "-"
-        ? `Inject '${k}' to adjust Refsp refresh speed`
-        : k === "@"
-        ? "Inject '@' for 200Hz ($0100) speed"
-        : k === "*"
-        ? "Inject '*' for $0001 slow-motion inspection"
-        : `Inject key '${k}' into C64 driver ($F13E / KeyScan)`;
+          ? `Inject '${k}' to adjust Refsp refresh speed`
+          : k === "@"
+            ? "Inject '@' for 200Hz ($0100) speed"
+            : k === "*"
+              ? "Inject '*' for $0001 slow-motion inspection"
+              : `Inject key '${k}' into C64 driver ($F13E / KeyScan)`;
     btn.addEventListener("click", () => {
       if (!state.player) return;
       if (!state.player.getState().isPlaying) setPlayingState(true);
@@ -330,10 +317,31 @@ function renderSidHexStripSkeleton() {
   ];
 
   const regNames = [
-    "V1 Freq Lo", "V1 Freq Hi", "V1 PW Lo", "V1 PW Hi", "V1 Ctrl", "V1 Att/Dec", "V1 Sus/Rel",
-    "V2 Freq Lo", "V2 Freq Hi", "V2 PW Lo", "V2 PW Hi", "V2 Ctrl", "V2 Att/Dec", "V2 Sus/Rel",
-    "V3 Freq Lo", "V3 Freq Hi", "V3 PW Lo", "V3 PW Hi", "V3 Ctrl", "V3 Att/Dec", "V3 Sus/Rel",
-    "Flt Cut Lo", "Flt Cut Hi", "Flt Res/Route", "Mode / Vol",
+    "V1 Freq Lo",
+    "V1 Freq Hi",
+    "V1 PW Lo",
+    "V1 PW Hi",
+    "V1 Ctrl",
+    "V1 Att/Dec",
+    "V1 Sus/Rel",
+    "V2 Freq Lo",
+    "V2 Freq Hi",
+    "V2 PW Lo",
+    "V2 PW Hi",
+    "V2 Ctrl",
+    "V2 Att/Dec",
+    "V2 Sus/Rel",
+    "V3 Freq Lo",
+    "V3 Freq Hi",
+    "V3 PW Lo",
+    "V3 PW Hi",
+    "V3 Ctrl",
+    "V3 Att/Dec",
+    "V3 Sus/Rel",
+    "Flt Cut Lo",
+    "Flt Cut Hi",
+    "Flt Res/Route",
+    "Mode / Vol",
   ];
 
   for (const g of groups) {
@@ -414,9 +422,7 @@ function updateDrmChipState() {
     state.activeGameId === "gameover.asm";
 
   drmChip.classList.toggle("disabled", !hasDrums);
-  drmChip.title = hasDrums
-    ? "Follow Drum Sequencer (seqPC)"
-    : "No drum sequencer in this song";
+  drmChip.title = hasDrums ? "Follow Drum Sequencer (seqPC)" : "No drum sequencer in this song";
 
   if (!hasDrums && state.followVoice === "seq") {
     setFollowVoice(0);
@@ -482,10 +488,7 @@ function renderMorseStream(activeIndex) {
 // ============================================================================
 
 function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function formatAsmLineHtml(rawLine) {
@@ -495,14 +498,11 @@ function formatAsmLineHtml(rawLine) {
 
   let formattedCode = escapeHtml(codePart);
   if (codePart.length > 0 && !/\s/.test(codePart[0])) {
-    formattedCode = formattedCode.replace(
-      /^(\S+)/,
-      '<span class="asm-label">$1</span>'
-    );
+    formattedCode = formattedCode.replace(/^(\S+)/, '<span class="asm-label">$1</span>');
   }
   formattedCode = formattedCode.replace(
     /\b(ORG|EQU|DFB|DFW|DFL|DFH|DFS|DFM|ENT|INC)\b/g,
-    '<span class="asm-directive">$1</span>'
+    '<span class="asm-directive">$1</span>',
   );
 
   const formattedComment = commentPart
@@ -534,7 +534,7 @@ function renderSourceViewer(gameId) {
   for (const [name, val] of sortedSyms) {
     const opt = document.createElement("option");
     opt.value = name;
-    opt.textContent = `${name} ($${(val & 0xFFFF).toString(16).toUpperCase().padStart(4, "0")})`;
+    opt.textContent = `${name} ($${(val & 0xffff).toString(16).toUpperCase().padStart(4, "0")})`;
     symSelect.appendChild(opt);
   }
 
@@ -545,9 +545,7 @@ function renderSourceViewer(gameId) {
     const lineNo = i + 1;
     const addr = asm.lineAddresses[lineNo];
     const addrHex =
-      addr !== undefined
-        ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
-        : "";
+      addr !== undefined ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}` : "";
 
     const row = document.createElement("div");
     row.className = "asm-line";
@@ -633,7 +631,7 @@ function smoothScrollSourceViewer(viewer, targetTop, { instant = false } = {}) {
     const currentNow = typeof now === "number" && now > 0 ? now : getNow();
     const elapsed = currentNow - startTime;
     const progress = Math.min(1, Math.max(0, elapsed / duration));
-    const ease = 1 - Math.pow(1 - progress, 3);
+    const ease = 1 - (1 - progress) ** 3;
     viewer.scrollTop = Math.round(start + dist * ease);
 
     if (progress < 1) {
@@ -665,7 +663,7 @@ function scrollToSourceLine(lineNo, { revealMobilePanel = false, instant = false
     }
     const targetTop = Math.max(
       0,
-      Math.round(top - viewer.clientHeight / 2 + (el.clientHeight || 18) / 2)
+      Math.round(top - viewer.clientHeight / 2 + (el.clientHeight || 18) / 2),
     );
     smoothScrollSourceViewer(viewer, targetTop, { instant });
   } else if (el && typeof el.scrollIntoView === "function") {
@@ -723,7 +721,7 @@ function getDom() {
     domCache.telPc = document.getElementById("tel-pc");
     domCache.telD418 = document.getElementById("tel-d418");
     domCache.sidCells = Array.from({ length: 25 }, (_, i) =>
-      document.getElementById(`sid-reg-${i}`)
+      document.getElementById(`sid-reg-${i}`),
     );
     domCache.voices = [0, 1, 2].map((v) => ({
       note: document.getElementById(`v${v}-note`),
@@ -758,7 +756,7 @@ function getScopeCanvas(id) {
   return scopeCache[id];
 }
 
-const lastSidRegs = new Uint8Array(25).fill(0xFF);
+const lastSidRegs = new Uint8Array(25).fill(0xff);
 
 function renderC64Monitor(ram, wasm) {
   if (!ensureC64ScreenCanvas()) return;
@@ -767,7 +765,7 @@ function renderC64Monitor(ram, wasm) {
 
   for (let y = 0; y < 272; y++) {
     const vicLine = y + 20;
-    const bdrColorIdx = scanlineBorder[vicLine] & 0x0F;
+    const bdrColorIdx = scanlineBorder[vicLine] & 0x0f;
     const bdrPixel = VIC_PALETTE_U32[bdrColorIdx];
     const inScreenY = y >= 36 && y < 236;
     const screenY = y - 36;
@@ -791,12 +789,12 @@ function renderC64Monitor(ram, wasm) {
     let pixelOffset = dstIdx + 32;
     for (let col = 0; col < 40; col++) {
       const charCode = ram[0x0400 + rowBase + col];
-      const fgColorIdx = ram[0xD800 + rowBase + col] & 0x0F;
+      const fgColorIdx = ram[0xd800 + rowBase + col] & 0x0f;
       const fgPixel = VIC_PALETTE_U32[fgColorIdx];
       const glyphByte = C64_CHAR_ROM[charCode * 8 + charRow];
 
       for (let bit = 7; bit >= 0; bit--) {
-        c64Pixels32[pixelOffset++] = ((glyphByte >> bit) & 1) ? fgPixel : 0xFF000000;
+        c64Pixels32[pixelOffset++] = (glyphByte >> bit) & 1 ? fgPixel : 0xff000000;
       }
     }
 
@@ -942,7 +940,8 @@ function renderFrameLoop() {
     const currentFile = state.currentSourceFile || state.activeGameId;
     const asm = state.player.getAssembled(state.activeGameId);
     const currentAsm = state.player.getAssembled(currentFile);
-    const arkAsm = state.activeGameId === "arkadrum.asm" ? state.player.getAssembled("arkanoid.asm") : null;
+    const arkAsm =
+      state.activeGameId === "arkadrum.asm" ? state.player.getAssembled("arkanoid.asm") : null;
     const d = getDom();
 
     if (state.activeGameId === "rambload.asm" && asm) {
@@ -971,11 +970,7 @@ function renderFrameLoop() {
     }
     if (d.telD418) d.telD418.textContent = wasm.wasm_get_d418_activity();
 
-    const sidRegs = new Uint8Array(
-      wasm.memory.buffer,
-      wasm.wasm_get_sid_regs_ptr(),
-      32
-    );
+    const sidRegs = new Uint8Array(wasm.memory.buffer, wasm.wasm_get_sid_regs_ptr(), 32);
     for (let i = 0; i <= 0x18; i++) {
       if (lastSidRegs[i] !== sidRegs[i]) {
         lastSidRegs[i] = sidRegs[i];
@@ -986,11 +981,7 @@ function renderFrameLoop() {
       }
     }
 
-    const scopeData = new Float32Array(
-      wasm.memory.buffer,
-      wasm.wasm_get_scope_ptr(),
-      4 * 512
-    );
+    const scopeData = new Float32Array(wasm.memory.buffer, wasm.wasm_get_scope_ptr(), 4 * 512);
 
     const colors = ["#38e2ff", "#ff56b1", "#ffaa00"];
     const game = GAME_FILES.find((g) => g.id === state.activeGameId);
@@ -1013,8 +1004,7 @@ function renderFrameLoop() {
         vDom.pw.textContent = "$" + pw.toString(16).toUpperCase().padStart(3, "0");
       }
       if (vDom.adsr) {
-        vDom.adsr.textContent =
-          `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
+        vDom.adsr.textContent = `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
       }
       if (vDom.env) {
         vDom.env.textContent = env.toString(16).toUpperCase().padStart(2, "0");
@@ -1065,11 +1055,7 @@ function renderFrameLoop() {
     }
     if (d.fltRes) d.fltRes.textContent = res;
 
-    const routStr = [
-      rout & 1 ? "V1" : "",
-      rout & 2 ? "V2" : "",
-      rout & 4 ? "V3" : "",
-    ]
+    const routStr = [rout & 1 ? "V1" : "", rout & 2 ? "V2" : "", rout & 4 ? "V3" : ""]
       .filter(Boolean)
       .join("+");
     if (d.fltRout) d.fltRout.textContent = routStr || "NONE";
@@ -1084,10 +1070,7 @@ function renderFrameLoop() {
       drawMasterAndFilterScope(scopeData, fc, res, mode);
     }
 
-    if (
-      state.activeGameId === "arkadrum.asm" ||
-      state.activeGameId === "gameover.asm"
-    ) {
+    if (state.activeGameId === "arkadrum.asm" || state.activeGameId === "gameover.asm") {
       const seqPtr = ram[0x50] | (ram[0x51] << 8);
       if (d.seqPc) {
         d.seqPc.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -1112,7 +1095,7 @@ function renderFrameLoop() {
 function findNearestSourceLine(asm, addr) {
   if (!addr || addr < 0x0800) return 0;
   for (let delta = 0; delta < 16; delta++) {
-    const ln = asm.addrToLine[(addr - delta) & 0xFFFF];
+    const ln = asm.addrToLine[(addr - delta) & 0xffff];
     if (ln > 0) return ln;
   }
   return 0;
@@ -1197,8 +1180,9 @@ function setupUIHandlers() {
         }
       }
       state.pendingPlayOnBoot = !state.pendingPlayOnBoot;
-      document.getElementById("play-label").textContent =
-        state.pendingPlayOnBoot ? "LOADING..." : "PLAY";
+      document.getElementById("play-label").textContent = state.pendingPlayOnBoot
+        ? "LOADING..."
+        : "PLAY";
       return;
     }
     setPlayingState(!state.player.getState().isPlaying);
@@ -1246,16 +1230,15 @@ function setupUIHandlers() {
 
   document.getElementById("slider-digi-boost").addEventListener("input", (e) => {
     state.digiBoost = parseFloat(e.target.value);
-    document.getElementById("digi-boost-val").textContent =
-      `${state.digiBoost.toFixed(1)}x`;
+    document.getElementById("digi-boost-val").textContent = `${state.digiBoost.toFixed(1)}x`;
     if (state.player) state.player.setHardwareOptions({ digiBoost: state.digiBoost });
   });
 
   document.querySelectorAll(".filter-pills .pill").forEach((pill) => {
     pill.addEventListener("click", () => {
-      document
-        .querySelectorAll(".filter-pills .pill")
-        .forEach((p) => p.classList.remove("active"));
+      document.querySelectorAll(".filter-pills .pill").forEach((p) => {
+        p.classList.remove("active");
+      });
       pill.classList.add("active");
       state.activeFilter = pill.dataset.filter;
       renderTrackList();
@@ -1263,14 +1246,10 @@ function setupUIHandlers() {
   });
 
   document.getElementById("chk-hud-overlay").addEventListener("change", (e) => {
-    document
-      .getElementById("hud-guide-overlay")
-      .classList.toggle("hidden", !e.target.checked);
+    document.getElementById("hud-guide-overlay").classList.toggle("hidden", !e.target.checked);
   });
   document.getElementById("chk-crt-scanlines").addEventListener("change", (e) => {
-    document
-      .getElementById("crt-overlay")
-      .classList.toggle("hidden", !e.target.checked);
+    document.getElementById("crt-overlay").classList.toggle("hidden", !e.target.checked);
   });
 
   document.querySelectorAll("[data-mute]").forEach((btn) => {
@@ -1291,10 +1270,7 @@ function setupUIHandlers() {
       const ch = parseInt(btn.dataset.solo, 10);
       state.soloVoice = state.soloVoice === ch ? -1 : ch;
       document.querySelectorAll("[data-solo]").forEach((b) => {
-        b.classList.toggle(
-          "active-solo",
-          parseInt(b.dataset.solo, 10) === state.soloVoice
-        );
+        b.classList.toggle("active-solo", parseInt(b.dataset.solo, 10) === state.soloVoice);
       });
       if (state.player) state.player.setHardwareOptions({ soloVoice: state.soloVoice });
     });
@@ -1388,7 +1364,7 @@ function setupUIHandlers() {
     const asm = state.player.getAssembled(state.activeGameId);
     if (!asm) return;
     const idx = asm.rawLines.findIndex((line) =>
-      new RegExp(`^${symName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(line)
+      new RegExp(`^${symName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(line),
     );
     if (idx >= 0) scrollToSourceLine(idx + 1);
   });
@@ -1398,9 +1374,9 @@ function setupUIHandlers() {
     if (!state.player) return;
     const asm = state.player.getAssembled(state.activeGameId);
     if (!asm) return;
-    document
-      .querySelectorAll(".asm-line.search-match")
-      .forEach((el) => el.classList.remove("search-match"));
+    document.querySelectorAll(".asm-line.search-match").forEach((el) => {
+      el.classList.remove("search-match");
+    });
     if (!q) return;
 
     let firstMatch = 0;
@@ -1431,9 +1407,7 @@ function setupUIHandlers() {
     viewerEl.classList.toggle("hidden", state.isEditingSource);
     editorEl.classList.toggle("hidden", !state.isEditingSource);
     btnReassemble.classList.toggle("hidden", !state.isEditingSource);
-    btnToggleEdit.textContent = state.isEditingSource
-      ? "VIEW LIVE ASM"
-      : "EDIT .ASM";
+    btnToggleEdit.textContent = state.isEditingSource ? "VIEW LIVE ASM" : "EDIT .ASM";
   });
 
   btnReassemble.addEventListener("click", () => {
@@ -1542,8 +1516,4 @@ function stepTrack(delta) {
 
 initWorkbench();
 
-export {
-  smoothScrollSourceViewer,
-  cancelViewerSmoothScroll,
-  scrollToSourceLine,
-};
+export { cancelViewerSmoothScroll, scrollToSourceLine, smoothScrollSourceViewer };

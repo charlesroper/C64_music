@@ -22,7 +22,8 @@
   --accent-orange: #ff8e3c;
   --accent-blue: #4d88ff;
 
-  --font-mono: "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-mono:
+    "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -32,7 +33,8 @@
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   background: var(--bg-deep);
@@ -169,7 +171,7 @@ html, body {
 }
 
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(1) {
-  animation: c64-sparkle-sweep 0.35s 0.00s steps(1);
+  animation: c64-sparkle-sweep 0.35s 0s steps(1);
 }
 .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(2) {
   animation: c64-sparkle-sweep 0.35s 0.07s steps(1);
@@ -236,7 +238,9 @@ html, body {
   padding: 0.5px 7px;
   line-height: 1.4;
   vertical-align: middle;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .brand-version:hover {
@@ -281,7 +285,8 @@ button:hover {
   border-color: var(--border-bright);
 }
 
-button:active, button.active {
+button:active,
+button.active {
   background: var(--bg-active);
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
@@ -592,7 +597,8 @@ button:active, button.active {
 }
 
 /* ==================== CENTER PANEL: C64 MONITOR & SCOPES ==================== */
-.header-left-group, .header-right-group {
+.header-left-group,
+.header-right-group {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -659,10 +665,7 @@ button:active, button.active {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.28) 50%
-  );
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%);
   background-size: 100% 4px;
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55);
 }
@@ -888,10 +891,22 @@ button:active, button.active {
   border-radius: 50%;
 }
 
-.v-cyan { background: var(--accent-cyan); box-shadow: 0 0 6px var(--accent-cyan); }
-.v-magenta { background: var(--accent-magenta); box-shadow: 0 0 6px var(--accent-magenta); }
-.v-yellow { background: var(--accent-yellow); box-shadow: 0 0 6px var(--accent-yellow); }
-.v-green { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.v-cyan {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+.v-magenta {
+  background: var(--accent-magenta);
+  box-shadow: 0 0 6px var(--accent-magenta);
+}
+.v-yellow {
+  background: var(--accent-yellow);
+  box-shadow: 0 0 6px var(--accent-yellow);
+}
+.v-green {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
 
 .voice-name {
   font-family: var(--font-mono);
@@ -1006,7 +1021,8 @@ button:active, button.active {
   flex-shrink: 0;
 }
 
-.symbol-select, .source-search {
+.symbol-select,
+.source-search {
   font-family: var(--font-mono);
   font-size: 11px;
   background: #090c12;
@@ -1025,7 +1041,8 @@ button:active, button.active {
   flex: 1;
 }
 
-.symbol-select:focus, .source-search:focus {
+.symbol-select:focus,
+.source-search:focus {
   border-color: var(--accent-cyan);
 }
 
@@ -1093,7 +1110,9 @@ button:active, button.active {
   border-color: var(--accent-yellow);
   color: #fff;
   background: rgba(255, 170, 0, 0.24);
-  box-shadow: 0 0 8px rgba(255, 170, 0, 0.45), inset 0 0 4px rgba(255, 170, 0, 0.15);
+  box-shadow:
+    0 0 8px rgba(255, 170, 0, 0.45),
+    inset 0 0 4px rgba(255, 170, 0, 0.15);
 }
 
 .legend-chip[data-voice="seq"].active-followed {
@@ -1115,21 +1134,40 @@ button:active, button.active {
   gap: 3px;
 }
 
-.dot-v0, .dot-v1, .dot-v2, .dot-seq {
+.dot-v0,
+.dot-v1,
+.dot-v2,
+.dot-seq {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot-v0 { background: var(--accent-cyan); box-shadow: 0 0 5px var(--accent-cyan); }
-.dot-v1 { background: var(--accent-magenta); box-shadow: 0 0 5px var(--accent-magenta); }
-.dot-v2 { background: var(--accent-yellow); box-shadow: 0 0 7px var(--accent-yellow), 0 0 2px #ffffff; }
-.dot-seq { background: var(--accent-green); box-shadow: 0 0 5px var(--accent-green); }
+.dot-v0 {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 5px var(--accent-cyan);
+}
+.dot-v1 {
+  background: var(--accent-magenta);
+  box-shadow: 0 0 5px var(--accent-magenta);
+}
+.dot-v2 {
+  background: var(--accent-yellow);
+  box-shadow:
+    0 0 7px var(--accent-yellow),
+    0 0 2px #ffffff;
+}
+.dot-seq {
+  background: var(--accent-green);
+  box-shadow: 0 0 5px var(--accent-green);
+}
 
 .legend-chip[data-voice="2"].active-followed .dot-v2 {
   background: #ffc400;
-  box-shadow: 0 0 9px var(--accent-yellow), 0 0 3px #ffffff;
+  box-shadow:
+    0 0 9px var(--accent-yellow),
+    0 0 3px #ffffff;
 }
 
 .source-viewer {
@@ -1163,46 +1201,74 @@ button:active, button.active {
   background: rgba(56, 226, 255, 0.22);
   border-left: 3px solid var(--accent-cyan);
 }
-.asm-line.pc-v0 .ln-num { color: var(--accent-cyan); font-weight: 600; }
-.asm-line.pc-v0 .ln-addr { color: #a8f5ff; }
+.asm-line.pc-v0 .ln-num {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+.asm-line.pc-v0 .ln-addr {
+  color: #a8f5ff;
+}
 
 .asm-line.pc-v1 {
   background: rgba(255, 86, 177, 0.22);
   border-left: 3px solid var(--accent-magenta);
 }
-.asm-line.pc-v1 .ln-num { color: var(--accent-magenta); font-weight: 600; }
-.asm-line.pc-v1 .ln-addr { color: #ffa1d4; }
+.asm-line.pc-v1 .ln-num {
+  color: var(--accent-magenta);
+  font-weight: 600;
+}
+.asm-line.pc-v1 .ln-addr {
+  color: #ffa1d4;
+}
 
 .asm-line.pc-v2 {
   background: rgba(255, 170, 0, 0.22);
   border-left: 3px solid var(--accent-yellow);
 }
-.asm-line.pc-v2 .ln-num { color: var(--accent-yellow); font-weight: 600; }
-.asm-line.pc-v2 .ln-addr { color: #ffd480; }
+.asm-line.pc-v2 .ln-num {
+  color: var(--accent-yellow);
+  font-weight: 600;
+}
+.asm-line.pc-v2 .ln-addr {
+  color: #ffd480;
+}
 
 .asm-line.pc-seq {
   background: rgba(69, 240, 139, 0.24);
   border-left: 3px solid var(--accent-green);
 }
-.asm-line.pc-seq .ln-num { color: var(--accent-green); font-weight: 600; }
-.asm-line.pc-seq .ln-addr { color: #8affaa; }
+.asm-line.pc-seq .ln-num {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+.asm-line.pc-seq .ln-addr {
+  color: #8affaa;
+}
 
 .asm-line.pc-followed {
   background: rgba(56, 226, 255, 0.35) !important;
   border-left: 4px solid #ffffff !important;
-  box-shadow: inset 0 0 10px rgba(56, 226, 255, 0.35), 0 0 8px rgba(56, 226, 255, 0.2);
+  box-shadow:
+    inset 0 0 10px rgba(56, 226, 255, 0.35),
+    0 0 8px rgba(56, 226, 255, 0.2);
 }
 .asm-line.pc-followed.pc-v1 {
   background: rgba(255, 86, 177, 0.35) !important;
-  box-shadow: inset 0 0 10px rgba(255, 86, 177, 0.35), 0 0 8px rgba(255, 86, 177, 0.2);
+  box-shadow:
+    inset 0 0 10px rgba(255, 86, 177, 0.35),
+    0 0 8px rgba(255, 86, 177, 0.2);
 }
 .asm-line.pc-followed.pc-v2 {
   background: rgba(255, 170, 0, 0.35) !important;
-  box-shadow: inset 0 0 10px rgba(255, 170, 0, 0.35), 0 0 8px rgba(255, 170, 0, 0.2);
+  box-shadow:
+    inset 0 0 10px rgba(255, 170, 0, 0.35),
+    0 0 8px rgba(255, 170, 0, 0.2);
 }
 .asm-line.pc-followed.pc-seq {
   background: rgba(69, 240, 139, 0.35) !important;
-  box-shadow: inset 0 0 10px rgba(69, 240, 139, 0.35), 0 0 8px rgba(69, 240, 139, 0.2);
+  box-shadow:
+    inset 0 0 10px rgba(69, 240, 139, 0.35),
+    0 0 8px rgba(69, 240, 139, 0.2);
 }
 .asm-line.pc-followed .ln-num,
 .asm-line.pc-followed .ln-addr {
@@ -1296,7 +1362,10 @@ button:active, button.active {
   background: rgba(20, 27, 41, 0.7);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background-color 0.15s;
 }
 
 .sid-group-tag {
@@ -1308,10 +1377,22 @@ button:active, button.active {
   user-select: none;
 }
 
-.sid-hex-group.v0 .sid-group-tag { color: var(--accent-cyan); background: rgba(56, 226, 255, 0.12); }
-.sid-hex-group.v1 .sid-group-tag { color: var(--accent-magenta); background: rgba(255, 86, 177, 0.12); }
-.sid-hex-group.v2 .sid-group-tag { color: var(--accent-yellow); background: rgba(255, 170, 0, 0.15); }
-.sid-hex-group.flt .sid-group-tag { color: var(--accent-green); background: rgba(69, 240, 139, 0.12); }
+.sid-hex-group.v0 .sid-group-tag {
+  color: var(--accent-cyan);
+  background: rgba(56, 226, 255, 0.12);
+}
+.sid-hex-group.v1 .sid-group-tag {
+  color: var(--accent-magenta);
+  background: rgba(255, 86, 177, 0.12);
+}
+.sid-hex-group.v2 .sid-group-tag {
+  color: var(--accent-yellow);
+  background: rgba(255, 170, 0, 0.15);
+}
+.sid-hex-group.flt .sid-group-tag {
+  color: var(--accent-green);
+  background: rgba(69, 240, 139, 0.12);
+}
 
 .sid-group-cells {
   display: inline-flex;
@@ -1326,13 +1407,24 @@ button:active, button.active {
   min-width: 17px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  transition: color 0.1s, border-color 0.1s, box-shadow 0.1s;
+  transition:
+    color 0.1s,
+    border-color 0.1s,
+    box-shadow 0.1s;
 }
 
-.sid-cell.v0 { border-bottom: 2px solid var(--accent-cyan); }
-.sid-cell.v1 { border-bottom: 2px solid var(--accent-magenta); }
-.sid-cell.v2 { border-bottom: 2px solid var(--accent-yellow); }
-.sid-cell.flt { border-bottom: 2px solid var(--accent-green); }
+.sid-cell.v0 {
+  border-bottom: 2px solid var(--accent-cyan);
+}
+.sid-cell.v1 {
+  border-bottom: 2px solid var(--accent-magenta);
+}
+.sid-cell.v2 {
+  border-bottom: 2px solid var(--accent-yellow);
+}
+.sid-cell.flt {
+  border-bottom: 2px solid var(--accent-green);
+}
 
 /* Glowing active lights when voices or filter are sounding */
 .sid-hex-group.v0.active {
@@ -1590,7 +1682,8 @@ button:active, button.active {
 
 /* ==================== LAPTOP & MEDIUM SCREEN LAYOUT (821px - 1200px) ==================== */
 @media (max-width: 1200px) and (min-width: 821px) {
-  html, body {
+  html,
+  body {
     height: auto;
     min-height: 100%;
     overflow-y: auto;
@@ -1688,7 +1781,8 @@ button:active, button.active {
 }
 
 @media (max-height: 680px) and (min-width: 821px) {
-  html, body {
+  html,
+  body {
     height: auto;
     min-height: 100%;
     overflow-y: auto;
@@ -1714,7 +1808,8 @@ button:active, button.active {
 
 /* ==================== MOBILE & TABLET PORTRAIT LAYOUT ==================== */
 @media (max-width: 820px) {
-  html, body {
+  html,
+  body {
     height: auto;
     min-height: 100%;
     overflow-x: hidden;

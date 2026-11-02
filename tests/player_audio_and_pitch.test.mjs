@@ -1,11 +1,10 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import test from "node:test";
 import { fileURLToPath } from "node:url";
-
-import { GAME_FILES } from "../src/tracks_catalog.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
+import { GAME_FILES } from "../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -132,7 +131,7 @@ test("MOS 6581 oscillator pitch matches hardware datasheet formula across 44.1 k
     const measuredHz = estimateFundamentalHz(toneWindow, sr, 400, 650);
     assert.ok(
       Math.abs(measuredHz - expectedHz) <= 3.0,
-      `Pitch mismatch at sr=${sr}, ntsc=${ntsc}: measured ${measuredHz} Hz, expected ${expectedHz} Hz`
+      `Pitch mismatch at sr=${sr}, ntsc=${ntsc}: measured ${measuredHz} Hz, expected ${expectedHz} Hz`,
     );
   }
 });
@@ -168,7 +167,10 @@ test("$D418 Digi-Drum synthesizer and 4-bit PCM samples produce isolated audio a
       if (a > mutedPeak) mutedPeak = a;
     }
   }
-  assert.ok(mutedPeak < 0.02, `Expected $D418 digi-drums to silence when digiBoost=0, got ${mutedPeak}`);
+  assert.ok(
+    mutedPeak < 0.02,
+    `Expected $D418 digi-drums to silence when digiBoost=0, got ${mutedPeak}`,
+  );
 });
 
 test("pause and channel mute controls silence output deterministically", async () => {
@@ -189,7 +191,7 @@ test("pause and channel mute controls silence output deterministically", async (
 
   // Resume and mute all 4 channels (V1, V2, V3, Digi = 0x0F)
   player.play();
-  player.setHardwareOptions({ muteMask: 0x0F });
+  player.setHardwareOptions({ muteMask: 0x0f });
   player.pullAudioBlock(outL, outR);
   player.pullAudioBlock(outL, outR);
   const maxMuted = Math.max(...outL.map(Math.abs));
@@ -217,7 +219,10 @@ test("all 73 catalog tracks and arcade SFX across all 6 .asm files produce valid
         for (let i = 0; i < 4096; i++) {
           const sL = outL[i];
           const sR = outR[i];
-          assert.ok(Number.isFinite(sL) && Number.isFinite(sR), `Non-finite sample in ${game.id}/${track.id}`);
+          assert.ok(
+            Number.isFinite(sL) && Number.isFinite(sR),
+            `Non-finite sample in ${game.id}/${track.id}`,
+          );
           const a = Math.abs(sL);
           if (a > peak) peak = a;
           sum += sL;
@@ -232,15 +237,15 @@ test("all 73 catalog tracks and arcade SFX across all 6 .asm files produce valid
 
       assert.ok(
         peak > 0.01 && peak <= 1.05,
-        `Track ${game.id}/${track.id} peak out of bounds: ${peak}`
+        `Track ${game.id}/${track.id} peak out of bounds: ${peak}`,
       );
       assert.ok(
         Math.abs(mean) < 0.15,
-        `Track ${game.id}/${track.id} has excessive DC offset: ${mean}`
+        `Track ${game.id}/${track.id} has excessive DC offset: ${mean}`,
       );
       assert.ok(
         acStdDev > 0.002,
-        `Track ${game.id}/${track.id} lacks AC oscillation (acStdDev=${acStdDev})`
+        `Track ${game.id}/${track.id} lacks AC oscillation (acStdDev=${acStdDev})`,
       );
       verifiedCount++;
     }
@@ -264,15 +269,25 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
       allIds.add(track.id);
 
       assert.ok(track.name && track.name.length > 0, `Track ${track.id} has empty name`);
-      assert.ok(track.category === "music" || track.category === "sfx", `Invalid category on ${track.id}`);
-      assert.ok(track.description && track.description.length > 0, `Track ${track.id} has empty description`);
+      assert.ok(
+        track.category === "music" || track.category === "sfx",
+        `Invalid category on ${track.id}`,
+      );
+      assert.ok(
+        track.description && track.description.length > 0,
+        `Track ${track.id} has empty description`,
+      );
 
       assert.ok(!/[\u2014—]/.test(track.name), `Track name contains em-dash: ${track.name}`);
-      assert.ok(!/[\u2014—]/.test(track.description), `Track description contains em-dash: ${track.description}`);
+      assert.ok(
+        !/[\u2014—]/.test(track.description),
+        `Track description contains em-dash: ${track.description}`,
+      );
 
       assert.ok(
-        track.durationHint === "Loops" || /^[0-9]+:[0-9]{2}(\s*\/\s*Loop)?$/.test(track.durationHint),
-        `Track ${track.id} has invalid durationHint: "${track.durationHint}"`
+        track.durationHint === "Loops" ||
+          /^[0-9]+:[0-9]{2}(\s*\/\s*Loop)?$/.test(track.durationHint),
+        `Track ${track.id} has invalid durationHint: "${track.durationHint}"`,
       );
     }
   }
