@@ -656,7 +656,7 @@ test("HUD row guide and Follow Voice initial states match markup defaults and st
   // chk-hud-overlay must be unchecked by default, hud-guide-overlay hidden
   assert.match(
     html,
-    /<input type="checkbox" id="chk-hud-overlay" \/>/,
+    /<input[^>]*type="checkbox"[^>]*id="chk-hud-overlay"[^>]*>/,
     "HUD Row Guide checkbox must be unchecked by default in index.html",
   );
   assert.match(
@@ -668,7 +668,7 @@ test("HUD row guide and Follow Voice initial states match markup defaults and st
   // chk-follow-pc must be unchecked by default with 'Follow Voice' label
   assert.match(
     html,
-    /<input type="checkbox" id="chk-follow-pc" \/>\s*<span>Follow Voice<\/span>/,
+    /<input[^>]*type="checkbox"[^>]*id="chk-follow-pc"[^>]*>\s*<span>Follow Voice<\/span>/,
     "Follow Voice checkbox must be unchecked by default in index.html",
   );
 

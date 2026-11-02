@@ -113,7 +113,7 @@ The script (`scripts/bump_version.mjs`) updates `package.json`, `index.html` (he
 
 ## Linting and formatting
 
-Code style is enforced by [Biome](https://biomejs.dev/), the project's only linter and formatter. It covers JavaScript, JSON and CSS. Markdown, the historical assembly sources and the C sound core are not formatted by it.
+Code style is enforced by [Biome](https://biomejs.dev/), the project's only linter and formatter. It covers JavaScript, JSON, CSS and HTML, using Biome's experimental HTML support. Markdown, the historical assembly sources and the C sound core are not formatted by it.
 
 Check the tree without changing it:
 ```bash

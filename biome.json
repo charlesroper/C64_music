@@ -27,6 +27,12 @@
       "preset": "recommended"
     }
   },
+  "html": {
+    "formatter": {
+      "enabled": true
+    },
+    "experimentalFullSupportEnabled": true
+  },
   "overrides": [
     {
       "includes": ["**/*.md"],

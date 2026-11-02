@@ -1,411 +1,609 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v2026.11.02</title>
-  <link rel="stylesheet" href="./src/styles.css?v=2026.11.02" />
-</head>
-<body>
-  <div class="app-shell">
-    <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
-    <header class="top-bar">
-      <div class="brand-block">
-        <div class="brand-led" id="status-led" title="WASM 6510 + SID Engine Ready"></div>
-        <div>
-          <div class="brand-title">
-            <!-- biome-ignore lint/a11y/useSemanticElements: the brand mark is a decorative wordmark, not a control surface; a real button element would fight the layout styling -->
-            <span class="brand-logo" role="button" tabindex="0" aria-label="Galway 2664" title="Galway 2664 (Click for retro C64 sparkle)">
-              <svg class="c64-logo-svg" viewBox="0 0 90 10" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Galway 2664" shape-rendering="crispEdges">
-                <title>Galway 2664</title>
-                <path fill="#FFFFFF" data-char="G" d="M3,1h4v1h-4z M2,2h2v1h-2z M6,2h2v1h-2z M2,3h2v1h-2z M2,4h2v1h-2z M5,4h3v1h-3z M2,5h2v1h-2z M6,5h2v1h-2z M2,6h2v1h-2z M6,6h2v1h-2z M3,7h4v1h-4z" />
-                <path fill="#FFFFFF" data-char="A" d="M12,1h2v1h-2z M11,2h4v1h-4z M10,3h2v1h-2z M14,3h2v1h-2z M10,4h6v1h-6z M10,5h2v1h-2z M14,5h2v1h-2z M10,6h2v1h-2z M14,6h2v1h-2z M10,7h2v1h-2z M14,7h2v1h-2z" />
-                <path fill="#FFFFFF" data-char="L" d="M18,1h2v1h-2z M18,2h2v1h-2z M18,3h2v1h-2z M18,4h2v1h-2z M18,5h2v1h-2z M18,6h2v1h-2z M18,7h6v1h-6z" />
-                <path fill="#FFFFFF" data-char="W" d="M26,1h2v1h-2z M31,1h2v1h-2z M26,2h2v1h-2z M31,2h2v1h-2z M26,3h2v1h-2z M31,3h2v1h-2z M26,4h2v1h-2z M29,4h1v1h-1z M31,4h2v1h-2z M26,5h7v1h-7z M26,6h3v1h-3z M30,6h3v1h-3z M26,7h2v1h-2z M31,7h2v1h-2z" />
-                <path fill="#FFFFFF" data-char="A" d="M36,1h2v1h-2z M35,2h4v1h-4z M34,3h2v1h-2z M38,3h2v1h-2z M34,4h6v1h-6z M34,5h2v1h-2z M38,5h2v1h-2z M34,6h2v1h-2z M38,6h2v1h-2z M34,7h2v1h-2z M38,7h2v1h-2z" />
-                <path fill="#FFFFFF" data-char="Y" d="M42,1h2v1h-2z M46,1h2v1h-2z M42,2h2v1h-2z M46,2h2v1h-2z M42,3h2v1h-2z M46,3h2v1h-2z M43,4h4v1h-4z M44,5h2v1h-2z M44,6h2v1h-2z M44,7h2v1h-2z" />
-                <path fill="#FFFFFF" data-char="2" d="M59,1h4v1h-4z M58,2h2v1h-2z M62,2h2v1h-2z M62,3h2v1h-2z M61,4h2v1h-2z M59,5h2v1h-2z M58,6h2v1h-2z M58,7h6v1h-6z" />
-                <path fill="#FFFFFF" data-char="6" d="M67,1h4v1h-4z M66,2h2v1h-2z M70,2h2v1h-2z M66,3h2v1h-2z M66,4h5v1h-5z M66,5h2v1h-2z M70,5h2v1h-2z M66,6h2v1h-2z M70,6h2v1h-2z M67,7h4v1h-4z" />
-                <path fill="#FFFFFF" data-char="6" d="M75,1h4v1h-4z M74,2h2v1h-2z M78,2h2v1h-2z M74,3h2v1h-2z M74,4h5v1h-5z M74,5h2v1h-2z M78,5h2v1h-2z M74,6h2v1h-2z M78,6h2v1h-2z M75,7h4v1h-4z" />
-                <path fill="#FFFFFF" data-char="4" d="M86,1h2v1h-2z M85,2h3v1h-3z M84,3h4v1h-4z M82,4h2v1h-2z M86,4h2v1h-2z M82,5h7v1h-7z M86,6h2v1h-2z M86,7h2v1h-2z" />
-              </svg>
-              <span class="sr-only">Galway 2664</span>
-            </span>
-            <span class="brand-accent">// OCEAN 6502-SID WORKBENCH</span> <span class="brand-version" id="app-version">v2026.11.02</span>
-          </div>
-          <div class="brand-subtitle">
-            Cycle-Accurate WebAssembly MOS 6510 + 6581/8580 SID Emulator &amp; Live 1987 Ocean Cross-Assembler
-          </div>
-        </div>
-      </div>
-
-      <div class="transport-bar">
-        <button type="button" id="btn-prev" class="btn-icon" title="Previous Track ([)">
-          <span>&#9664;&#9664;</span>
-        </button>
-        <button type="button" id="btn-play" class="btn-primary" title="Play / Pause (Space)">
-          <span id="play-icon">&#9654;</span> <span id="play-label">PLAY</span>
-        </button>
-        <button type="button" id="btn-restart" class="btn-icon" title="Restart Current Track (R)">
-          <span>&#8634;</span> RESTART
-        </button>
-        <button type="button" id="btn-next" class="btn-icon" title="Next Track (])">
-          <span>&#9654;&#9654;</span>
-        </button>
-        <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to Fast-Forward 4x (F)">
-          <span>&#9654;&#9654;|</span> 4x FFWD
-        </button>
-      </div>
-
-      <div class="hardware-controls">
-        <div class="hw-group">
-          <label class="hw-label" for="select-sid-model">SID CHIP</label>
-          <select id="select-sid-model" class="hw-select">
-            <option value="6581" selected>MOS 6581 (1982 Analog + Digi)</option>
-            <option value="8580">MOS 8580 (1987 C64C Clean)</option>
-          </select>
-        </div>
-
-        <div class="hw-group">
-          <label class="hw-label" for="select-video-std">CLOCK / VIC</label>
-          <select id="select-video-std" class="hw-select">
-            <option value="pal" selected>PAL 50Hz (985.2 kHz)</option>
-            <option value="ntsc">NTSC 60Hz (1.023 MHz)</option>
-          </select>
-        </div>
-
-        <div class="hw-group" id="hw-group-digi">
-          <label class="hw-label" for="slider-digi-boost">
-            $D418 DIGI <span id="digi-boost-val">1.3x</span>
-          </label>
-          <input
-            type="range"
-            id="slider-digi-boost"
-            class="hw-slider"
-            min="0"
-            max="2.5"
-            step="0.1"
-            value="1.3"
-          />
-        </div>
-
-        <button type="button" id="btn-directives-modal" class="btn-secondary" title="Ocean 1987 Assembler Manual &amp; Architecture">
-          OCEAN ASM DOCS
-        </button>
-
-        <button type="button" id="btn-narrative-modal" class="btn-secondary" title="The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets">
-          THE STORY
-        </button>
-      </div>
-    </header>
-
-    <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
-    <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile Studio Panels">
-      <button type="button" class="mobile-tab-btn active" data-mobile-tab="all">ALL PANELS</button>
-      <button type="button" class="mobile-tab-btn" data-mobile-tab="monitor">MONITOR</button>
-      <button type="button" class="mobile-tab-btn" data-mobile-tab="tunes">TUNES</button>
-      <button type="button" class="mobile-tab-btn" data-mobile-tab="asm">LIVE .ASM</button>
-    </nav>
-
-    <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
-    <main class="workbench-grid" id="workbench-grid" data-mobile-view="all">
-      <!-- LEFT PANEL: GAME CARTRIDGES & TRACK/SFX BROWSER -->
-      <section class="panel panel-left">
-        <div class="panel-header">
-          <span class="panel-title">1. SOURCE FILES (.ASM)</span>
-          <span class="panel-badge" id="asm-compile-badge">ASSEMBLED OK</span>
-        </div>
-
-        <div class="game-list" id="game-list"></div>
-
-        <div class="panel-header panel-subheader">
-          <span class="panel-title" id="tracks-panel-title">2. TUNES &amp; ARCADE SFX</span>
-          <div class="filter-pills">
-            <button type="button" class="pill active" data-filter="all">ALL</button>
-            <button type="button" class="pill" data-filter="music">MUSIC</button>
-            <button type="button" class="pill" data-filter="sfx">SFX / DRUMS</button>
-          </div>
-        </div>
-
-        <div class="track-list" id="track-list"></div>
-
-        <div class="game-meta-card" id="game-meta-card"></div>
-      </section>
-
-      <!-- CENTER PANEL: LIVE C64 RASTER MONITOR + SID OSCILLOSCOPES & FILTER -->
-      <section class="panel panel-center">
-        <div class="panel-header">
-          <div class="header-left-group">
-            <span class="panel-title">3. LIVE C64 MONITOR ($0400 + VIC-II $D020 RASTER BARS)</span>
-            <span class="now-playing-pill" id="now-playing-pill">READY</span>
-          </div>
-          <div class="header-right-group">
-            <label class="toggle-label" title="Overlay labels explaining Martin Galway's raw memory dump rows on $0400">
-              <input type="checkbox" id="chk-hud-overlay" />
-              <span>HUD Row Guide</span>
-            </label>
-            <label class="toggle-label" title="Show C64 CRT scanline effect">
-              <input type="checkbox" id="chk-crt-scanlines" checked />
-              <span>CRT Scanlines</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- C64 Screen + Raster Border Canvas -->
-        <div class="c64-monitor-wrapper">
-          <div class="c64-canvas-container" id="c64-canvas-container">
-            <canvas id="c64-monitor-canvas" width="384" height="272"></canvas>
-            <div class="crt-overlay" id="crt-overlay"></div>
-            <div class="hud-guide-overlay hidden" id="hud-guide-overlay"></div>
-          </div>
-
-          <!-- Rambo II Secret Morse Code Live Decoder Banner (shown when rambload.asm is active) -->
-          <div class="morse-banner hidden" id="morse-banner">
-            <div class="morse-header">
-              <span class="morse-badge">SECRET MORSE TRANSMITTER ACTIVE (STARTMC / $D400=$224B)</span>
-              <span class="morse-state" id="morse-state-readout">CHAR #0</span>
-            </div>
-            <div class="morse-stream" id="morse-stream"></div>
-          </div>
-
-          <!-- Interactive C64 Key Injector Bar (simulates $F13E GETIN / KeyScan) -->
-          <div class="c64-keypad-bar">
-            <span class="keypad-label" title="Inject PETSCII key directly into the C64 driver loop ($F13E / KeyScan)">
-              C64 KEY INJECT:
-            </span>
-            <div class="keypad-buttons" id="c64-keypad-buttons"></div>
-          </div>
-        </div>
-
-        <!-- 4-Channel Oscilloscopes & SID Voice Telemetry -->
-        <div class="panel-header panel-subheader">
-          <span class="panel-title">4. MOS 6581/8580 OSCILLOSCOPES &amp; VOICE TELEMETRY</span>
-          <div class="telemetry-summary" id="telemetry-summary">
-            <span class="tel-item tel-item-frame"><span class="tel-lbl">FRAME:</span> <strong id="tel-frame">0</strong></span>
-            <span class="tel-item tel-item-pc"><span class="tel-lbl">CPU PC:</span> <strong id="tel-pc">$0000</strong></span>
-            <span class="tel-item tel-item-d418"><span class="tel-lbl">$D418 WRITES/FRM:</span> <strong id="tel-d418">0</strong></span>
-          </div>
-        </div>
-
-        <div class="scopes-grid">
-          <!-- Voice 1 -->
-          <div class="voice-card" data-voice="0">
-            <div class="voice-card-header">
-              <div class="voice-title-group">
-                <span class="voice-dot v-cyan"></span>
-                <span class="voice-name">VOICE 1 ($D400)</span>
-                <span class="voice-note" id="v0-note">---</span>
-              </div>
-              <div class="voice-controls">
-                <span class="voice-pc-tag" id="v0-pc" title="Click to jump to Voice 1 sequence pointer in source">PC0: $----</span>
-                <button type="button" class="btn-mini" data-mute="0" title="Mute Voice 1 (Digit 1)">M</button>
-                <button type="button" class="btn-mini" data-solo="0" title="Solo Voice 1">S</button>
-              </div>
-            </div>
-            <canvas class="scope-canvas" id="scope-v0" width="260" height="68"></canvas>
-            <div class="voice-regs">
-              <span id="v0-wf" class="wf-tags">---</span>
-              <span>PW: <strong id="v0-pw">$000</strong></span>
-              <span>ADSR: <strong id="v0-adsr">00/00</strong></span>
-              <span>ENV: <strong id="v0-env">00</strong></span>
-            </div>
-          </div>
-
-          <!-- Voice 2 -->
-          <div class="voice-card" data-voice="1">
-            <div class="voice-card-header">
-              <div class="voice-title-group">
-                <span class="voice-dot v-magenta"></span>
-                <span class="voice-name">VOICE 2 ($D407)</span>
-                <span class="voice-note" id="v1-note">---</span>
-              </div>
-              <div class="voice-controls">
-                <span class="voice-pc-tag" id="v1-pc" title="Click to jump to Voice 2 sequence pointer in source">PC1: $----</span>
-                <button type="button" class="btn-mini" data-mute="1" title="Mute Voice 2 (Digit 2)">M</button>
-                <button type="button" class="btn-mini" data-solo="1" title="Solo Voice 2">S</button>
-              </div>
-            </div>
-            <canvas class="scope-canvas" id="scope-v1" width="260" height="68"></canvas>
-            <div class="voice-regs">
-              <span id="v1-wf" class="wf-tags">---</span>
-              <span>PW: <strong id="v1-pw">$000</strong></span>
-              <span>ADSR: <strong id="v1-adsr">00/00</strong></span>
-              <span>ENV: <strong id="v1-env">00</strong></span>
-            </div>
-          </div>
-
-          <!-- Voice 3 -->
-          <div class="voice-card" data-voice="2">
-            <div class="voice-card-header">
-              <div class="voice-title-group">
-                <span class="voice-dot v-yellow"></span>
-                <span class="voice-name">VOICE 3 ($D40E)</span>
-                <span class="voice-note" id="v2-note">---</span>
-              </div>
-              <div class="voice-controls">
-                <span class="voice-pc-tag" id="v2-pc" title="Click to jump to Voice 3 sequence pointer in source">PC2: $----</span>
-                <button type="button" class="btn-mini" data-mute="2" title="Mute Voice 3 (Digit 3)">M</button>
-                <button type="button" class="btn-mini" data-solo="2" title="Solo Voice 3">S</button>
-              </div>
-            </div>
-            <canvas class="scope-canvas" id="scope-v2" width="260" height="68"></canvas>
-            <div class="voice-regs">
-              <span id="v2-wf" class="wf-tags">---</span>
-              <span>PW: <strong id="v2-pw">$000</strong></span>
-              <span>ADSR: <strong id="v2-adsr">00/00</strong></span>
-              <span>ENV: <strong id="v2-env">00</strong></span>
-            </div>
-          </div>
-
-          <!-- Master Mix + Multimode Filter + $D418 Digi DAC -->
-          <div class="voice-card master-card">
-            <div class="voice-card-header">
-              <div class="voice-title-group">
-                <span class="voice-dot v-green"></span>
-                <span class="voice-name">FILTER &amp; $D418 DAC</span>
-                <span class="voice-note" id="filter-mode-tag">LP</span>
-              </div>
-              <div class="voice-controls">
-                <span class="voice-pc-tag" id="seq-pc" title="Click to jump to Drum Sequencer pointer (seqPC) in source">DRUM: ----</span>
-                <button type="button" class="btn-mini" data-mute="3" title="Mute $D418 Digi-Drums (Digit 4)">DIGI M</button>
-              </div>
-            </div>
-            <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>
-            <div class="voice-regs">
-              <span>FC: <strong id="flt-fc">$000 (30Hz)</strong></span>
-              <span>RES: <strong id="flt-res">0</strong></span>
-              <span>ROUT: <strong id="flt-rout">---</strong></span>
-              <span>VOL: <strong id="flt-vol">15</strong></span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT PANEL: LIVE OCEAN 1987 .ASM SOURCE CODE & IN-BROWSER ASSEMBLER -->
-      <section class="panel panel-right">
-        <div class="panel-header">
-          <div class="header-left-group">
-            <span class="panel-title" id="source-file-title">5. OCEAN 1987 .ASM SOURCE</span>
-            <span class="source-stats" id="source-stats">0 lines</span>
-          </div>
-          <div class="header-right-group">
-            <label class="toggle-label" title="Auto-scroll code viewer to follow selected voice or drum sequencer pattern">
-              <input type="checkbox" id="chk-follow-pc" />
-              <span>Follow Voice</span>
-            </label>
-            <button type="button" id="btn-toggle-edit" class="btn-mini-action" title="Edit .asm source and re-assemble in browser">
-              EDIT .ASM
-            </button>
-            <button type="button" id="btn-reassemble" class="btn-mini-action btn-accent hidden" title="Assemble modified source and hot-reload into C64 RAM">
-              ASSEMBLE &amp; RUN
-            </button>
-          </div>
-        </div>
-
-        <!-- Symbol Jump & Search Toolbar -->
-        <div class="source-toolbar">
-          <select id="select-symbol-jump" class="symbol-select" title="Jump to symbol / routine / data table">
-            <option value="">Jump to Symbol / Label...</option>
-          </select>
-          <input
-            type="search"
-            id="input-source-search"
-            class="source-search"
-            placeholder="Find label, opcode, comment..."
-          />
-          <!-- biome-ignore lint/a11y/useSemanticElements: this is a radio-style control group styled as a legend strip; fieldset semantics would change the existing layout and test contract -->
-          <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
-            <button type="button" class="legend-chip active-followed" data-voice="0" title="Follow Voice 1 (PC0)"><i class="dot-v0"></i>V1</button>
-            <button type="button" class="legend-chip" data-voice="1" title="Follow Voice 2 (PC1)"><i class="dot-v1"></i>V2</button>
-            <button type="button" class="legend-chip" data-voice="2" title="Follow Voice 3 (PC2)"><i class="dot-v2"></i>V3</button>
-            <button type="button" class="legend-chip" data-voice="seq" title="Follow Drum Sequencer (seqPC)"><i class="dot-seq"></i>DRM</button>
-          </div>
-        </div>
-
-        <!-- Read-Only Live Execution Code Viewer -->
-        <div class="source-viewer" id="source-viewer"></div>
-
-        <!-- Editable Textarea (shown when Edit .ASM is toggled) -->
-        <textarea
-          id="source-editor"
-          class="source-editor hidden"
-          spellcheck="false"
-        ></textarea>
-
-        <!-- Live SID Hardware Registers Strip ($D400-$D418) -->
-        <div class="sid-hex-strip">
-          <span class="sid-hex-label">$D400-$D418:</span>
-          <div class="sid-hex-cells" id="sid-hex-cells"></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- ==================== OCEAN ASSEMBLER DIRECTIVES MODAL ==================== -->
-  <div class="modal-backdrop hidden" id="directives-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2>Ocean Software 1987 6502 Assembler &amp; Galway Engine Reference</h2>
-        <button type="button" id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-cols">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v2026.11.02</title>
+    <link rel="stylesheet" href="./src/styles.css?v=2026.11.02">
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
+      <header class="top-bar">
+        <div class="brand-block">
+          <div class="brand-led" id="status-led" title="WASM 6510 + SID Engine Ready"></div>
           <div>
-            <h3>Original <code>ocean_assembler_directives.txt</code></h3>
-            <pre class="directives-pre" id="directives-pre"></pre>
+            <div class="brand-title">
+              <!-- biome-ignore lint/a11y/useSemanticElements: the brand mark is a decorative wordmark, not a control surface; a real button element would fight the layout styling -->
+              <span
+                class="brand-logo"
+                role="button"
+                tabindex="0"
+                aria-label="Galway 2664"
+                title="Galway 2664 (Click for retro C64 sparkle)"
+              >
+                <svg
+                  class="c64-logo-svg"
+                  viewBox="0 0 90 10"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  role="img"
+                  aria-label="Galway 2664"
+                  shape-rendering="crispEdges"
+                >
+                  <title>Galway 2664</title>
+                  <path
+                    fill="#FFFFFF"
+                    data-char="G"
+                    d="M3,1h4v1h-4z M2,2h2v1h-2z M6,2h2v1h-2z M2,3h2v1h-2z M2,4h2v1h-2z M5,4h3v1h-3z M2,5h2v1h-2z M6,5h2v1h-2z M2,6h2v1h-2z M6,6h2v1h-2z M3,7h4v1h-4z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="A"
+                    d="M12,1h2v1h-2z M11,2h4v1h-4z M10,3h2v1h-2z M14,3h2v1h-2z M10,4h6v1h-6z M10,5h2v1h-2z M14,5h2v1h-2z M10,6h2v1h-2z M14,6h2v1h-2z M10,7h2v1h-2z M14,7h2v1h-2z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="L"
+                    d="M18,1h2v1h-2z M18,2h2v1h-2z M18,3h2v1h-2z M18,4h2v1h-2z M18,5h2v1h-2z M18,6h2v1h-2z M18,7h6v1h-6z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="W"
+                    d="M26,1h2v1h-2z M31,1h2v1h-2z M26,2h2v1h-2z M31,2h2v1h-2z M26,3h2v1h-2z M31,3h2v1h-2z M26,4h2v1h-2z M29,4h1v1h-1z M31,4h2v1h-2z M26,5h7v1h-7z M26,6h3v1h-3z M30,6h3v1h-3z M26,7h2v1h-2z M31,7h2v1h-2z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="A"
+                    d="M36,1h2v1h-2z M35,2h4v1h-4z M34,3h2v1h-2z M38,3h2v1h-2z M34,4h6v1h-6z M34,5h2v1h-2z M38,5h2v1h-2z M34,6h2v1h-2z M38,6h2v1h-2z M34,7h2v1h-2z M38,7h2v1h-2z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="Y"
+                    d="M42,1h2v1h-2z M46,1h2v1h-2z M42,2h2v1h-2z M46,2h2v1h-2z M42,3h2v1h-2z M46,3h2v1h-2z M43,4h4v1h-4z M44,5h2v1h-2z M44,6h2v1h-2z M44,7h2v1h-2z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="2"
+                    d="M59,1h4v1h-4z M58,2h2v1h-2z M62,2h2v1h-2z M62,3h2v1h-2z M61,4h2v1h-2z M59,5h2v1h-2z M58,6h2v1h-2z M58,7h6v1h-6z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="6"
+                    d="M67,1h4v1h-4z M66,2h2v1h-2z M70,2h2v1h-2z M66,3h2v1h-2z M66,4h5v1h-5z M66,5h2v1h-2z M70,5h2v1h-2z M66,6h2v1h-2z M70,6h2v1h-2z M67,7h4v1h-4z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="6"
+                    d="M75,1h4v1h-4z M74,2h2v1h-2z M78,2h2v1h-2z M74,3h2v1h-2z M74,4h5v1h-5z M74,5h2v1h-2z M78,5h2v1h-2z M74,6h2v1h-2z M78,6h2v1h-2z M75,7h4v1h-4z"
+                  />
+                  <path
+                    fill="#FFFFFF"
+                    data-char="4"
+                    d="M86,1h2v1h-2z M85,2h3v1h-3z M84,3h4v1h-4z M82,4h2v1h-2z M86,4h2v1h-2z M82,5h7v1h-7z M86,6h2v1h-2z M86,7h2v1h-2z"
+                  />
+                </svg>
+                <span class="sr-only">Galway 2664</span>
+              </span>
+              <span class="brand-accent">// OCEAN 6502-SID WORKBENCH</span>
+              <span class="brand-version" id="app-version">v2026.11.02</span>
+            </div>
+            <div class="brand-subtitle">
+              Cycle-Accurate WebAssembly MOS 6510 + 6581/8580 SID Emulator &amp; Live 1987 Ocean
+              Cross-Assembler
+            </div>
           </div>
-          <div>
-            <h3>Reverse-Engineered Engine Architecture</h3>
-            <div class="arch-notes">
-              <p>
-                <strong>1. Multi-Speed Fractional Raster Clock (<code>Refsp</code> / <code>CREFSP</code>):</strong>
-                In <code>wizball.asm</code> and <code>gameover.asm</code> (lines 32, 110, 188, and 266) as well as
-                <code>arkanoid.asm</code> (lines 57, 117, 172, and 237), <code>DREFRESH</code> waits for 4 PAL raster
-                lines per frame (200 Hz). At each raster point, 16-bit <code>Refsp</code> is added to <code>CREFSP</code>.
-                Whenever the high byte <code>CREFSP+1</code> changes, <code>REFRESH</code> executes. Thus:
-                <code>$0100</code> = 200 Hz, <code>$0080</code> = 100 Hz, and <code>$0040</code> = 50 Hz.
-              </p>
-              <p>
-                <strong>2. Bytecode Virtual Machine (<code>vt0..vt2</code>):</strong>
-                Each SID channel has a 16-bit sequence pointer (<code>PC0..PC2</code> at <code>$10..$15</code>).
-                Bytes <code>&lt; $C0</code> are note numbers (with bit <code>$60</code> selecting an immediate duration byte vs.
-                datablock duration lookup), while bytes <code>&gt;= $C0</code> (<code>COM</code>) dispatch through
-                <code>vt0..vt2</code> for loops (<code>For</code>/<code>Next</code>), subroutine calls (<code>Call</code>/<code>Ret</code>/<code>CT</code>),
-                instrument loads (<code>FLoad</code>/<code>Vlm</code>/<code>Freq</code>), filter sweeps (<code>Filter</code>/<code>Master</code>),
-                and inline 6502 machine code hooks (<code>Code</code>).
-              </p>
-              <p>
-                <strong>3. Real-Time <code>$D418</code> Digi-Drums (<code>arkadrum.asm</code> &amp; <code>gameover.asm</code>):</strong>
-                While a 50 Hz VIC-II raster interrupt runs the 3 SID channels and the drum pattern sequencer (<code>DRUMS</code>),
-                the foreground <code>MAIN</code> loop continuously calls <code>PLEY</code>, streaming either real-time algorithmic
-                4-bit waveforms (<code>arkadrum.asm</code>) or packed 4-bit PCM rock drum samples (<code>ROCKBASS</code>,
-                <code>ROCKSNARE</code>, <code>ROCKCOWBELL</code> in <code>gameover.asm</code>) to the 6581 master volume DAC at <code>$D418</code>.
-              </p>
-              <p>
-                <strong>4. Rambo II Secret Morse Code (<code>rambload.asm</code>):</strong>
-                One second into the loader music, Channel 0 executes <code>DFB Code: DFW STARTMC</code>, patching
-                <code>MUS+1</code> to <code>MCREFR</code>. Voice 1 transmits the hidden string at <code>Secret</code>
-                (<code>BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID</code>) in 516 Hz (PAL) / 535 Hz (NTSC) Morse code
-                using the bit-packed lookup table <code>CodeTab</code> before restoring <code>REFRESH</code>.
-              </p>
+        </div>
+
+        <div class="transport-bar">
+          <button type="button" id="btn-prev" class="btn-icon" title="Previous Track ([)">
+            <span>&#9664;&#9664;</span>
+          </button>
+          <button type="button" id="btn-play" class="btn-primary" title="Play / Pause (Space)">
+            <span id="play-icon">&#9654;</span> <span id="play-label">PLAY</span>
+          </button>
+          <button type="button" id="btn-restart" class="btn-icon" title="Restart Current Track (R)">
+            <span>&#8634;</span>
+            RESTART
+          </button>
+          <button type="button" id="btn-next" class="btn-icon" title="Next Track (])">
+            <span>&#9654;&#9654;</span>
+          </button>
+          <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to Fast-Forward 4x (F)">
+            <span>&#9654;&#9654;|</span>
+            4x FFWD
+          </button>
+        </div>
+
+        <div class="hardware-controls">
+          <div class="hw-group">
+            <label class="hw-label" for="select-sid-model">SID CHIP</label>
+            <select id="select-sid-model" class="hw-select">
+              <option value="6581" selected>MOS 6581 (1982 Analog + Digi)</option>
+              <option value="8580">MOS 8580 (1987 C64C Clean)</option>
+            </select>
+          </div>
+
+          <div class="hw-group">
+            <label class="hw-label" for="select-video-std">CLOCK / VIC</label>
+            <select id="select-video-std" class="hw-select">
+              <option value="pal" selected>PAL 50Hz (985.2 kHz)</option>
+              <option value="ntsc">NTSC 60Hz (1.023 MHz)</option>
+            </select>
+          </div>
+
+          <div class="hw-group" id="hw-group-digi">
+            <label class="hw-label" for="slider-digi-boost">
+              $D418 DIGI <span id="digi-boost-val">1.3x</span>
+            </label>
+            <input
+              type="range"
+              id="slider-digi-boost"
+              class="hw-slider"
+              min="0"
+              max="2.5"
+              step="0.1"
+              value="1.3"
+            >
+          </div>
+
+          <button
+            type="button"
+            id="btn-directives-modal"
+            class="btn-secondary"
+            title="Ocean 1987 Assembler Manual &amp; Architecture"
+          >
+            OCEAN ASM DOCS
+          </button>
+
+          <button
+            type="button"
+            id="btn-narrative-modal"
+            class="btn-secondary"
+            title="The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets"
+          >
+            THE STORY
+          </button>
+        </div>
+      </header>
+
+      <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
+      <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile Studio Panels">
+        <button type="button" class="mobile-tab-btn active" data-mobile-tab="all">
+          ALL PANELS
+        </button>
+        <button type="button" class="mobile-tab-btn" data-mobile-tab="monitor">MONITOR</button>
+        <button type="button" class="mobile-tab-btn" data-mobile-tab="tunes">TUNES</button>
+        <button type="button" class="mobile-tab-btn" data-mobile-tab="asm">LIVE .ASM</button>
+      </nav>
+
+      <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
+      <main class="workbench-grid" id="workbench-grid" data-mobile-view="all">
+        <!-- LEFT PANEL: GAME CARTRIDGES & TRACK/SFX BROWSER -->
+        <section class="panel panel-left">
+          <div class="panel-header">
+            <span class="panel-title">1. SOURCE FILES (.ASM)</span>
+            <span class="panel-badge" id="asm-compile-badge">ASSEMBLED OK</span>
+          </div>
+
+          <div class="game-list" id="game-list"></div>
+
+          <div class="panel-header panel-subheader">
+            <span class="panel-title" id="tracks-panel-title">2. TUNES &amp; ARCADE SFX</span>
+            <div class="filter-pills">
+              <button type="button" class="pill active" data-filter="all">ALL</button>
+              <button type="button" class="pill" data-filter="music">MUSIC</button>
+              <button type="button" class="pill" data-filter="sfx">SFX / DRUMS</button>
+            </div>
+          </div>
+
+          <div class="track-list" id="track-list"></div>
+
+          <div class="game-meta-card" id="game-meta-card"></div>
+        </section>
+
+        <!-- CENTER PANEL: LIVE C64 RASTER MONITOR + SID OSCILLOSCOPES & FILTER -->
+        <section class="panel panel-center">
+          <div class="panel-header">
+            <div class="header-left-group">
+              <span class="panel-title"
+                >3. LIVE C64 MONITOR ($0400 + VIC-II $D020 RASTER BARS)</span
+              >
+              <span class="now-playing-pill" id="now-playing-pill">READY</span>
+            </div>
+            <div class="header-right-group">
+              <label
+                class="toggle-label"
+                title="Overlay labels explaining Martin Galway's raw memory dump rows on $0400"
+              >
+                <input type="checkbox" id="chk-hud-overlay">
+                <span>HUD Row Guide</span>
+              </label>
+              <label class="toggle-label" title="Show C64 CRT scanline effect">
+                <input type="checkbox" id="chk-crt-scanlines" checked>
+                <span>CRT Scanlines</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- C64 Screen + Raster Border Canvas -->
+          <div class="c64-monitor-wrapper">
+            <div class="c64-canvas-container" id="c64-canvas-container">
+              <canvas id="c64-monitor-canvas" width="384" height="272"></canvas>
+              <div class="crt-overlay" id="crt-overlay"></div>
+              <div class="hud-guide-overlay hidden" id="hud-guide-overlay"></div>
+            </div>
+
+            <!-- Rambo II Secret Morse Code Live Decoder Banner (shown when rambload.asm is active) -->
+            <div class="morse-banner hidden" id="morse-banner">
+              <div class="morse-header">
+                <span class="morse-badge"
+                  >SECRET MORSE TRANSMITTER ACTIVE (STARTMC / $D400=$224B)</span
+                >
+                <span class="morse-state" id="morse-state-readout">CHAR #0</span>
+              </div>
+              <div class="morse-stream" id="morse-stream"></div>
+            </div>
+
+            <!-- Interactive C64 Key Injector Bar (simulates $F13E GETIN / KeyScan) -->
+            <div class="c64-keypad-bar">
+              <span
+                class="keypad-label"
+                title="Inject PETSCII key directly into the C64 driver loop ($F13E / KeyScan)"
+              >
+                C64 KEY INJECT:
+              </span>
+              <div class="keypad-buttons" id="c64-keypad-buttons"></div>
+            </div>
+          </div>
+
+          <!-- 4-Channel Oscilloscopes & SID Voice Telemetry -->
+          <div class="panel-header panel-subheader">
+            <span class="panel-title">4. MOS 6581/8580 OSCILLOSCOPES &amp; VOICE TELEMETRY</span>
+            <div class="telemetry-summary" id="telemetry-summary">
+              <span class="tel-item tel-item-frame"
+                ><span class="tel-lbl">FRAME:</span> <strong id="tel-frame">0</strong></span
+              >
+              <span class="tel-item tel-item-pc"
+                ><span class="tel-lbl">CPU PC:</span> <strong id="tel-pc">$0000</strong></span
+              >
+              <span class="tel-item tel-item-d418"
+                ><span class="tel-lbl">$D418 WRITES/FRM:</span>
+                <strong id="tel-d418">0</strong></span
+              >
+            </div>
+          </div>
+
+          <div class="scopes-grid">
+            <!-- Voice 1 -->
+            <div class="voice-card" data-voice="0">
+              <div class="voice-card-header">
+                <div class="voice-title-group">
+                  <span class="voice-dot v-cyan"></span>
+                  <span class="voice-name">VOICE 1 ($D400)</span>
+                  <span class="voice-note" id="v0-note">---</span>
+                </div>
+                <div class="voice-controls">
+                  <span
+                    class="voice-pc-tag"
+                    id="v0-pc"
+                    title="Click to jump to Voice 1 sequence pointer in source"
+                    >PC0: $----</span
+                  >
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-mute="0"
+                    title="Mute Voice 1 (Digit 1)"
+                  >
+                    M
+                  </button>
+                  <button type="button" class="btn-mini" data-solo="0" title="Solo Voice 1">
+                    S
+                  </button>
+                </div>
+              </div>
+              <canvas class="scope-canvas" id="scope-v0" width="260" height="68"></canvas>
+              <div class="voice-regs">
+                <span id="v0-wf" class="wf-tags">---</span>
+                <span>PW: <strong id="v0-pw">$000</strong></span>
+                <span>ADSR: <strong id="v0-adsr">00/00</strong></span>
+                <span>ENV: <strong id="v0-env">00</strong></span>
+              </div>
+            </div>
+
+            <!-- Voice 2 -->
+            <div class="voice-card" data-voice="1">
+              <div class="voice-card-header">
+                <div class="voice-title-group">
+                  <span class="voice-dot v-magenta"></span>
+                  <span class="voice-name">VOICE 2 ($D407)</span>
+                  <span class="voice-note" id="v1-note">---</span>
+                </div>
+                <div class="voice-controls">
+                  <span
+                    class="voice-pc-tag"
+                    id="v1-pc"
+                    title="Click to jump to Voice 2 sequence pointer in source"
+                    >PC1: $----</span
+                  >
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-mute="1"
+                    title="Mute Voice 2 (Digit 2)"
+                  >
+                    M
+                  </button>
+                  <button type="button" class="btn-mini" data-solo="1" title="Solo Voice 2">
+                    S
+                  </button>
+                </div>
+              </div>
+              <canvas class="scope-canvas" id="scope-v1" width="260" height="68"></canvas>
+              <div class="voice-regs">
+                <span id="v1-wf" class="wf-tags">---</span>
+                <span>PW: <strong id="v1-pw">$000</strong></span>
+                <span>ADSR: <strong id="v1-adsr">00/00</strong></span>
+                <span>ENV: <strong id="v1-env">00</strong></span>
+              </div>
+            </div>
+
+            <!-- Voice 3 -->
+            <div class="voice-card" data-voice="2">
+              <div class="voice-card-header">
+                <div class="voice-title-group">
+                  <span class="voice-dot v-yellow"></span>
+                  <span class="voice-name">VOICE 3 ($D40E)</span>
+                  <span class="voice-note" id="v2-note">---</span>
+                </div>
+                <div class="voice-controls">
+                  <span
+                    class="voice-pc-tag"
+                    id="v2-pc"
+                    title="Click to jump to Voice 3 sequence pointer in source"
+                    >PC2: $----</span
+                  >
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-mute="2"
+                    title="Mute Voice 3 (Digit 3)"
+                  >
+                    M
+                  </button>
+                  <button type="button" class="btn-mini" data-solo="2" title="Solo Voice 3">
+                    S
+                  </button>
+                </div>
+              </div>
+              <canvas class="scope-canvas" id="scope-v2" width="260" height="68"></canvas>
+              <div class="voice-regs">
+                <span id="v2-wf" class="wf-tags">---</span>
+                <span>PW: <strong id="v2-pw">$000</strong></span>
+                <span>ADSR: <strong id="v2-adsr">00/00</strong></span>
+                <span>ENV: <strong id="v2-env">00</strong></span>
+              </div>
+            </div>
+
+            <!-- Master Mix + Multimode Filter + $D418 Digi DAC -->
+            <div class="voice-card master-card">
+              <div class="voice-card-header">
+                <div class="voice-title-group">
+                  <span class="voice-dot v-green"></span>
+                  <span class="voice-name">FILTER &amp; $D418 DAC</span>
+                  <span class="voice-note" id="filter-mode-tag">LP</span>
+                </div>
+                <div class="voice-controls">
+                  <span
+                    class="voice-pc-tag"
+                    id="seq-pc"
+                    title="Click to jump to Drum Sequencer pointer (seqPC) in source"
+                    >DRUM: ----</span
+                  >
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-mute="3"
+                    title="Mute $D418 Digi-Drums (Digit 4)"
+                  >
+                    DIGI M
+                  </button>
+                </div>
+              </div>
+              <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>
+              <div class="voice-regs">
+                <span>FC: <strong id="flt-fc">$000 (30Hz)</strong></span>
+                <span>RES: <strong id="flt-res">0</strong></span>
+                <span>ROUT: <strong id="flt-rout">---</strong></span>
+                <span>VOL: <strong id="flt-vol">15</strong></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT PANEL: LIVE OCEAN 1987 .ASM SOURCE CODE & IN-BROWSER ASSEMBLER -->
+        <section class="panel panel-right">
+          <div class="panel-header">
+            <div class="header-left-group">
+              <span class="panel-title" id="source-file-title">5. OCEAN 1987 .ASM SOURCE</span>
+              <span class="source-stats" id="source-stats">0 lines</span>
+            </div>
+            <div class="header-right-group">
+              <label
+                class="toggle-label"
+                title="Auto-scroll code viewer to follow selected voice or drum sequencer pattern"
+              >
+                <input type="checkbox" id="chk-follow-pc">
+                <span>Follow Voice</span>
+              </label>
+              <button
+                type="button"
+                id="btn-toggle-edit"
+                class="btn-mini-action"
+                title="Edit .asm source and re-assemble in browser"
+              >
+                EDIT .ASM
+              </button>
+              <button
+                type="button"
+                id="btn-reassemble"
+                class="btn-mini-action btn-accent hidden"
+                title="Assemble modified source and hot-reload into C64 RAM"
+              >
+                ASSEMBLE &amp; RUN
+              </button>
+            </div>
+          </div>
+
+          <!-- Symbol Jump & Search Toolbar -->
+          <div class="source-toolbar">
+            <select
+              id="select-symbol-jump"
+              class="symbol-select"
+              title="Jump to symbol / routine / data table"
+            >
+              <option value="">Jump to Symbol / Label...</option>
+            </select>
+            <input
+              type="search"
+              id="input-source-search"
+              class="source-search"
+              placeholder="Find label, opcode, comment..."
+            >
+            <!-- biome-ignore lint/a11y/useSemanticElements: this is a radio-style control group styled as a legend strip; fieldset semantics would change the existing layout and test contract -->
+            <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
+              <button
+                type="button"
+                class="legend-chip active-followed"
+                data-voice="0"
+                title="Follow Voice 1 (PC0)"
+              >
+                <i class="dot-v0"></i>V1
+              </button>
+              <button type="button" class="legend-chip" data-voice="1" title="Follow Voice 2 (PC1)">
+                <i class="dot-v1"></i>V2
+              </button>
+              <button type="button" class="legend-chip" data-voice="2" title="Follow Voice 3 (PC2)">
+                <i class="dot-v2"></i>V3
+              </button>
+              <button
+                type="button"
+                class="legend-chip"
+                data-voice="seq"
+                title="Follow Drum Sequencer (seqPC)"
+              >
+                <i class="dot-seq"></i>DRM
+              </button>
+            </div>
+          </div>
+
+          <!-- Read-Only Live Execution Code Viewer -->
+          <div class="source-viewer" id="source-viewer"></div>
+
+          <!-- Editable Textarea (shown when Edit .ASM is toggled) -->
+          <textarea id="source-editor" class="source-editor hidden" spellcheck="false"></textarea>
+
+          <!-- Live SID Hardware Registers Strip ($D400-$D418) -->
+          <div class="sid-hex-strip">
+            <span class="sid-hex-label">$D400-$D418:</span>
+            <div class="sid-hex-cells" id="sid-hex-cells"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ==================== OCEAN ASSEMBLER DIRECTIVES MODAL ==================== -->
+    <div class="modal-backdrop hidden" id="directives-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>Ocean Software 1987 6502 Assembler &amp; Galway Engine Reference</h2>
+          <button type="button" id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-cols">
+            <div>
+              <h3>Original <code>ocean_assembler_directives.txt</code></h3>
+              <pre class="directives-pre" id="directives-pre"></pre>
+            </div>
+            <div>
+              <h3>Reverse-Engineered Engine Architecture</h3>
+              <div class="arch-notes">
+                <p>
+                  <strong
+                    >1. Multi-Speed Fractional Raster Clock (<code>Refsp</code>
+                    / <code>CREFSP</code>):</strong
+                  >
+                  In <code>wizball.asm</code> and <code>gameover.asm</code> (lines 32, 110, 188, and
+                  266) as well as
+                  <code>arkanoid.asm</code>
+                  (lines 57, 117, 172, and 237), <code>DREFRESH</code> waits for 4 PAL raster lines
+                  per frame (200 Hz). At each raster point, 16-bit <code>Refsp</code> is added to
+                  <code>CREFSP</code>. Whenever the high byte <code>CREFSP+1</code> changes,
+                  <code>REFRESH</code>
+                  executes. Thus:
+                  <code>$0100</code>
+                  = 200 Hz, <code>$0080</code> = 100 Hz, and <code>$0040</code> = 50 Hz.
+                </p>
+                <p>
+                  <strong>2. Bytecode Virtual Machine (<code>vt0..vt2</code>):</strong>
+                  Each SID channel has a 16-bit sequence pointer (<code>PC0..PC2</code>
+                  at <code>$10..$15</code>). Bytes <code>&lt; $C0</code> are note numbers (with bit
+                  <code>$60</code>
+                  selecting an immediate duration byte vs. datablock duration lookup), while bytes
+                  <code>&gt;= $C0</code>
+                  (<code>COM</code>) dispatch through
+                  <code>vt0..vt2</code>
+                  for loops (<code>For</code>/<code>Next</code>), subroutine calls (<code>Call</code
+                  >/<code>Ret</code>/<code>CT</code>), instrument loads (<code>FLoad</code>/<code
+                    >Vlm</code
+                  >/<code>Freq</code>), filter sweeps (<code>Filter</code>/<code>Master</code>), and
+                  inline 6502 machine code hooks (<code>Code</code>).
+                </p>
+                <p>
+                  <strong
+                    >3. Real-Time <code>$D418</code> Digi-Drums (<code>arkadrum.asm</code>
+                    &amp; <code>gameover.asm</code>):</strong
+                  >
+                  While a 50 Hz VIC-II raster interrupt runs the 3 SID channels and the drum pattern
+                  sequencer (<code>DRUMS</code>), the foreground <code>MAIN</code> loop continuously
+                  calls <code>PLEY</code>, streaming either real-time algorithmic 4-bit waveforms (<code
+                    >arkadrum.asm</code
+                  >) or packed 4-bit PCM rock drum samples (<code>ROCKBASS</code>,
+                  <code>ROCKSNARE</code>, <code>ROCKCOWBELL</code> in <code>gameover.asm</code>) to
+                  the 6581 master volume DAC at <code>$D418</code>.
+                </p>
+                <p>
+                  <strong>4. Rambo II Secret Morse Code (<code>rambload.asm</code>):</strong>
+                  One second into the loader music, Channel 0 executes
+                  <code>DFB Code: DFW STARTMC</code>, patching
+                  <code>MUS+1</code>
+                  to <code>MCREFR</code>. Voice 1 transmits the hidden string at <code>Secret</code>
+                  (<code>BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID</code>)
+                  in 516 Hz (PAL) / 535 Hz (NTSC) Morse code using the bit-packed lookup table
+                  <code>CodeTab</code>
+                  before restoring <code>REFRESH</code>.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ==================== THE STORY (NARRATIVE) MODAL ==================== -->
-  <div class="modal-backdrop hidden" id="narrative-modal">
-    <div class="modal-card modal-card-narrative">
-      <div class="modal-header">
-        <h2>The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets</h2>
-        <button type="button" id="btn-close-narrative-modal" class="btn-icon">&times; CLOSE</button>
+    <!-- ==================== THE STORY (NARRATIVE) MODAL ==================== -->
+    <div class="modal-backdrop hidden" id="narrative-modal">
+      <div class="modal-card modal-card-narrative">
+        <div class="modal-header">
+          <h2>The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets</h2>
+          <button type="button" id="btn-close-narrative-modal" class="btn-icon">
+            &times; CLOSE
+          </button>
+        </div>
+        <div class="modal-body narrative-modal-body" id="narrative-modal-body"></div>
       </div>
-      <div class="modal-body narrative-modal-body" id="narrative-modal-body"></div>
     </div>
-  </div>
 
-  <script type="module" src="./src/app.js?v=2026.11.02"></script>
-</body>
+    <script type="module" src="./src/app.js?v=2026.11.02"></script>
+  </body>
 </html>

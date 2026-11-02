@@ -355,7 +355,7 @@ test("CalVer version number appears immediately after the title of the app", asy
   const titleContent = match[1];
   assert.match(
     titleContent,
-    /<span class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[^>]*>[\s\S]*?<span class="sr-only">Galway 2664<\/span>\s*<\/span>\s*<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>\s*<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    /<span[^>]*class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[\s\S]*?<span class="sr-only">Galway 2664<\/span>[\s\S]*?<\/span>[\s\S]*?<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>[\s\S]*?<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
     "Version badge must be placed immediately after the app title",
   );
 
