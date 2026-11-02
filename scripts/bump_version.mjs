@@ -17,7 +17,9 @@ export function computeNextVersion(currentVersion, date = new Date()) {
   if (!currentVersion || !currentVersion.startsWith(today)) {
     return today;
   }
-  const match = currentVersion.match(new RegExp(`^${today.replace(/\./g, "\\.")}(?:\\.([0-9]+))?$`));
+  const match = currentVersion.match(
+    new RegExp(`^${today.replace(/\./g, "\\.")}(?:\\.([0-9]+))?$`),
+  );
   if (!match) {
     return today;
   }
@@ -38,19 +40,19 @@ export function applyVersion(nextVersion) {
   let html = fs.readFileSync(htmlPath, "utf8");
   html = html.replace(
     /<title>Galway (?:64|2664) \/\/ Ocean 6502-SID Workbench \(1985-1987\) v[^<]*<\/title>/,
-    `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v${nextVersion}</title>`
+    `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v${nextVersion}</title>`,
   );
   html = html.replace(
     /<span class="brand-version" id="app-version">v[^<]*<\/span>/,
-    `<span class="brand-version" id="app-version">v${nextVersion}</span>`
+    `<span class="brand-version" id="app-version">v${nextVersion}</span>`,
   );
   html = html.replace(
     /href="\.\/src\/styles\.css(?:\?v=[^"]*)?"/,
-    `href="./src/styles.css?v=${nextVersion}"`
+    `href="./src/styles.css?v=${nextVersion}"`,
   );
   html = html.replace(
     /src="\.\/src\/app\.js(?:\?v=[^"]*)?"/,
-    `src="./src/app.js?v=${nextVersion}"`
+    `src="./src/app.js?v=${nextVersion}"`,
   );
   fs.writeFileSync(htmlPath, html, "utf8");
 
