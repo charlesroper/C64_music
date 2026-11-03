@@ -362,6 +362,16 @@ test("CalVer version number appears immediately after the title of the app", asy
   const calver = titleContent.match(/id="app-version">v([^<]+)<\/span>/)[1];
   assert.equal(pkg.version, calver, "package.json version must match CalVer in index.html");
 
+  const lock = JSON.parse(fs.readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
+  const { APP_VERSION } = await import("../src/version.js");
+  assert.equal(APP_VERSION, calver, "src/version.js APP_VERSION must match CalVer in index.html");
+  assert.equal(lock.version, calver, "package-lock.json version must match CalVer in index.html");
+  assert.equal(
+    lock.packages[""].version,
+    calver,
+    "package-lock.json root package version must match CalVer in index.html",
+  );
+
   // Title tag also includes Galway 2664 and the version
   assert.match(html, new RegExp(`<title>Galway 2664[^<]*v${calver}[^<]*<\\/title>`));
 

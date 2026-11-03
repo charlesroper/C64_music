@@ -107,7 +107,7 @@ To bump the version before a release:
 npm run bump
 ```
 
-The script (`scripts/bump_version.mjs`) updates `package.json`, `index.html` (header badge and document title), and `src/version.js`. If deployed multiple times on the same date, it increments the `.MICRO` segment (`.1`, `.2`, etc.); on a new date, it resets to `YYYY.MM.DD`.
+The script (`scripts/bump_version.mjs`) updates `package.json`, `package-lock.json`, `index.html` (header badge and document title), and `src/version.js`. If deployed multiple times on the same date, it increments the `.MICRO` segment (`.1`, `.2`, etc.); on a new date, it resets to `YYYY.MM.DD`.
 
 ---
 

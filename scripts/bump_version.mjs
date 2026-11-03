@@ -60,6 +60,17 @@ export function applyVersion(nextVersion) {
   const verPath = path.join(ROOT, "src/version.js");
   fs.writeFileSync(verPath, `export const APP_VERSION = "${nextVersion}";\n`, "utf8");
 
+  // 4. package-lock.json
+  const lockPath = path.join(ROOT, "package-lock.json");
+  if (fs.existsSync(lockPath)) {
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    lock.version = nextVersion;
+    if (lock.packages && lock.packages[""]) {
+      lock.packages[""].version = nextVersion;
+    }
+    fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+  }
+
   return { prevVersion, nextVersion };
 }
 

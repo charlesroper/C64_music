@@ -4,8 +4,9 @@ Instructions and conventions for AI coding agents working in this repository.
 
 ## 1. Versioning and Deployment (CalVer)
 
-Every deployment must update the calendar version across three synchronized files:
+Every deployment must update the calendar version across four synchronized files:
 - `package.json`: `"version": "YYYY.MM.DD"` (or `"YYYY.MM.DD.MICRO"`).
+- `package-lock.json`: `"version": "YYYY.MM.DD"`.
 - `index.html`:
   - Document title: `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
   - Header badge: `<span class="brand-version" id="app-version">vYYYY.MM.DD</span>` placed immediately following the app title inside `<div class="brand-title">`.
@@ -19,7 +20,7 @@ When multiple updates deploy on the same calendar day, append a sequential incre
 - Next day: reset to `YYYY.MM.DD` for the new date.
 
 ### Automated Version Bumping
-Run `npm run bump` (or `node scripts/bump_version.mjs`) to update all three files automatically:
+Run `npm run bump` (or `node scripts/bump_version.mjs`) to update all four files automatically:
 - If today's UTC date matches the current version, it appends or increments the `.MICRO` counter.
 - On a new calendar day, it resets to `YYYY.MM.DD`.
 - To set an explicit version: `node scripts/bump_version.mjs YYYY.MM.DD`.
