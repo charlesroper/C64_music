@@ -629,3 +629,36 @@ test("switching away from a game and back reuses cached source viewer HTML", asy
     "Switching back must reuse the cached HTML string",
   );
 });
+
+test("source index provides address lookup, symbol jump, and text search", () => {
+  const sampleSrc = `
+; Line 1 comment
+        ORG $1000
+MYLABEL EQU $2000
+START   LDA #$00
+        STA $D400
+LOOP    JMP LOOP
+`;
+  const assembled = assembleOceanSource(sampleSrc);
+  const idx = assembled.sourceIndex;
+  assert.ok(idx, "sourceIndex must be exposed on assembled output");
+
+  // 1. Symbol line resolution
+  assert.equal(idx.lineForSymbol("MYLABEL"), 4);
+  assert.equal(idx.lineForSymbol("START"), 5);
+  assert.equal(idx.lineForSymbol("LOOP"), 7);
+  assert.equal(idx.lineForSymbol("NONEXISTENT"), 0);
+
+  // 2. Address resolution (with delta tolerance)
+  assert.equal(idx.lineForAddress(0x1000), 5);
+  assert.equal(idx.lineForAddress(0x1002), 6);
+  assert.equal(idx.lineForAddress(0x1005), 7);
+  assert.equal(idx.lineForAddress(0x1006), 7);
+  assert.equal(idx.lineForAddress(0x0400), 0);
+
+  // 3. Substring findLines
+  assert.deepEqual(idx.findLines("loop"), [7]);
+  assert.deepEqual(idx.findLines("org"), [3]);
+  assert.deepEqual(idx.findLines("nonexistent_pattern"), []);
+  assert.deepEqual(idx.findLines(""), []);
+});

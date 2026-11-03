@@ -1063,8 +1063,8 @@ function renderFrameLoop() {
           lastVoiceText[v].pc = pcText;
           vDom.pc.textContent = pcText;
         }
-        if (currentAsm) {
-          const lineNo = findNearestSourceLine(currentAsm, seqPtr);
+        if (currentAsm && currentAsm.sourceIndex) {
+          const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
           if (lineNo) {
             if (vDom.pc) vDom.pc.dataset.line = lineNo;
             activeLines.push({ lineNo, cls: `pc-v${v}` });
@@ -1137,8 +1137,8 @@ function renderFrameLoop() {
         lastTelemetryText.seqPc = drumText;
         d.seqPc.textContent = drumText;
       }
-      if (currentAsm && currentFile === session.drum.sourceFile) {
-        const lineNo = findNearestSourceLine(currentAsm, seqPtr);
+      if (currentAsm && currentAsm.sourceIndex && currentFile === session.drum.sourceFile) {
+        const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
         if (lineNo) {
           if (d.seqPc) d.seqPc.dataset.line = lineNo;
           activeLines.push({ lineNo, cls: "pc-seq" });
@@ -1153,15 +1153,6 @@ function renderFrameLoop() {
   }
 
   requestAnimationFrame(renderFrameLoop);
-}
-
-function findNearestSourceLine(asm, addr) {
-  if (!addr || addr < 0x0800) return 0;
-  for (let delta = 0; delta < 16; delta++) {
-    const ln = asm.addrToLine[(addr - delta) & 0xffff];
-    if (ln > 0) return ln;
-  }
-  return 0;
 }
 
 function updateLiveSourceHighlights(activeLines) {
@@ -1427,34 +1418,28 @@ function setupUIHandlers() {
     if (!symName || !state.player) return;
     const currentFile = state.currentSourceFile || state.activeGameId;
     const asm = state.player.getAssembled(currentFile);
-    if (!asm) return;
-    const idx = asm.rawLines.findIndex((line) =>
-      new RegExp(`^${symName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(line),
-    );
-    if (idx >= 0) scrollToSourceLine(idx + 1);
+    if (!asm || !asm.sourceIndex) return;
+    const lineNo = asm.sourceIndex.lineForSymbol(symName);
+    if (lineNo > 0) scrollToSourceLine(lineNo);
   });
 
   document.getElementById("input-source-search").addEventListener("input", (e) => {
-    const q = e.target.value.trim().toLowerCase();
+    const q = e.target.value;
     if (!state.player) return;
     const currentFile = state.currentSourceFile || state.activeGameId;
     const asm = state.player.getAssembled(currentFile);
-    if (!asm) return;
+    if (!asm || !asm.sourceIndex) return;
     document.querySelectorAll(".asm-line.search-match").forEach((el) => {
       el.classList.remove("search-match");
     });
-    if (!q) return;
-
-    let firstMatch = 0;
-    for (let i = 0; i < asm.rawLines.length; i++) {
-      if (asm.rawLines[i].toLowerCase().includes(q)) {
-        const lineNo = i + 1;
-        if (!firstMatch) firstMatch = lineNo;
-        const el = document.getElementById(`asm-L${lineNo}`);
-        if (el) el.classList.add("search-match");
-      }
+    const matchedLines = asm.sourceIndex.findLines(q);
+    for (const lineNo of matchedLines) {
+      const el = document.getElementById(`asm-L${lineNo}`);
+      if (el) el.classList.add("search-match");
     }
-    if (firstMatch) scrollToSourceLine(firstMatch);
+    if (matchedLines.length > 0) {
+      scrollToSourceLine(matchedLines[0]);
+    }
   });
 
   const btnToggleEdit = document.getElementById("btn-toggle-edit");

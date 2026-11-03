@@ -395,6 +395,7 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
   }
 
   const symbols = { ...initialSymbols };
+  const symbolLines = {};
   let entryPoint = null;
   const mem = new Uint8Array(65536);
   const addrToLine = new Int32Array(65536);
@@ -432,6 +433,9 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
       }
       if (pass === 2 && lineAddresses[lineNo] === -1 && op !== "EQU" && op !== "ORG") {
         lineAddresses[lineNo] = pc;
+      }
+      if (pass === 2 && label) {
+        symbolLines[label] = lineNo;
       }
       if (label && op !== "EQU") {
         symbols[label] = pc;
@@ -592,12 +596,38 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
     }
   }
 
+  const sourceIndex = {
+    lineForAddress: (addr, maxDelta = 16) => {
+      if (!addr || addr < 0x0800) return 0;
+      for (let delta = 0; delta < maxDelta; delta++) {
+        const ln = addrToLine[(addr - delta) & 0xffff];
+        if (ln > 0) return ln;
+      }
+      return 0;
+    },
+    lineForSymbol: (name) => symbolLines[name] || 0,
+    findLines: (query) => {
+      if (!query) return [];
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      const matches = [];
+      for (let i = 0; i < rawLines.length; i++) {
+        if (rawLines[i].toLowerCase().includes(q)) {
+          matches.push(i + 1);
+        }
+      }
+      return matches;
+    },
+  };
+
   return {
     mem,
     symbols,
+    symbolLines,
     entryPoint,
     addrToLine,
     lineAddresses,
     rawLines,
+    sourceIndex,
   };
 }

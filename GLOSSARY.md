@@ -23,3 +23,7 @@ _Avoid_: Song selection, track model
 **Loader Adapter**:
 A dedicated game-specific loader function responsible for initializing Commodore 64 memory, custom raster routines, jump tables, and CPU registers for one Galway audio routine before driver execution begins.
 _Avoid_: Boot branch, track init script
+
+**Source Index**:
+An index structure bound to an assembled source module providing O(1) address-to-line resolution, symbol-to-line location, and text search across original assembly source lines.
+_Avoid_: Line lookup table, symbol resolver
