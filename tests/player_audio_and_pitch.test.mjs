@@ -260,8 +260,8 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
 
   for (const game of GAME_FILES) {
     assert.ok(game.id && game.title, `Game missing id or title`);
-    assert.ok(!/[\u2014—]/.test(game.title), `Game title contains em-dash: ${game.title}`);
-    assert.ok(!/[\u2014—]/.test(game.summary), `Game summary contains em-dash`);
+    assert.ok(!/\u2014/.test(game.title), `Game title contains em-dash: ${game.title}`);
+    assert.ok(!/\u2014/.test(game.summary), `Game summary contains em-dash`);
 
     for (const track of game.tracks) {
       totalTracks++;
@@ -278,9 +278,9 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
         `Track ${track.id} has empty description`,
       );
 
-      assert.ok(!/[\u2014—]/.test(track.name), `Track name contains em-dash: ${track.name}`);
+      assert.ok(!/\u2014/.test(track.name), `Track name contains em-dash: ${track.name}`);
       assert.ok(
-        !/[\u2014—]/.test(track.description),
+        !/\u2014/.test(track.description),
         `Track description contains em-dash: ${track.description}`,
       );
 
