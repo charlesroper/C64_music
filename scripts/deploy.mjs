@@ -1,25 +1,56 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-function run(cmd) {
-  console.log(`> ${cmd}`);
-  return execSync(cmd, { stdio: "inherit" });
+export function verifyCleanTree(exec = execSync) {
+  const status = exec("git status --porcelain", { encoding: "utf8" }).toString().trim();
+  if (status.length > 0) {
+    throw new Error("Working tree is dirty. Commit or stash changes before deploying.");
+  }
 }
 
-console.log("1. Running lint and format check...");
-run("npm run lint");
+export function verifyRemote(remote = "fork", exec = execSync) {
+  try {
+    const url = exec(`git remote get-url ${remote}`, { encoding: "utf8" }).toString().trim();
+    if (!url) {
+      throw new Error(`Git remote "${remote}" is missing.`);
+    }
+  } catch (_err) {
+    throw new Error(`Git remote "${remote}" is missing. Add the remote before deploying.`);
+  }
+}
 
-console.log("2. Running automated test suite...");
-run("npm test");
+export function deploy(options = {}) {
+  const { exec = execSync, remote = "fork", branch = "main", log = console.log } = options;
 
-console.log("3. Pushing to GitHub Pages (fork/main)...");
-run("git push fork main");
+  log("1. Checking working tree state...");
+  verifyCleanTree(exec);
 
-console.log("4. Deployment status:");
-try {
-  const commit = execSync("git rev-parse --short HEAD").toString().trim();
-  console.log(`Successfully pushed commit ${commit} to fork/main.`);
-  console.log("GitHub Pages URL: https://charlesroper.github.io/C64_music/");
-} catch (err) {
-  console.error("Warning reading commit:", err.message);
+  log(`2. Verifying git remote "${remote}" exists...`);
+  verifyRemote(remote, exec);
+
+  log("3. Running lint and format check...");
+  exec("npm run lint", { stdio: "inherit" });
+
+  log("4. Running automated test suite...");
+  exec("npm test", { stdio: "inherit" });
+
+  log(`5. Pushing to GitHub Pages (${remote}/${branch})...`);
+  exec(`git push ${remote} ${branch}`, { stdio: "inherit" });
+
+  log("6. Deployment status:");
+  const commit = exec("git rev-parse --short HEAD", { encoding: "utf8" }).toString().trim();
+  log(`Successfully pushed commit ${commit} to ${remote}/${branch}.`);
+  log("GitHub Pages URL: https://charlesroper.github.io/C64_music/");
+  return { commit, remote, branch };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  try {
+    deploy();
+  } catch (err) {
+    console.error(`Deployment failed: ${err.message}`);
+    process.exit(1);
+  }
 }

@@ -14,6 +14,12 @@ export function getTodayCalVer(date = new Date()) {
 
 export function computeNextVersion(currentVersion, date = new Date()) {
   const today = getTodayCalVer(date);
+  if (currentVersion) {
+    const currentDate = currentVersion.split(".").slice(0, 3).join(".");
+    if (currentDate > today) {
+      throw new Error(`Refusing to lower version from future date ${currentVersion} to ${today}`);
+    }
+  }
   if (!currentVersion || !currentVersion.startsWith(today)) {
     return today;
   }
@@ -33,7 +39,7 @@ export function applyVersion(nextVersion) {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
   const prevVersion = pkg.version;
   pkg.version = nextVersion;
-  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+  fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
 
   // 2. index.html
   const htmlPath = path.join(ROOT, "index.html");
