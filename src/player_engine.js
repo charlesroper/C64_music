@@ -344,9 +344,10 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
   }
 
   function updateSource(gameId, newAsmText) {
+    const assembled = assembleOceanSource(newAsmText);
     sources[gameId] = newAsmText;
-    assembledCache[gameId] = assembleOceanSource(newAsmText);
-    return assembledCache[gameId];
+    assembledCache[gameId] = assembled;
+    return assembled;
   }
 
   return {

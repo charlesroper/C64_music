@@ -427,3 +427,60 @@ test("CalVer version number appears immediately after the title of the app", asy
     "CSS must contain sparkle-active class selector",
   );
 });
+
+test("source editor surfaces assembly errors, preserves edits on syntax failure, and protects dirty edits on track change", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  const btnToggle = harness.elementsById.get("btn-toggle-edit");
+  const btnReassemble = harness.elementsById.get("btn-reassemble");
+  const editorEl = harness.elementsById.get("source-editor");
+  const badge = harness.elementsById.get("asm-compile-badge");
+
+  // Open editor
+  btnToggle.click();
+  const originalSource = editorEl.value;
+  assert.ok(originalSource.length > 0, "Editor should have original source");
+
+  // 1. Submit broken source
+  editorEl.value = "SYNTAX_ERROR_UNKNOWN_OPCODE ???";
+  btnReassemble.click();
+
+  // Badge should show error, editor should stay open, text preserved
+  assert.match(badge.textContent, /ERROR/i);
+  assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
+  assert.ok(!editorEl.classList.contains("hidden"), "Editor should stay open on error");
+
+  // 2. Submit valid edit
+  const validEdit = `; Valid hot reload test\n${originalSource}`;
+  editorEl.value = validEdit;
+  btnReassemble.click();
+
+  assert.equal(badge.textContent, "HOT-RELOADED OK");
+  assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");
+
+  // 3. Type edit, switch track, verify no silent data loss
+  btnToggle.click();
+  editorEl.value = "; My unsaved modification";
+  editorEl.dispatchEvent("input");
+
+  // Switch track via track list
+  const trackList = harness.elementsById.get("track-list");
+  const secondTrack = trackList.children[1];
+  if (secondTrack) {
+    secondTrack.click();
+  }
+  assert.equal(
+    editorEl.value,
+    "; My unsaved modification",
+    "Unsaved editor edits must not be wiped on track switch",
+  );
+});

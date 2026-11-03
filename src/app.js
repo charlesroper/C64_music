@@ -32,6 +32,7 @@ const state = {
   lastFollowedLine: 0,
   lastFollowedVoiceCls: null,
   isEditingSource: false,
+  isEditorDirty: false,
   prevHighlightedLines: [],
 };
 
@@ -557,7 +558,10 @@ function renderSourceViewer(gameId) {
   viewer.innerHTML = "";
   viewer.appendChild(frag);
 
-  document.getElementById("source-editor").value = state.player.getRawSource(gameId);
+  const editor = document.getElementById("source-editor");
+  if (editor && !state.isEditingSource && !state.isEditorDirty) {
+    editor.value = state.player.getRawSource(gameId);
+  }
   state.prevHighlightedLines = [];
 }
 
@@ -1402,6 +1406,12 @@ function setupUIHandlers() {
     viewerEl.addEventListener("wheel", cancelViewerSmoothScroll, { passive: true });
   }
 
+  if (editorEl) {
+    editorEl.addEventListener("input", () => {
+      state.isEditorDirty = true;
+    });
+  }
+
   btnToggleEdit.addEventListener("click", () => {
     state.isEditingSource = !state.isEditingSource;
     viewerEl.classList.toggle("hidden", state.isEditingSource);
@@ -1414,10 +1424,21 @@ function setupUIHandlers() {
     if (!state.player) return;
     const fileToUpdate = state.currentSourceFile || state.activeGameId;
     const editedText = editorEl.value;
-    state.player.updateSource(fileToUpdate, editedText);
+    try {
+      state.player.updateSource(fileToUpdate, editedText);
+    } catch (err) {
+      const badge = document.getElementById("asm-compile-badge");
+      if (badge) {
+        badge.textContent = `ERROR: ${err.message || String(err)}`;
+      }
+      return;
+    }
 
+    state.isEditorDirty = false;
     const badge = document.getElementById("asm-compile-badge");
-    badge.textContent = "HOT-RELOADED OK";
+    if (badge) {
+      badge.textContent = "HOT-RELOADED OK";
+    }
 
     state.isEditingSource = false;
     viewerEl.classList.remove("hidden");
