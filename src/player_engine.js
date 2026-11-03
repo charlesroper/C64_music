@@ -6,12 +6,155 @@
 import { assembleOceanSource } from "./ocean_assembler.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
+export function jsr(wasm, pc, a = 0, x = 0, y = 0, maxCycles = 50000) {
+  wasm.wasm_jsr(pc, a, x, y, maxCycles);
+}
+
+export function writeWord(ram, addr, val) {
+  ram[addr] = val & 0xff;
+  ram[addr + 1] = (val >> 8) & 0xff;
+}
+
+export function readWord(ram, addr) {
+  return ram[addr] | (ram[addr + 1] << 8);
+}
+
+export function setCpuState(wasm, pc, a = 0, x = 0, y = 0, sp = 0xfd, status = 0x24) {
+  wasm.wasm_set_cpu_state(pc, a, x, y, sp, status);
+}
+
+export function loadWizball({ wasm, ram, track, asm }) {
+  ram.set(asm.mem);
+  const s = asm.symbols;
+  wasm.wasm_set_custom_keyscan(s.KeyScan);
+  jsr(wasm, s.InitScreen, 0, 0, 0, 200000);
+  jsr(wasm, s.InitKeyScan, 0, 0, 0, 10000);
+  jsr(wasm, s.INITSOUND, 0, 0, 0, 50000);
+
+  const keyChar = track.key ? track.key.charCodeAt(0) : 65;
+  const tuneIdx = keyChar - 65;
+  let tuneAddr = s.FilthRaid;
+  if (s.DVTABL && tuneIdx >= 0 && tuneIdx < 26) {
+    const resolved = readWord(ram, s.DVTABL + tuneIdx * 2);
+    if (resolved) tuneAddr = resolved;
+  }
+  jsr(wasm, tuneAddr, 0, 0, 0, 50000);
+
+  ram[s.RF] = 7;
+  if (s.D1 !== undefined) {
+    if (s.FMC !== undefined) ram[s.D1 + s.FMC] = 0;
+    if (s.PMC !== undefined) ram[s.D1 + s.PMC] = 0;
+  }
+  const refsp = track.refsp || 0x0040;
+  writeWord(ram, s.Refsp, refsp);
+  wasm.wasm_inject_key(keyChar);
+  setCpuState(wasm, s.DLoop, 0, 0, 0, 0xfd, 0x24);
+}
+
+export function loadArkanoid({ wasm, ram, track, asm }) {
+  ram.set(asm.mem);
+  const sA = asm.symbols;
+  jsr(wasm, sA.InitScreen, 0, 0, 0, 200000);
+  jsr(wasm, sA.INITSOUND, 0, 0, 0, 50000);
+  wasm.wasm_write_bus(0xd418, 0x0f);
+  if (sA.D418 !== undefined) ram[sA.D418] = 0x0f;
+  ram[sA.RF] = 7;
+  const refsp = track.refsp || 0x0080;
+  writeWord(ram, sA.Refsp, refsp);
+  if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
+  setCpuState(wasm, sA.DLoop, 0, 0, 0, 0xfd, 0x24);
+}
+
+export function loadArkadrum({ wasm, ram, track, asm, getAssembled }) {
+  const asmArk = getAssembled ? getAssembled("arkanoid.asm") : null;
+  const asmDrm = asm;
+  if (asmArk) {
+    ram.set(asmArk.mem);
+  }
+  for (let i = 0x4000; i < 0x6000; i++) {
+    if (asmDrm.mem[i] !== 0) ram[i] = asmDrm.mem[i];
+  }
+  const sA = asmArk ? asmArk.symbols : {};
+  const sD = asmDrm.symbols;
+
+  if (track.withDrums) {
+    jsr(wasm, sA.InitScreen, 0, 0, 0, 200000);
+    ram[sA.RF] = 7;
+    jsr(wasm, sD.INITRASTERS, 0, 0, 0, 50000);
+    jsr(wasm, sD.INITSOUND, 0, 0, 0, 50000);
+    const riffAddr = track.riff === "eNTERDATA" ? sD.eNTERDATA : sD.TITLEDATA;
+    const riffClk = track.riffClk || 2;
+    jsr(wasm, sD.RIFF, riffClk, riffAddr & 0xff, (riffAddr >> 8) & 0xff, 10000);
+    jsr(wasm, sD.TUNE, 0, 0, track.tuneY, 50000);
+    setCpuState(wasm, sD.MAIN, 0, 0, 0, 0xfd, 0x20);
+  } else if (asmArk) {
+    loadArkanoid({ wasm, ram, track, asm: asmArk });
+  }
+}
+
+export function loadGameover({ wasm, ram, track, asm }) {
+  ram.set(asm.mem);
+  const s = asm.symbols;
+
+  if (track.withDrums) {
+    setCpuState(wasm, s.Start, 0, 0, 0, 0xfd, 0x24);
+    if (track.skipFrames && track.skipFrames > 0) {
+      wasm.wasm_fast_forward_frames(track.skipFrames);
+    }
+  } else {
+    jsr(wasm, s.InitScreen, 0, 0, 0, 200000);
+    jsr(wasm, s.INITSOUND, 0, 0, 0, 50000);
+    wasm.wasm_write_bus(0xd418, 0x0f);
+    ram[s.RF] = 7;
+    const refsp = track.refsp || 0x0040;
+    writeWord(ram, s.Refsp, refsp);
+    if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
+    setCpuState(wasm, s.DLoop, 0, 0, 0, 0xfd, 0x24);
+  }
+}
+
+export function loadGreenberet({ wasm, ram, track, asm }) {
+  ram.set(asm.mem);
+  const s = asm.symbols;
+  jsr(wasm, s.setscreen, 0, 0, 0, 200000);
+  jsr(wasm, s.FULLRESET, 0, 0, 0, 50000);
+  setCpuState(wasm, s.START, 0, 0, 0, 0xfd, 0x24);
+  if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
+}
+
+export function loadRambload({ wasm, ram, track, asm, initMonitorScreen }) {
+  ram.set(asm.mem);
+  const s = asm.symbols;
+  if (initMonitorScreen) {
+    initMonitorScreen(ram);
+  }
+  ram[s.START + 6] = 0x4c;
+  writeWord(ram, s.START + 7, s.L - 3);
+  setCpuState(wasm, s.START, 0, 0, 0, 0xfd, 0x24);
+
+  if (track.skipFrames && track.skipFrames > 0) {
+    wasm.wasm_fast_forward_frames(track.skipFrames);
+  }
+}
+
+export const GAME_LOADERS = {
+  "wizball.asm": loadWizball,
+  "arkanoid.asm": loadArkanoid,
+  "arkadrum.asm": loadArkadrum,
+  "gameover.asm": loadGameover,
+  "greenberet.asm": loadGreenberet,
+  "rambload.asm": loadRambload,
+};
+
 export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, navigatorObj }) {
   const sources = { ...rawSources };
   const assembledCache = {};
 
-  for (const [name, text] of Object.entries(sources)) {
-    assembledCache[name] = assembleOceanSource(text);
+  function getAssembled(gameId) {
+    if (!assembledCache[gameId] && sources[gameId]) {
+      assembledCache[gameId] = assembleOceanSource(sources[gameId]);
+    }
+    return assembledCache[gameId];
   }
 
   const state = {
@@ -31,6 +174,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
   };
 
   wasm.wasm_init(state.sampleRate);
+  getAssembled(state.activeGameId);
 
   let cachedBuffer = null;
   let cachedRam = null;
@@ -98,7 +242,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
     refreshViews();
 
     if (state.activeGameId === "rambload.asm") {
-      const asm = assembledCache["rambload.asm"];
+      const asm = getAssembled("rambload.asm");
       if (asm) {
         updateRamboMonitorScreen(cachedRam, asm);
         if (asm.symbols.MWK !== undefined) {
@@ -203,131 +347,20 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
     wasm.wasm_init(state.sampleRate);
     applyHardwareSettings();
 
-    const ram = getRamView();
-
-    if (gameId === "wizball.asm") {
-      const asm = assembledCache["wizball.asm"];
-      ram.set(asm.mem);
-      const s = asm.symbols;
-      wasm.wasm_set_custom_keyscan(s.KeyScan);
-      wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
-      wasm.wasm_jsr(s.InitKeyScan, 0, 0, 0, 10000);
-      wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-
-      const keyChar = track.key ? track.key.charCodeAt(0) : 65;
-      const tuneIdx = keyChar - 65;
-      let tuneAddr = s.FilthRaid;
-      if (s.DVTABL && tuneIdx >= 0 && tuneIdx < 26) {
-        const lo = ram[s.DVTABL + tuneIdx * 2];
-        const hi = ram[s.DVTABL + tuneIdx * 2 + 1];
-        const resolved = lo | (hi << 8);
-        if (resolved) tuneAddr = resolved;
-      }
-      wasm.wasm_jsr(tuneAddr, 0, 0, 0, 50000);
-
-      ram[s.RF] = 7;
-      if (s.D1 !== undefined) {
-        if (s.FMC !== undefined) ram[s.D1 + s.FMC] = 0;
-        if (s.PMC !== undefined) ram[s.D1 + s.PMC] = 0;
-      }
-      const refsp = track.refsp || 0x0040;
-      ram[s.Refsp] = refsp & 0xff;
-      ram[s.Refsp + 1] = (refsp >> 8) & 0xff;
-      wasm.wasm_inject_key(keyChar);
-      wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xfd, 0x24);
-      updateEffectiveMuteMask();
-      return;
+    const loader = GAME_LOADERS[gameId];
+    if (loader) {
+      const ram = getRamView();
+      const asm = getAssembled(gameId);
+      loader({
+        wasm,
+        ram,
+        track,
+        asm,
+        getAssembled,
+        initMonitorScreen: initRamboMonitorScreen,
+      });
     }
-
-    if (gameId === "arkadrum.asm" || gameId === "arkanoid.asm") {
-      const asmArk = assembledCache["arkanoid.asm"];
-      const asmDrm = assembledCache["arkadrum.asm"];
-      ram.set(asmArk.mem);
-      for (let i = 0x4000; i < 0x6000; i++) {
-        if (asmDrm.mem[i] !== 0) ram[i] = asmDrm.mem[i];
-      }
-      const sA = asmArk.symbols;
-      const sD = asmDrm.symbols;
-
-      if (track.withDrums) {
-        wasm.wasm_jsr(sA.InitScreen, 0, 0, 0, 200000);
-        ram[sA.RF] = 7;
-        wasm.wasm_jsr(sD.INITRASTERS, 0, 0, 0, 50000);
-        wasm.wasm_jsr(sD.INITSOUND, 0, 0, 0, 50000);
-        const riffAddr = track.riff === "eNTERDATA" ? sD.eNTERDATA : sD.TITLEDATA;
-        const riffClk = track.riffClk || 2;
-        wasm.wasm_jsr(sD.RIFF, riffClk, riffAddr & 0xff, (riffAddr >> 8) & 0xff, 10000);
-        wasm.wasm_jsr(sD.TUNE, 0, 0, track.tuneY, 50000);
-        wasm.wasm_set_cpu_state(sD.MAIN, 0, 0, 0, 0xfd, 0x20);
-      } else {
-        wasm.wasm_jsr(sA.InitScreen, 0, 0, 0, 200000);
-        wasm.wasm_jsr(sA.INITSOUND, 0, 0, 0, 50000);
-        wasm.wasm_write_bus(0xd418, 0x0f);
-        if (sA.D418 !== undefined) ram[sA.D418] = 0x0f;
-        ram[sA.RF] = 7;
-        const refsp = track.refsp || 0x0080;
-        ram[sA.Refsp] = refsp & 0xff;
-        ram[sA.Refsp + 1] = (refsp >> 8) & 0xff;
-        if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
-        wasm.wasm_set_cpu_state(sA.DLoop, 0, 0, 0, 0xfd, 0x24);
-      }
-      updateEffectiveMuteMask();
-      return;
-    }
-
-    if (gameId === "gameover.asm") {
-      const asm = assembledCache["gameover.asm"];
-      ram.set(asm.mem);
-      const s = asm.symbols;
-
-      if (track.withDrums) {
-        wasm.wasm_set_cpu_state(s.Start, 0, 0, 0, 0xfd, 0x24);
-        if (track.skipFrames && track.skipFrames > 0) {
-          wasm.wasm_fast_forward_frames(track.skipFrames);
-        }
-      } else {
-        wasm.wasm_jsr(s.InitScreen, 0, 0, 0, 200000);
-        wasm.wasm_jsr(s.INITSOUND, 0, 0, 0, 50000);
-        wasm.wasm_write_bus(0xd418, 0x0f);
-        ram[s.RF] = 7;
-        const refsp = track.refsp || 0x0040;
-        ram[s.Refsp] = refsp & 0xff;
-        ram[s.Refsp + 1] = (refsp >> 8) & 0xff;
-        if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
-        wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xfd, 0x24);
-      }
-      updateEffectiveMuteMask();
-      return;
-    }
-
-    if (gameId === "greenberet.asm") {
-      const asm = assembledCache["greenberet.asm"];
-      ram.set(asm.mem);
-      const s = asm.symbols;
-      wasm.wasm_jsr(s.setscreen, 0, 0, 0, 200000);
-      wasm.wasm_jsr(s.FULLRESET, 0, 0, 0, 50000);
-      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xfd, 0x24);
-      if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
-      updateEffectiveMuteMask();
-      return;
-    }
-
-    if (gameId === "rambload.asm") {
-      const asm = assembledCache["rambload.asm"];
-      ram.set(asm.mem);
-      const s = asm.symbols;
-      initRamboMonitorScreen(ram);
-      ram[s.START + 6] = 0x4c;
-      ram[s.START + 7] = (s.L - 3) & 0xff;
-      ram[s.START + 8] = ((s.L - 3) >> 8) & 0xff;
-      wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xfd, 0x24);
-
-      if (track.skipFrames && track.skipFrames > 0) {
-        wasm.wasm_fast_forward_frames(track.skipFrames);
-      }
-      updateEffectiveMuteMask();
-      return;
-    }
+    updateEffectiveMuteMask();
   }
 
   function pullAudioBlock(outL, outR) {
@@ -463,7 +496,8 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
     updateSource,
     getRamView,
     getRawSource: (gameId) => sources[gameId],
-    getAssembled: (gameId) => assembledCache[gameId],
+    getAssembled,
+    getAssembledCache: () => assembledCache,
     getState: () => ({ ...state }),
   };
 }

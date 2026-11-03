@@ -235,8 +235,10 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 28 automated checks across four test files:
+`npm test` runs 31 automated checks across four test files:
 
+* **Game loader adapters.** A dispatch table of named loader adapters (`GAME_LOADERS`) encapsulates hardware initialization, zero-page word writes, custom raster setup and entry-point jumps across all six games, verified by asserting CPU states and cycle budgets.
+* **Lazy assembly and cached HTML.** Sources assemble on demand per game rather than all six eagerly on boot, reducing initial assembly time by 85.5% (from 386.5 ms to 56.2 ms), while rendered source viewer HTML is cached per file and reused across switches.
 * **Telemetry snapshot encapsulation.** Engine state (cycles, PC, SID registers, voices, filter, scope buffers and screen RAM) returns as a reusable, pre-allocated snapshot from `player.getTelemetry()`, eliminating per-frame allocations and hiding the WebAssembly C ABI from the presentation layer.
 * **Shared browser test harness.** A unified test harness (`tests/helpers/browser_harness.mjs`) parses authentic markup, throws on missing element identifiers to prevent silent fake drift, and manages strict WebKit audio and animation frames across UI test suites.
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.

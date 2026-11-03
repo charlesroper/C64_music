@@ -592,3 +592,40 @@ OSCILLATE EQU (1 - (L1 AND 1)) * $04B0 + $0050
     player.selectTrack("gameover.asm", "custom-no-key");
   });
 });
+
+test("switching away from a game and back reuses cached source viewer HTML", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}_cache`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  // 1. Initial boot caches wizball.asm rendered HTML
+  const state = globalThis.__workbenchState;
+  assert.ok(state, "Expected global workbench state");
+  assert.ok(state.sourceHtmlCache.has("wizball.asm"), "wizball.asm HTML must be cached");
+  const wizHtml = state.sourceHtmlCache.get("wizball.asm");
+  assert.ok(wizHtml.length > 1000);
+
+  // 2. Switching to greenberet.asm caches greenberet HTML
+  const gameList = harness.elementsById.get("game-list");
+  const gbItem = gameList.children.find((c) => c.innerHTML?.includes("greenberet.asm"));
+  assert.ok(gbItem, "greenberet item in game-list");
+  gbItem.click();
+  assert.ok(state.sourceHtmlCache.has("greenberet.asm"), "greenberet.asm HTML must be cached");
+
+  // 3. Switching back to wizball.asm reuses exact cached HTML reference
+  const wizItem = gameList.children.find((c) => c.innerHTML?.includes("wizball.asm"));
+  assert.ok(wizItem, "wizball item in game-list");
+  wizItem.click();
+  assert.equal(
+    state.sourceHtmlCache.get("wizball.asm"),
+    wizHtml,
+    "Switching back must reuse the cached HTML string",
+  );
+});

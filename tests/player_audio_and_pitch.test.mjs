@@ -3,7 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createWorkbenchPlayer } from "../src/player_engine.js";
+import {
+  createWorkbenchPlayer,
+  GAME_LOADERS,
+  jsr,
+  readWord,
+  setCpuState,
+  writeWord,
+} from "../src/player_engine.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -349,4 +356,105 @@ test("player engine encapsulates telemetry snapshot, reuses buffers, and removes
   const snapRambo = player.getTelemetry();
   assert.ok(snapRambo.morseIndex >= 0, "rambload track must populate morseIndex");
   assert.equal(snapRambo.ram[0x0400 + 1 * 40 + 2], "R".charCodeAt(0));
+});
+
+test("game loader adapters initialize expected entry points, cycle budgets, and register states", async () => {
+  // 1. GAME_LOADERS contains table entries for all 6 game IDs
+  const loaderKeys = Object.keys(GAME_LOADERS).sort();
+  assert.deepEqual(loaderKeys, [
+    "arkadrum.asm",
+    "arkanoid.asm",
+    "gameover.asm",
+    "greenberet.asm",
+    "rambload.asm",
+    "wizball.asm",
+  ]);
+
+  // 2. Shared 16-bit word helpers
+  const testRam = new Uint8Array(16);
+  writeWord(testRam, 4, 0x1234);
+  assert.equal(testRam[4], 0x34);
+  assert.equal(testRam[5], 0x12);
+  assert.equal(readWord(testRam, 4), 0x1234);
+
+  // 3. Test each loader sets expected entry point (PC) and state
+  const mod = await WebAssembly.compile(wasmBytes);
+  const instance = await WebAssembly.instantiate(mod, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+  });
+
+  const wasm = instance.exports;
+  const ram = player.getRamView();
+
+  // Wizball: DLoop
+  const wizAsm = player.getAssembled("wizball.asm");
+  GAME_LOADERS["wizball.asm"]({ wasm, ram, track: { key: "A" }, asm: wizAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), wizAsm.symbols.DLoop);
+
+  // Arkanoid: DLoop
+  const arkAsm = player.getAssembled("arkanoid.asm");
+  GAME_LOADERS["arkanoid.asm"]({ wasm, ram, track: { key: "G" }, asm: arkAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), arkAsm.symbols.DLoop);
+
+  // Arkadrum: MAIN
+  const drmAsm = player.getAssembled("arkadrum.asm");
+  GAME_LOADERS["arkadrum.asm"]({
+    wasm,
+    ram,
+    track: { withDrums: true, riff: "TITLEDATA", riffClk: 2, tuneY: 61 },
+    asm: drmAsm,
+    getAssembled: player.getAssembled,
+  });
+  assert.equal(wasm.wasm_get_cpu_pc(), drmAsm.symbols.MAIN);
+
+  // GameOver (withDrums): Start
+  const goAsm = player.getAssembled("gameover.asm");
+  GAME_LOADERS["gameover.asm"]({ wasm, ram, track: { withDrums: true }, asm: goAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), goAsm.symbols.Start);
+
+  // GameOver (without drums): DLoop
+  GAME_LOADERS["gameover.asm"]({ wasm, ram, track: { withDrums: false, key: "A" }, asm: goAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), goAsm.symbols.DLoop);
+
+  // Green Beret: START
+  const gbAsm = player.getAssembled("greenberet.asm");
+  GAME_LOADERS["greenberet.asm"]({ wasm, ram, track: { key: "A" }, asm: gbAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), gbAsm.symbols.START);
+
+  // Rambo: START
+  const ramAsm = player.getAssembled("rambload.asm");
+  GAME_LOADERS["rambload.asm"]({ wasm, ram, track: {}, asm: ramAsm });
+  assert.equal(wasm.wasm_get_cpu_pc(), ramAsm.symbols.START);
+});
+
+test("player engine lazily assembles sources on demand per game", async () => {
+  const mod = await WebAssembly.compile(wasmBytes);
+  const instance = await WebAssembly.instantiate(mod, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+  });
+
+  // 1. Initial construction only assembles active game (wizball.asm)
+  assert.deepEqual(Object.keys(player.getAssembledCache()), ["wizball.asm"]);
+
+  // 2. Selecting arkadrum assembles both arkadrum.asm and arkanoid.asm dependency
+  player.selectTrack("arkadrum.asm", "arkd-title");
+  assert.deepEqual(
+    Object.keys(player.getAssembledCache()).sort(),
+    ["arkadrum.asm", "arkanoid.asm", "wizball.asm"].sort(),
+  );
+
+  // 3. Other sources remain unassembled until demanded
+  assert.equal(player.getAssembledCache()["greenberet.asm"], undefined);
+  assert.equal(player.getAssembledCache()["gameover.asm"], undefined);
+  assert.equal(player.getAssembledCache()["rambload.asm"], undefined);
+
+  // 4. Selecting greenberet assembles greenberet.asm
+  player.selectTrack("greenberet.asm", "gb-title");
+  assert.ok(player.getAssembledCache()["greenberet.asm"]);
 });

@@ -34,7 +34,16 @@ const state = {
   isEditingSource: false,
   isEditorDirty: false,
   prevHighlightedLines: [],
+  sourceHtmlCache: new Map(),
+  sourceRowCache: new Map(),
 };
+
+if (typeof window !== "undefined") {
+  window.__workbenchState = state;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.__workbenchState = state;
+}
 
 // ============================================================================
 // Initialization & Asset Loading
@@ -85,15 +94,11 @@ async function initWorkbench() {
     narrativeBody.innerHTML = renderMarkdownToHtml(narrativeText);
   }
 
+  const decoder = new TextDecoder("utf-8");
   const rawSources = {};
   for (let i = 0; i < fileNames.length; i++) {
     const buf = await asmResps[i].arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let text = "";
-    for (let j = 0; j < bytes.length; j++) {
-      text += String.fromCharCode(bytes[j]);
-    }
-    rawSources[fileNames[i]] = text;
+    rawSources[fileNames[i]] = decoder.decode(buf);
   }
 
   state.player = createWorkbenchPlayer({
@@ -532,23 +537,35 @@ function renderSourceViewer(gameId) {
   }
 
   const viewer = document.getElementById("source-viewer");
-  const frag = document.createDocumentFragment();
+  let cached = state.sourceRowCache.get(gameId);
+  if (!cached) {
+    const rows = [];
+    let html = "";
+    for (let i = 0; i < asm.rawLines.length; i++) {
+      const lineNo = i + 1;
+      const addr = asm.lineAddresses[lineNo];
+      const addrHex =
+        addr !== undefined && addr >= 0
+          ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
+          : "";
 
-  for (let i = 0; i < asm.rawLines.length; i++) {
-    const lineNo = i + 1;
-    const addr = asm.lineAddresses[lineNo];
-    const addrHex =
-      addr !== undefined && addr >= 0 ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}` : "";
+      const rowHtml = `<span class="ln-num">${lineNo}</span><span class="ln-addr">${addrHex}</span><span class="ln-code">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
+      html += `<div class="asm-line" id="asm-L${lineNo}">${rowHtml}</div>`;
 
-    const row = document.createElement("div");
-    row.className = "asm-line";
-    row.id = `asm-L${lineNo}`;
-    row.innerHTML = `<span class="ln-num">${lineNo}</span><span class="ln-addr">${addrHex}</span><span class="ln-code">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
-    frag.appendChild(row);
+      const row = document.createElement("div");
+      row.className = "asm-line";
+      row.id = `asm-L${lineNo}`;
+      row.innerHTML = rowHtml;
+      rows.push(row);
+    }
+    cached = { rows, html };
+    state.sourceRowCache.set(gameId, cached);
+    state.sourceHtmlCache.set(gameId, html);
   }
-
   viewer.innerHTML = "";
-  viewer.appendChild(frag);
+  for (const r of cached.rows) {
+    viewer.appendChild(r);
+  }
 
   const editor = document.getElementById("source-editor");
   if (editor && !state.isEditingSource && !state.isEditorDirty) {
@@ -1495,6 +1512,8 @@ function setupUIHandlers() {
     const editedText = editorEl.value;
     try {
       state.player.updateSource(fileToUpdate, editedText);
+      state.sourceHtmlCache.delete(fileToUpdate);
+      state.sourceRowCache.delete(fileToUpdate);
     } catch (err) {
       const badge = document.getElementById("asm-compile-badge");
       if (badge) {

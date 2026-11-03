@@ -19,3 +19,7 @@ _Avoid_: UI container, frontend app
 **Track Session**:
 A track configuration descriptor defining the active game, tune, source file, drum routine availability, and program counter symbols.
 _Avoid_: Song selection, track model
+
+**Loader Adapter**:
+A dedicated game-specific loader function responsible for initializing Commodore 64 memory, custom raster routines, jump tables, and CPU registers for one Galway audio routine before driver execution begins.
+_Avoid_: Boot branch, track init script
