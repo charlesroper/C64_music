@@ -49,9 +49,10 @@ Never edit, reformat, or patch these historical files. All catalog corrections, 
   - `README.md`: Technical setup, architecture overview, capabilities, and developer workflow.
   - `NARRATIVE.md`: In-app story overlay covering visible player UI elements (Section 3), architecture (Section 5), verification (Section 7), and development blog (Section 8).
 - **Mandatory Development Blog Entries (NARRATIVE.md Section 8)**:
-  Every task or wave that introduces a feature, defect fix, refactoring, or performance optimization must automatically append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md` before committing:
+  Every task or wave that introduces a story-changing event (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must automatically append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md` before committing:
   - Explain the problem, what changed, how it was verified, and link commit hashes, issues, and ADRs.
   - Never wait for the user to prompt for a dev blog entry. Write and commit it automatically as part of the work.
+  - **Do not log trivial or chore commits**: Exclude mechanical maintenance such as typo fixes, CalVer version bumps, minor formatting adjustments, or routine dependency updates. Ask: "Would a newcomer need this story to understand how the system evolved?" If not, keep it out of the blog.
 - **Test synchronization**: Run `npm test` before committing. All tests must pass. When adding, modifying, or removing tests, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly.
 
 ## 5. Commit Standards
