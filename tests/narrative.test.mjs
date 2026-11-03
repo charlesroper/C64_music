@@ -24,6 +24,18 @@ test("markdown renderer handles links, nested and numbered lists, and code spans
     html,
     "<ul>\n<li>\na\n<ul>\n<li>\nb\n</li>\n<li>\nc\n</li></ul>\n</li>\n<li>\nd\n</li></ul>\n<ol>\n<li>\none\n</li>\n<li>\ntwo\n</li></ol>\n<p>text</p>",
   );
+
+  const mixed = renderMarkdownToHtml("- one\n1. two");
+  assert.equal(
+    mixed,
+    "<ul>\n<li>\none\n</li></ul>\n<ol>\n<li>\ntwo\n</li></ol>",
+  );
+
+  const sameType = renderMarkdownToHtml("- one\n- two");
+  assert.equal(
+    sameType,
+    "<ul>\n<li>\none\n</li>\n<li>\ntwo\n</li></ul>",
+  );
 });
 
 test("NARRATIVE.md renders cleanly for the overlay", () => {

@@ -78,8 +78,15 @@ export function renderMarkdownToHtml(md) {
       closeListsTo(indent);
       const top = lists[lists.length - 1];
       if (top && top.indent === indent) {
-        out.push("</li>");
-        out.push("<li>");
+        if (top.tag !== tag) {
+          out.push(`</li></${lists.pop().tag}>`);
+          out.push(`<${tag}>`);
+          out.push("<li>");
+          lists.push({ indent, tag });
+        } else {
+          out.push("</li>");
+          out.push("<li>");
+        }
       } else {
         out.push(`<${tag}>`);
         out.push("<li>");
