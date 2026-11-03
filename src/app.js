@@ -424,9 +424,7 @@ function updateDrmChipState() {
       : null;
   const pcSyms = game && game.architecture ? game.architecture.pcSymbols : [];
   const hasDrums = Boolean(
-    pcSyms.includes("seqPC") &&
-      track &&
-      (track.withDrums || track.drumsSolo || track.drumMode),
+    pcSyms.includes("seqPC") && track && (track.withDrums || track.drumsSolo || track.drumMode),
   );
 
   drmChip.classList.toggle("disabled", !hasDrums);
@@ -553,9 +551,7 @@ function renderSourceViewer(gameId) {
     const lineNo = i + 1;
     const addr = asm.lineAddresses[lineNo];
     const addrHex =
-      addr !== undefined && addr >= 0
-        ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
-        : "";
+      addr !== undefined && addr >= 0 ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}` : "";
 
     const row = document.createElement("div");
     row.className = "asm-line";

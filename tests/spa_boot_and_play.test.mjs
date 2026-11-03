@@ -4,6 +4,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
+import { assembleOceanSource } from "../src/ocean_assembler.js";
+import { createWorkbenchPlayer } from "../src/player_engine.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -116,7 +118,9 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
       classMatch[1]
         .split(/\s+/)
         .filter(Boolean)
-        .forEach((c) => el.classList.add(c));
+        .forEach((c) => {
+          el.classList.add(c);
+        });
     }
     const dataVoiceMatch = attrs.match(/\bdata-voice="([^"]+)"/);
     if (dataVoiceMatch) {
@@ -589,7 +593,11 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
     key: "w",
     preventDefault: () => {},
   });
-  assert.equal(playLabel.textContent, "PLAY", "Letter key while modal is open must not start playback");
+  assert.equal(
+    playLabel.textContent,
+    "PLAY",
+    "Letter key while modal is open must not start playback",
+  );
 
   // Close modal
   const btnClose = harness.elementsById.get("btn-close-narrative-modal");
@@ -607,7 +615,11 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
       btnSpacePrevented = true;
     },
   });
-  assert.equal(btnSpacePrevented, false, "Space on focused button must not be prevented by global shortcut");
+  assert.equal(
+    btnSpacePrevented,
+    false,
+    "Space on focused button must not be prevented by global shortcut",
+  );
   assert.equal(playLabel.textContent, "PLAY");
 
   // 3. Focus on body (no active element): global shortcut works
@@ -787,5 +799,88 @@ test("symbol jump and source search use the on-screen file instead of activeGame
   const drmMatches = viewer.children.filter(
     (r) => r.classList && r.classList.contains("search-match"),
   );
-  assert.ok(drmMatches.length > 0, "Searching TOMhiTABLE must find matches in arkadrum.asm on screen");
+  assert.ok(
+    drmMatches.length > 0,
+    "Searching TOMhiTABLE must find matches in arkadrum.asm on screen",
+  );
+});
+
+test("assembler hardens against empty operands, converges deterministically, and guards loader execution", async () => {
+  // 1. Missing operand on instruction without implied mode throws naming line and opcode
+  assert.throws(() => {
+    assembleOceanSource("        ORG $1000\n        STA\n");
+  }, /Missing operand for instruction 'STA' at line 2/);
+
+  assert.throws(() => {
+    assembleOceanSource("        ORG $1000\n        ADC\n");
+  }, /Missing operand for instruction 'ADC' at line 2/);
+
+  // 2. Deliberately unstable source throws when addresses fail to stabilise
+  const unstableSrc = `
+        ORG $1000
+        LDA OSCILLATE
+L1
+OSCILLATE EQU (1 - (L1 AND 1)) * $04B0 + $0050
+`;
+  assert.throws(() => {
+    assembleOceanSource(unstableSrc);
+  }, /Assembly failed to converge/);
+
+  // 3. All six sources assemble byte-identical across passes and on warm re-assembly
+  const gameFiles = [
+    "wizball.asm",
+    "arkanoid.asm",
+    "arkadrum.asm",
+    "gameover.asm",
+    "greenberet.asm",
+    "rambload.asm",
+  ];
+  for (const file of gameFiles) {
+    const src = fs.readFileSync(path.join(ROOT, file), "latin1");
+    const a1 = assembleOceanSource(src);
+    const a2 = assembleOceanSource(src);
+    assert.deepEqual(a1.mem, a2.mem, `${file} memory mismatch across warm passes`);
+    assert.deepEqual(a1.symbols, a2.symbols, `${file} symbols mismatch across warm passes`);
+    assert.equal(a1.entryPoint, a2.entryPoint, `${file} entryPoint mismatch`);
+  }
+
+  // 4. Player engine guards tracks without key and guards PMC/FMC independently
+  const wasmBuf = fs.readFileSync(path.join(ROOT, "wasm/c64_engine.wasm"));
+  const { instance } = await WebAssembly.instantiate(wasmBuf, {});
+  const rawSources = {};
+  for (const name of gameFiles) {
+    rawSources[name] = fs.readFileSync(path.join(ROOT, name), "latin1");
+  }
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: () => ({
+      sampleRate: 44100,
+      state: "running",
+      destination: {},
+      resume: async () => {},
+      createBuffer: (_c, l, s) => ({
+        length: l,
+        sampleRate: s,
+        getChannelData: () => new Float32Array(l),
+      }),
+      createBufferSource: () => ({
+        buffer: null,
+        connect: () => {},
+        start: () => {},
+        stop: () => {},
+      }),
+    }),
+  });
+
+  // Selecting tracks where key is missing must not throw
+  assert.doesNotThrow(() => {
+    player.selectTrack("greenberet.asm", "custom-no-key");
+  });
+  assert.doesNotThrow(() => {
+    player.selectTrack("arkanoid.asm", "custom-no-key");
+  });
+  assert.doesNotThrow(() => {
+    player.selectTrack("gameover.asm", "custom-no-key");
+  });
 });

@@ -399,6 +399,8 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
   const mem = new Uint8Array(65536);
   const addrToLine = new Int32Array(65536);
   const lineAddresses = new Int32Array(rawLines.length + 1).fill(-1);
+  const pass1StmtPcs = new Int32Array(parsedStmts.length);
+  let pass1Symbols = null;
 
   for (let pass = 0; pass < 3; pass++) {
     const strict = pass === 2;
@@ -406,6 +408,7 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
     if (pass === 2) {
       mem.fill(0);
       addrToLine.fill(0);
+      pass1Symbols = { ...symbols };
     }
 
     const writeByte = (val, lineNo) => {
@@ -417,8 +420,16 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
       pc = (pc + 1) & 0xffff;
     };
 
-    for (const st of parsedStmts) {
+    for (let stIdx = 0; stIdx < parsedStmts.length; stIdx++) {
+      const st = parsedStmts[stIdx];
       const { lineNo, label, op, arg } = st;
+      if (pass === 1) {
+        pass1StmtPcs[stIdx] = pc;
+      } else if (pass === 2 && pass1StmtPcs[stIdx] !== pc) {
+        throw new Error(
+          `Assembly failed to converge: address at line ${lineNo} changed from $${pass1StmtPcs[stIdx].toString(16)} to $${pc.toString(16)} between passes`,
+        );
+      }
       if (pass === 2 && lineAddresses[lineNo] === -1 && op !== "EQU" && op !== "ORG") {
         lineAddresses[lineNo] = pc;
       }
@@ -493,6 +504,9 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
         const modes = OPCODES[realOp];
 
         if (!a) {
+          if (modes.imp === undefined) {
+            throw new Error(`Missing operand for instruction '${op}' at line ${lineNo}`);
+          }
           writeByte(modes.imp, lineNo);
         } else if (a === "A" && modes.acc !== undefined) {
           writeByte(modes.acc, lineNo);
@@ -564,6 +578,16 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
         }
       } else {
         throw new Error(`Unknown instruction or directive '${op}' at line ${lineNo}`);
+      }
+    }
+
+    if (pass === 2 && pass1Symbols) {
+      for (const [name, val] of Object.entries(symbols)) {
+        if (pass1Symbols[name] !== undefined && pass1Symbols[name] !== val) {
+          throw new Error(
+            `Assembly failed to converge: symbol '${name}' changed from $${pass1Symbols[name].toString(16)} to $${val.toString(16)} between passes`,
+          );
+        }
       }
     }
   }

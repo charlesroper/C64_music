@@ -125,9 +125,9 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
       wasm.wasm_jsr(tuneAddr, 0, 0, 0, 50000);
 
       ram[s.RF] = 7;
-      if (s.D1 !== undefined && s.FMC !== undefined) {
-        ram[s.D1 + s.FMC] = 0;
-        ram[s.D1 + s.PMC] = 0;
+      if (s.D1 !== undefined) {
+        if (s.FMC !== undefined) ram[s.D1 + s.FMC] = 0;
+        if (s.PMC !== undefined) ram[s.D1 + s.PMC] = 0;
       }
       const refsp = track.refsp || 0x0040;
       ram[s.Refsp] = refsp & 0xff;
@@ -167,7 +167,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
         const refsp = track.refsp || 0x0080;
         ram[sA.Refsp] = refsp & 0xff;
         ram[sA.Refsp + 1] = (refsp >> 8) & 0xff;
-        wasm.wasm_inject_key(track.key.charCodeAt(0));
+        if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
         wasm.wasm_set_cpu_state(sA.DLoop, 0, 0, 0, 0xfd, 0x24);
       }
       updateEffectiveMuteMask();
@@ -192,7 +192,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
         const refsp = track.refsp || 0x0040;
         ram[s.Refsp] = refsp & 0xff;
         ram[s.Refsp + 1] = (refsp >> 8) & 0xff;
-        wasm.wasm_inject_key(track.key.charCodeAt(0));
+        if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
         wasm.wasm_set_cpu_state(s.DLoop, 0, 0, 0, 0xfd, 0x24);
       }
       updateEffectiveMuteMask();
@@ -206,7 +206,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
       wasm.wasm_jsr(s.setscreen, 0, 0, 0, 200000);
       wasm.wasm_jsr(s.FULLRESET, 0, 0, 0, 50000);
       wasm.wasm_set_cpu_state(s.START, 0, 0, 0, 0xfd, 0x24);
-      wasm.wasm_inject_key(track.key.charCodeAt(0));
+      if (track.key) wasm.wasm_inject_key(track.key.charCodeAt(0));
       updateEffectiveMuteMask();
       return;
     }
