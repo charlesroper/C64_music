@@ -4,13 +4,15 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
+import { bootWorkbench } from "../src/app.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
+import { createWorkbenchView } from "../src/workbench_view.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-import { createBrowserHarness } from "./helpers/browser_harness.mjs";
+import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
 
 test("unified browser harness enforces strict element IDs and shares environment between UI tests", () => {
   const harness = createBrowserHarness({
@@ -55,29 +57,24 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
     rejectSampleRateOption: true,
   });
 
-  // Cache-bust import so module runs fresh against this harness
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  try {
+    await bootWorkbench();
+    harness.stepAnimationFrame();
+
+    // Simulate user tapping PLAY on mobile Safari (44.1 kHz hardware, sampleRate option rejected)
+    harness.elementsById.get("btn-play").click();
+
+    assert.equal(harness.audioState.audioSession.type, "playback");
+    assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
+
+    const stats = harness.pullWebKitStrictAudioFrames(24);
+    assert.equal(stats.nanCount, 0);
+    assert.ok(stats.peakL > 0.1, `Expected left channel peak > 0.1, got ${stats.peakL}`);
+    assert.ok(stats.peakR > 0.1, `Expected right channel peak > 0.1, got ${stats.peakR}`);
+    assert.ok(stats.rms > 0.02, `Expected RMS > 0.02, got ${stats.rms}`);
+  } finally {
+    harness.restoreGlobals();
   }
-
-  harness.stepAnimationFrame();
-
-  // Simulate user tapping PLAY on mobile Safari (44.1 kHz hardware, sampleRate option rejected)
-  harness.elementsById.get("btn-play").click();
-
-  assert.equal(harness.audioState.audioSession.type, "playback");
-  assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
-
-  const stats = harness.pullWebKitStrictAudioFrames(24);
-  assert.equal(stats.nanCount, 0);
-  assert.ok(stats.peakL > 0.1, `Expected left channel peak > 0.1, got ${stats.peakL}`);
-  assert.ok(stats.peakR > 0.1, `Expected right channel peak > 0.1, got ${stats.peakR}`);
-  assert.ok(stats.rms > 0.02, `Expected RMS > 0.02, got ${stats.rms}`);
 });
 
 test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlocks AudioContext inside the tap gesture and starts audio when ready", async () => {
@@ -86,37 +83,48 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
     rejectSampleRateOption: false,
   });
 
-  // Delay fetch by 80ms to simulate mobile network latency
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url) => {
-    await new Promise((r) => setTimeout(r, 80));
-    return origFetch(url);
-  };
+  try {
+    // Delay fetch by 80ms to simulate mobile network latency
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      await new Promise((r) => setTimeout(r, 80));
+      return origFetch(url);
+    };
 
-  const bootPromise = import(path.join(ROOT, `src/app.js?t=${Date.now()}_slow`));
-  // Wait 10ms so setupUIHandlers() has run, but fetches have NOT completed yet
-  await new Promise((r) => setTimeout(r, 10));
+    const bootPromise = bootWorkbench();
+    // Wait 10ms so setupUIHandlers() has run, but fetches have NOT completed yet
+    await new Promise((r) => setTimeout(r, 10));
 
-  // User taps PLAY while assets are still loading
-  harness.elementsById.get("btn-play").click();
+    // User taps PLAY while assets are still loading
+    harness.elementsById.get("btn-play").click();
 
-  // AudioContext MUST be created & resumed synchronously during the user tap gesture (iOS requirement)
-  assert.ok(harness.audioState.ctx, "AudioContext must be created synchronously during early tap");
-  assert.equal(harness.audioState.ctx.state, "running", "AudioContext must resume during gesture");
+    // AudioContext MUST be created & resumed synchronously during the user tap gesture (iOS requirement)
+    assert.ok(
+      harness.audioState.ctx,
+      "AudioContext must be created synchronously during early tap",
+    );
+    assert.equal(
+      harness.audioState.ctx.state,
+      "running",
+      "AudioContext must resume during gesture",
+    );
 
-  // Wait for fetches + WASM assembly to complete
-  await bootPromise;
-  const deadline = Date.now() + 5000;
-  while (
-    harness.elementsById.get("play-label").textContent === "LOADING..." &&
-    Date.now() < deadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+    // Wait for fetches + WASM assembly to complete
+    await bootPromise;
+    const deadline = Date.now() + 5000;
+    while (
+      harness.elementsById.get("play-label").textContent === "LOADING..." &&
+      Date.now() < deadline
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
+    const stats = harness.pullWebKitStrictAudioFrames(16);
+    assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
+  } finally {
+    harness.restoreGlobals();
   }
-
-  assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
-  const stats = harness.pullWebKitStrictAudioFrames(16);
-  assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
 });
 
 test("CalVer version number appears immediately after the title of the app", async () => {
@@ -205,312 +213,335 @@ test("CalVer version number appears immediately after the title of the app", asy
 
 test("source editor surfaces assembly errors, preserves edits on syntax failure, and protects dirty edits on track change", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    const btnToggle = harness.elementsById.get("btn-toggle-edit");
+    const btnReassemble = harness.elementsById.get("btn-reassemble");
+    const editorEl = harness.elementsById.get("source-editor");
+    const badge = harness.elementsById.get("asm-compile-badge");
+
+    // Open editor
+    btnToggle.click();
+    const originalSource = editorEl.value;
+    assert.ok(originalSource.length > 0, "Editor should have original source");
+
+    // 1. Submit broken source
+    editorEl.value = "SYNTAX_ERROR_UNKNOWN_OPCODE ???";
+    btnReassemble.click();
+
+    // Badge should show error, editor should stay open, text preserved
+    assert.match(badge.textContent, /ERROR/i);
+    assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
+    assert.ok(!editorEl.classList.contains("hidden"), "Editor should stay open on error");
+
+    // 2. Submit valid edit
+    const validEdit = `; Valid hot reload test\n${originalSource}`;
+    editorEl.value = validEdit;
+    btnReassemble.click();
+
+    assert.equal(badge.textContent, "HOT-RELOADED OK");
+    assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");
+
+    // 3. Type edit, switch track, verify no silent data loss
+    btnToggle.click();
+    editorEl.value = "; My unsaved modification";
+    editorEl.dispatchEvent("input");
+
+    // Switch track via track list
+    const trackList = harness.elementsById.get("track-list");
+    const secondTrack = trackList.children[1];
+    if (secondTrack) {
+      secondTrack.click();
+    }
+    assert.equal(
+      editorEl.value,
+      "; My unsaved modification",
+      "Unsaved editor edits must not be wiped on track switch",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  const btnToggle = harness.elementsById.get("btn-toggle-edit");
-  const btnReassemble = harness.elementsById.get("btn-reassemble");
-  const editorEl = harness.elementsById.get("source-editor");
-  const badge = harness.elementsById.get("asm-compile-badge");
-
-  // Open editor
-  btnToggle.click();
-  const originalSource = editorEl.value;
-  assert.ok(originalSource.length > 0, "Editor should have original source");
-
-  // 1. Submit broken source
-  editorEl.value = "SYNTAX_ERROR_UNKNOWN_OPCODE ???";
-  btnReassemble.click();
-
-  // Badge should show error, editor should stay open, text preserved
-  assert.match(badge.textContent, /ERROR/i);
-  assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
-  assert.ok(!editorEl.classList.contains("hidden"), "Editor should stay open on error");
-
-  // 2. Submit valid edit
-  const validEdit = `; Valid hot reload test\n${originalSource}`;
-  editorEl.value = validEdit;
-  btnReassemble.click();
-
-  assert.equal(badge.textContent, "HOT-RELOADED OK");
-  assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");
-
-  // 3. Type edit, switch track, verify no silent data loss
-  btnToggle.click();
-  editorEl.value = "; My unsaved modification";
-  editorEl.dispatchEvent("input");
-
-  // Switch track via track list
-  const trackList = harness.elementsById.get("track-list");
-  const secondTrack = trackList.children[1];
-  if (secondTrack) {
-    secondTrack.click();
-  }
-  assert.equal(
-    editorEl.value,
-    "; My unsaved modification",
-    "Unsaved editor edits must not be wiped on track switch",
-  );
 });
 
 test("global keyboard shortcuts ignore Space and letter keys while modal is open, and preserve native button activation", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    const playLabel = harness.elementsById.get("play-label");
+    assert.equal(playLabel.textContent, "PLAY");
+
+    // 1. Open narrative modal
+    const btnNarrative = harness.elementsById.get("btn-narrative-modal");
+    const narrativeModal = harness.elementsById.get("narrative-modal");
+    btnNarrative.click();
+    assert.ok(!narrativeModal.classList.contains("hidden"), "Modal must be open");
+
+    // Press Space while modal is open
+    let spacePrevented = false;
+    globalThis.window.dispatchEvent("keydown", {
+      code: "Space",
+      key: " ",
+      preventDefault: () => {
+        spacePrevented = true;
+      },
+    });
+
+    // Playback must NOT start
+    assert.equal(
+      playLabel.textContent,
+      "PLAY",
+      "Space while modal is open must not toggle playback",
+    );
+    assert.equal(spacePrevented, false, "Space while modal is open must not preventDefault");
+
+    // Press a letter key while modal is open
+    globalThis.window.dispatchEvent("keydown", {
+      code: "KeyW",
+      key: "w",
+      preventDefault: () => {},
+    });
+    assert.equal(
+      playLabel.textContent,
+      "PLAY",
+      "Letter key while modal is open must not start playback",
+    );
+
+    // Close modal
+    const btnClose = harness.elementsById.get("btn-close-narrative-modal");
+    btnClose.click();
+    assert.ok(narrativeModal.classList.contains("hidden"), "Modal must be closed");
+
+    // 2. Focused button receives Space without global shortcut stealing it
+    const btnPlay = harness.elementsById.get("btn-play");
+    globalThis.document.activeElement = btnPlay;
+    let btnSpacePrevented = false;
+    globalThis.window.dispatchEvent("keydown", {
+      code: "Space",
+      key: " ",
+      preventDefault: () => {
+        btnSpacePrevented = true;
+      },
+    });
+    assert.equal(
+      btnSpacePrevented,
+      false,
+      "Space on focused button must not be prevented by global shortcut",
+    );
+    assert.equal(playLabel.textContent, "PLAY");
+
+    // 3. Focus on body (no active element): global shortcut works
+    globalThis.document.activeElement = null;
+    globalThis.window.dispatchEvent("keydown", {
+      code: "Space",
+      key: " ",
+      preventDefault: () => {},
+    });
+    assert.equal(playLabel.textContent, "PAUSE", "Space on page body toggles playback");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  const playLabel = harness.elementsById.get("play-label");
-  assert.equal(playLabel.textContent, "PLAY");
-
-  // 1. Open narrative modal
-  const btnNarrative = harness.elementsById.get("btn-narrative-modal");
-  const narrativeModal = harness.elementsById.get("narrative-modal");
-  btnNarrative.click();
-  assert.ok(!narrativeModal.classList.contains("hidden"), "Modal must be open");
-
-  // Press Space while modal is open
-  let spacePrevented = false;
-  globalThis.window.dispatchEvent("keydown", {
-    code: "Space",
-    key: " ",
-    preventDefault: () => {
-      spacePrevented = true;
-    },
-  });
-
-  // Playback must NOT start
-  assert.equal(playLabel.textContent, "PLAY", "Space while modal is open must not toggle playback");
-  assert.equal(spacePrevented, false, "Space while modal is open must not preventDefault");
-
-  // Press a letter key while modal is open
-  globalThis.window.dispatchEvent("keydown", {
-    code: "KeyW",
-    key: "w",
-    preventDefault: () => {},
-  });
-  assert.equal(
-    playLabel.textContent,
-    "PLAY",
-    "Letter key while modal is open must not start playback",
-  );
-
-  // Close modal
-  const btnClose = harness.elementsById.get("btn-close-narrative-modal");
-  btnClose.click();
-  assert.ok(narrativeModal.classList.contains("hidden"), "Modal must be closed");
-
-  // 2. Focused button receives Space without global shortcut stealing it
-  const btnPlay = harness.elementsById.get("btn-play");
-  globalThis.document.activeElement = btnPlay;
-  let btnSpacePrevented = false;
-  globalThis.window.dispatchEvent("keydown", {
-    code: "Space",
-    key: " ",
-    preventDefault: () => {
-      btnSpacePrevented = true;
-    },
-  });
-  assert.equal(
-    btnSpacePrevented,
-    false,
-    "Space on focused button must not be prevented by global shortcut",
-  );
-  assert.equal(playLabel.textContent, "PLAY");
-
-  // 3. Focus on body (no active element): global shortcut works
-  globalThis.document.activeElement = null;
-  globalThis.window.dispatchEvent("keydown", {
-    code: "Space",
-    key: " ",
-    preventDefault: () => {},
-  });
-  assert.equal(playLabel.textContent, "PAUSE", "Space on page body toggles playback");
 });
 
 test("DRM chip is track-aware, drum PC reads through seqPC symbol, and unchecking follow stays off across track switches", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    assert.ok(drmChip, "DRM chip should exist");
+
+    // On boot (wizball.asm): hasDrums is false, DRM chip disabled
+    assert.ok(drmChip.classList.contains("disabled"), "Wizball should disable DRM chip");
+
+    // 1. Select gameover.asm
+    const gameList = harness.elementsById.get("game-list");
+    const gameOverItem = gameList.children.find(
+      (c) => c.innerHTML && c.innerHTML.includes("gameover.asm"),
+    );
+    assert.ok(gameOverItem, "gameover item in game-list");
+    gameOverItem.click();
+
+    // First track is go-title-full: withDrums is true, DRM chip must be ENABLED
+    assert.ok(!drmChip.classList.contains("disabled"), "go-title-full should enable DRM chip");
+
+    // Switch to a gameover SFX track without drums (e.g. go-sfx-laser)
+    const trackList = harness.elementsById.get("track-list");
+    const sfxTrack = trackList.children.find(
+      (c) => c.innerHTML && c.innerHTML.includes("Player Laser"),
+    );
+    assert.ok(sfxTrack, "SFX Player Laser track in track-list");
+    sfxTrack.click();
+
+    // DRM chip must be DISABLED for SFX track
+    assert.ok(drmChip.classList.contains("disabled"), "Game Over SFX track must disable DRM chip");
+
+    // Switch back to go-title-full
+    const fullTrack = trackList.children.find(
+      (c) => c.innerHTML && c.innerHTML.includes("Title Screen (Full"),
+    );
+    assert.ok(fullTrack, "Title Screen (Full) in track-list");
+    fullTrack.click();
+    assert.ok(!drmChip.classList.contains("disabled"), "go-title-full re-enables DRM chip");
+
+    // 2. Uncheck follow, switch songs, follow stays off
+    const chkFollow = harness.elementsById.get("chk-follow-pc");
+    chkFollow.checked = false;
+    chkFollow.dispatchEvent("change");
+
+    // Switch song
+    sfxTrack.click();
+    assert.equal(
+      chkFollow.checked,
+      false,
+      "Follow checkbox must stay unchecked after track switch",
+    );
+
+    // 3. Drum PC readout reads through seqPC symbol
+    fullTrack.click();
+    view.renderTelemetry(player.getTelemetry());
+    const telSeq = harness.elementsById.get("seq-pc");
+    assert.ok(telSeq.textContent.startsWith("DRUM: $"), "Drum PC readout should format address");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
-  assert.ok(drmChip, "DRM chip should exist");
-
-  // On boot (wizball.asm): hasDrums is false, DRM chip disabled
-  assert.ok(drmChip.classList.contains("disabled"), "Wizball should disable DRM chip");
-
-  // 1. Select gameover.asm
-  const gameList = harness.elementsById.get("game-list");
-  const gameOverItem = gameList.children.find(
-    (c) => c.innerHTML && c.innerHTML.includes("gameover.asm"),
-  );
-  assert.ok(gameOverItem, "gameover item in game-list");
-  gameOverItem.click();
-
-  // First track is go-title-full: withDrums is true, DRM chip must be ENABLED
-  assert.ok(!drmChip.classList.contains("disabled"), "go-title-full should enable DRM chip");
-
-  // Switch to a gameover SFX track without drums (e.g. go-sfx-laser)
-  const trackList = harness.elementsById.get("track-list");
-  const sfxTrack = trackList.children.find(
-    (c) => c.innerHTML && c.innerHTML.includes("Player Laser"),
-  );
-  assert.ok(sfxTrack, "SFX Player Laser track in track-list");
-  sfxTrack.click();
-
-  // DRM chip must be DISABLED for SFX track
-  assert.ok(drmChip.classList.contains("disabled"), "Game Over SFX track must disable DRM chip");
-
-  // Switch back to go-title-full
-  const fullTrack = trackList.children.find(
-    (c) => c.innerHTML && c.innerHTML.includes("Title Screen (Full"),
-  );
-  assert.ok(fullTrack, "Title Screen (Full) in track-list");
-  fullTrack.click();
-  assert.ok(!drmChip.classList.contains("disabled"), "go-title-full re-enables DRM chip");
-
-  // 2. Uncheck follow, switch songs, follow stays off
-  const chkFollow = harness.elementsById.get("chk-follow-pc");
-  chkFollow.checked = false;
-  chkFollow.dispatchEvent("change");
-
-  // Switch song
-  sfxTrack.click();
-  assert.equal(chkFollow.checked, false, "Follow checkbox must stay unchecked after track switch");
-
-  // 3. Drum PC readout reads through seqPC symbol
-  fullTrack.click();
-  harness.stepAnimationFrame();
-  const telSeq = harness.elementsById.get("seq-pc");
-  assert.ok(telSeq.textContent.startsWith("DRUM: $"), "Drum PC readout should format address");
 });
 
 test("source viewer address gutter hides sentinel values and shows $0000 for address zero", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    // Wizball on boot has blank lines and comments
+    const viewer = harness.elementsById.get("source-viewer");
+    assert.ok(viewer.children.length > 0, "Source viewer should have rows");
+
+    // Check that no row in wizball contains '$00-1'
+    const badRows = viewer.children.filter((r) => r.innerHTML && r.innerHTML.includes("$00-1"));
+    assert.equal(badRows.length, 0, `Expected 0 rows with $00-1, found ${badRows.length}`);
+
+    // Now hot-reload a snippet containing ORG, EQU, comment, blank, address 0, and code row
+    const btnToggle = harness.elementsById.get("btn-toggle-edit");
+    const btnReassemble = harness.elementsById.get("btn-reassemble");
+    const editorEl = harness.elementsById.get("source-editor");
+
+    const testSource = [
+      "; Comment line",
+      "",
+      "SOME_VAL EQU 42",
+      " ORG $0000",
+      " NOP",
+      " ORG $1000",
+      " LDA #1",
+    ].join("\n");
+
+    btnToggle.click();
+    editorEl.value = testSource;
+    btnReassemble.click();
+
+    const row1 = viewer.children[0];
+    const row2 = viewer.children[1];
+    const row3 = viewer.children[2];
+    const row4 = viewer.children[3];
+    const row5 = viewer.children[4];
+    const row6 = viewer.children[5];
+    const row7 = viewer.children[6];
+
+    assert.match(row1.innerHTML, /<span class="ln-addr"><\/span>/);
+    assert.match(row2.innerHTML, /<span class="ln-addr"><\/span>/);
+    assert.match(row3.innerHTML, /<span class="ln-addr"><\/span>/);
+    assert.match(row4.innerHTML, /<span class="ln-addr"><\/span>/);
+    assert.match(row5.innerHTML, /<span class="ln-addr">\$0000<\/span>/);
+    assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
+    assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  // Wizball on boot has blank lines and comments
-  const viewer = harness.elementsById.get("source-viewer");
-  assert.ok(viewer.children.length > 0, "Source viewer should have rows");
-
-  // Check that no row in wizball contains '$00-1'
-  const badRows = viewer.children.filter((r) => r.innerHTML && r.innerHTML.includes("$00-1"));
-  assert.equal(badRows.length, 0, `Expected 0 rows with $00-1, found ${badRows.length}`);
-
-  // Now hot-reload a snippet containing ORG, EQU, comment, blank, address 0, and code row
-  const btnToggle = harness.elementsById.get("btn-toggle-edit");
-  const btnReassemble = harness.elementsById.get("btn-reassemble");
-  const editorEl = harness.elementsById.get("source-editor");
-
-  const testSource = [
-    "; Comment line",
-    "",
-    "SOME_VAL EQU 42",
-    " ORG $0000",
-    " NOP",
-    " ORG $1000",
-    " LDA #1",
-  ].join("\n");
-
-  btnToggle.click();
-  editorEl.value = testSource;
-  btnReassemble.click();
-
-  const row1 = viewer.children[0];
-  const row2 = viewer.children[1];
-  const row3 = viewer.children[2];
-  const row4 = viewer.children[3];
-  const row5 = viewer.children[4];
-  const row6 = viewer.children[5];
-  const row7 = viewer.children[6];
-
-  assert.match(row1.innerHTML, /<span class="ln-addr"><\/span>/);
-  assert.match(row2.innerHTML, /<span class="ln-addr"><\/span>/);
-  assert.match(row3.innerHTML, /<span class="ln-addr"><\/span>/);
-  assert.match(row4.innerHTML, /<span class="ln-addr"><\/span>/);
-  assert.match(row5.innerHTML, /<span class="ln-addr">\$0000<\/span>/);
-  assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
-  assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
 });
 
 test("symbol jump and source search use the on-screen file instead of activeGameId", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    // 1. Select arkadrum.asm. With default followVoice = 0, on-screen file is arkanoid.asm
+    const gameList = harness.elementsById.get("game-list");
+    const arkadrumItem = gameList.children.find(
+      (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
+    );
+    assert.ok(arkadrumItem, "arkadrum item in game-list");
+    arkadrumItem.click();
+
+    // Verify the viewer has arkanoid lines (arkanoid has ~1787 lines, arkadrum has ~328)
+    const viewer = harness.elementsById.get("source-viewer");
+    assert.ok(viewer.children.length > 1000, "Viewer should display arkanoid.asm (>1000 lines)");
+
+    // 2. Search for 'TITLE0', which only exists in arkanoid.asm
+    const searchInput = harness.elementsById.get("input-source-search");
+    searchInput.value = "TITLE0";
+    searchInput.dispatchEvent("input");
+
+    const matches = viewer.children.filter(
+      (r) => r.classList && r.classList.contains("search-match"),
+    );
+    assert.ok(matches.length > 0, "Searching TITLE0 must find matches in arkanoid.asm on screen");
+
+    // 3. Switch to drum follow (seq), so on-screen file becomes arkadrum.asm
+    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    assert.ok(drmChip, "DRM chip exists");
+    drmChip.click();
+    assert.ok(viewer.children.length < 500, "Viewer should display arkadrum.asm (<500 lines)");
+
+    // Search for 'TOMhiTABLE', which only exists in arkadrum.asm
+    searchInput.value = "TOMhiTABLE";
+    searchInput.dispatchEvent("input");
+
+    const drmMatches = viewer.children.filter(
+      (r) => r.classList && r.classList.contains("search-match"),
+    );
+    assert.ok(
+      drmMatches.length > 0,
+      "Searching TOMhiTABLE must find matches in arkadrum.asm on screen",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  // 1. Select arkadrum.asm. With default followVoice = 0, on-screen file is arkanoid.asm
-  const gameList = harness.elementsById.get("game-list");
-  const arkadrumItem = gameList.children.find(
-    (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
-  );
-  assert.ok(arkadrumItem, "arkadrum item in game-list");
-  arkadrumItem.click();
-
-  // Verify the viewer has arkanoid lines (arkanoid has ~1787 lines, arkadrum has ~328)
-  const viewer = harness.elementsById.get("source-viewer");
-  assert.ok(viewer.children.length > 1000, "Viewer should display arkanoid.asm (>1000 lines)");
-
-  // 2. Search for 'TITLE0', which only exists in arkanoid.asm
-  const searchInput = harness.elementsById.get("input-source-search");
-  searchInput.value = "TITLE0";
-  searchInput.dispatchEvent("input");
-
-  const matches = viewer.children.filter(
-    (r) => r.classList && r.classList.contains("search-match"),
-  );
-  assert.ok(matches.length > 0, "Searching TITLE0 must find matches in arkanoid.asm on screen");
-
-  // 3. Switch to drum follow (seq), so on-screen file becomes arkadrum.asm
-  const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
-  assert.ok(drmChip, "DRM chip exists");
-  drmChip.click();
-  assert.ok(viewer.children.length < 500, "Viewer should display arkadrum.asm (<500 lines)");
-
-  // Search for 'TOMhiTABLE', which only exists in arkadrum.asm
-  searchInput.value = "TOMhiTABLE";
-  searchInput.dispatchEvent("input");
-
-  const drmMatches = viewer.children.filter(
-    (r) => r.classList && r.classList.contains("search-match"),
-  );
-  assert.ok(
-    drmMatches.length > 0,
-    "Searching TOMhiTABLE must find matches in arkadrum.asm on screen",
-  );
 });
 
 test("assembler hardens against empty operands, converges deterministically, and guards loader execution", async () => {
@@ -595,39 +626,42 @@ OSCILLATE EQU (1 - (L1 AND 1)) * $04B0 + $0050
 
 test("switching away from a game and back reuses cached source viewer HTML", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  await import(path.join(ROOT, `src/app.js?t=${Date.now()}_cache`));
-  const readyDeadline = Date.now() + 4000;
-  while (
-    !harness.elementsById.get("status-led").classList.contains("ready") &&
-    Date.now() < readyDeadline
-  ) {
-    await new Promise((r) => setTimeout(r, 20));
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    // 1. Initial boot caches wizball.asm rendered HTML
+    const state = globalThis.__workbenchState;
+    assert.ok(state, "Expected global workbench state");
+    assert.ok(state.sourceHtmlCache.has("wizball.asm"), "wizball.asm HTML must be cached");
+    const wizHtml = state.sourceHtmlCache.get("wizball.asm");
+    assert.ok(wizHtml.length > 1000);
+
+    // 2. Switching to greenberet.asm caches greenberet HTML
+    const gameList = harness.elementsById.get("game-list");
+    const gbItem = gameList.children.find((c) => c.innerHTML?.includes("greenberet.asm"));
+    assert.ok(gbItem, "greenberet item in game-list");
+    gbItem.click();
+    assert.ok(state.sourceHtmlCache.has("greenberet.asm"), "greenberet.asm HTML must be cached");
+
+    // 3. Switching back to wizball.asm reuses exact cached HTML reference
+    const wizItem = gameList.children.find((c) => c.innerHTML?.includes("wizball.asm"));
+    assert.ok(wizItem, "wizball item in game-list");
+    wizItem.click();
+    assert.equal(
+      state.sourceHtmlCache.get("wizball.asm"),
+      wizHtml,
+      "Switching back must reuse the cached HTML string",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
   }
-  harness.stepAnimationFrame();
-
-  // 1. Initial boot caches wizball.asm rendered HTML
-  const state = globalThis.__workbenchState;
-  assert.ok(state, "Expected global workbench state");
-  assert.ok(state.sourceHtmlCache.has("wizball.asm"), "wizball.asm HTML must be cached");
-  const wizHtml = state.sourceHtmlCache.get("wizball.asm");
-  assert.ok(wizHtml.length > 1000);
-
-  // 2. Switching to greenberet.asm caches greenberet HTML
-  const gameList = harness.elementsById.get("game-list");
-  const gbItem = gameList.children.find((c) => c.innerHTML?.includes("greenberet.asm"));
-  assert.ok(gbItem, "greenberet item in game-list");
-  gbItem.click();
-  assert.ok(state.sourceHtmlCache.has("greenberet.asm"), "greenberet.asm HTML must be cached");
-
-  // 3. Switching back to wizball.asm reuses exact cached HTML reference
-  const wizItem = gameList.children.find((c) => c.innerHTML?.includes("wizball.asm"));
-  assert.ok(wizItem, "wizball item in game-list");
-  wizItem.click();
-  assert.equal(
-    state.sourceHtmlCache.get("wizball.asm"),
-    wizHtml,
-    "Switching back must reuse the cached HTML string",
-  );
 });
 
 test("source index provides address lookup, symbol jump, and text search", () => {
@@ -661,4 +695,61 @@ LOOP    JMP LOOP
   assert.deepEqual(idx.findLines("org"), [3]);
   assert.deepEqual(idx.findLines("nonexistent_pattern"), []);
   assert.deepEqual(idx.findLines(""), []);
+});
+
+test("workbench view mounts behind focused interface and importing modules causes no side effects", async () => {
+  // 1. Verify importing workbench_view and app does not boot the app or mutate globals
+  const prevWorkbenchState = globalThis.__workbenchState;
+  globalThis.__workbenchState = undefined;
+
+  const viewModule = await import("../src/workbench_view.js");
+  const appModule = await import("../src/app.js");
+
+  assert.equal(typeof viewModule.createWorkbenchView, "function");
+  assert.equal(typeof appModule.bootWorkbench, "function");
+  assert.equal(typeof appModule.initWorkbench, "function");
+  assert.equal(
+    globalThis.__workbenchState,
+    undefined,
+    "Importing modules must not instantiate state",
+  );
+
+  // Restore prior state if any
+  globalThis.__workbenchState = prevWorkbenchState;
+
+  // 2. Mount view with fake player and element map
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = viewModule.createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    // 3. View surface exposes required methods
+    assert.equal(typeof view.renderSession, "function");
+    assert.equal(typeof view.renderTelemetry, "function");
+    assert.equal(typeof view.renderSource, "function");
+    assert.equal(typeof view.setPlaying, "function");
+    assert.equal(typeof view.destroy, "function");
+
+    // 4. Element registry encapsulates element lookup
+    assert.ok(view.elements, "Expected elements registry");
+    assert.equal(typeof view.elements.get, "function");
+    const playBtn = view.elements.get("btn-play");
+    assert.ok(playBtn, "Expected btn-play through view.elements");
+
+    // 5. Driving playback updates UI
+    view.setPlaying(true);
+    assert.equal(player.getState().isPlaying, true);
+    assert.equal(view.elements.get("play-label").textContent, "PAUSE");
+
+    view.setPlaying(false);
+    assert.equal(player.getState().isPlaying, false);
+    assert.equal(view.elements.get("play-label").textContent, "PLAY");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
 });

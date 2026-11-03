@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createBrowserHarness } from "./helpers/browser_harness.mjs";
+import { createWorkbenchView } from "../src/workbench_view.js";
+import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -255,11 +256,16 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
   const tabButtons = Array.from(globalThis.document.querySelectorAll("[data-mobile-tab]"));
   const legendChips = Array.from(globalThis.document.querySelectorAll(".legend-chip"));
 
+  let view = null;
   try {
-    const appUrl = new URL(`../src/app.js?t=${Date.now()}-mobile`, import.meta.url);
-    await import(appUrl.href);
-    await harness.bootDone;
-    harness.stepAnimationFrame();
+    const player = createFakePlayer();
+    view = createWorkbenchView({
+      document: globalThis.document,
+      elements: elementsById,
+      player,
+    });
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+    view.renderTelemetry(player.getTelemetry());
 
     // 1. On 375px phones, HUD Row Guide defaults to hidden so C64 40x25 screen is legible
     assert.equal(elementsById.get("chk-hud-overlay").checked, false);
@@ -298,7 +304,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
 
     // 5. Following a voice adds high-visibility .pc-followed highlight to active source line
-    harness.stepAnimationFrame();
+    view.renderTelemetry(player.getTelemetry());
     const v1LineNo = Number(elementsById.get("v1-pc").dataset.line || "0");
     assert.ok(v1LineNo > 0, "Expected Voice 2 line number on v1-pc");
     const followedEl = elementsById.get(`asm-L${v1LineNo}`);
@@ -321,7 +327,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
     assert.ok(arkadrumItem, "Expected arkadrum.asm in game list");
     arkadrumItem.click();
-    harness.stepAnimationFrame();
+    view.renderTelemetry(player.getTelemetry());
 
     const drmChip = legendChips.find((c) => c.dataset.voice === "seq");
     const v3Chip = legendChips.find((c) => c.dataset.voice === "2");
@@ -378,6 +384,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(elementsById.get("sid-group-v2"), "Must render #sid-group-v2");
     assert.ok(elementsById.get("sid-group-flt"), "Must render #sid-group-flt");
   } finally {
+    if (view) view.destroy();
     harness.restoreGlobals();
   }
 });

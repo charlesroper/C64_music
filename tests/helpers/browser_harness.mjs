@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assembleOceanSource } from "../../src/ocean_assembler.js";
+import { buildSessionDescriptor } from "../../src/player_engine.js";
+import { GAME_FILES } from "../../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
@@ -551,6 +554,142 @@ export function createBrowserHarness({
       }
       globalThis.fetch = prevGlobals.fetch;
       globalThis.requestAnimationFrame = prevGlobals.requestAnimationFrame;
+    },
+  };
+}
+
+export function createFakePlayer(options = {}) {
+  let activeGame = options.initialGame || GAME_FILES[0];
+  let activeTrack = options.initialTrack || activeGame.tracks[0];
+  let isPlaying = options.isPlaying || false;
+  let currentSession = buildSessionDescriptor(activeGame, activeTrack);
+  const sources = { ...options.sources };
+  const assembled = new Map(Object.entries(options.assembled || {}));
+
+  function getOrAssemble(file) {
+    if (assembled.has(file)) return assembled.get(file);
+    const fullPath = path.resolve(ROOT, file);
+    if (fs.existsSync(fullPath)) {
+      const src = fs.readFileSync(fullPath, "utf8");
+      sources[file] = src;
+      const asm = assembleOceanSource(src, { fileName: file });
+      assembled.set(file, asm);
+      return asm;
+    }
+    return null;
+  }
+
+  getOrAssemble(activeGame.id);
+
+  const ram = new Uint8Array(65536);
+  // Default sequence pointers in zero page so PC readouts format valid addresses
+  // For Wizball: PC0 at 4, PC1 at 6, PC2 at 8
+  ram[4] = 0x00;
+  ram[5] = 0x10;
+  ram[6] = 0x04;
+  ram[7] = 0x10;
+  ram[8] = 0x0a;
+  ram[9] = 0x10;
+
+  // For Arkanoid: PC0 at 16, PC1 at 18, PC2 at 20
+  ram[16] = 0x03;
+  ram[17] = 0x08;
+  ram[18] = 0x07;
+  ram[19] = 0x08;
+  ram[20] = 0x0a;
+  ram[21] = 0x08;
+
+  // For Arkadrum seqPC: at 80 ($50)
+  ram[80] = 0x00;
+  ram[81] = 0x40;
+
+  const sidRegs = new Uint8Array(25);
+  const scopeData = new Float32Array(4 * 512);
+  const scanlineBorder = new Uint8Array(312);
+
+  const telemetry = {
+    frameCount: 1,
+    cpuPc: 0x1000,
+    d418: 0,
+    sidRegs,
+    scopeData,
+    voices: [
+      { freq: 0x1168, pw: 0x800, ctrl: 0x21, env: 0xa0 },
+      { freq: 0x0dd4, pw: 0x800, ctrl: 0x41, env: 0x80 },
+      { freq: 0x08b4, pw: 0x800, ctrl: 0x11, env: 0x60 },
+    ],
+    filter: { fc: 0x400, res: 8, rout: 7, mode: 0x10, vol: 15 },
+    scanlineBorder,
+    ram,
+    morseIndex: -1,
+    ...options.telemetry,
+  };
+
+  const state = {
+    isPlaying,
+    isFastForward: false,
+    sidModel8580: false,
+    videoNtsc: false,
+    digiBoost: 1.3,
+    muteMask: 0,
+    soloVoice: -1,
+  };
+
+  return {
+    play() {
+      state.isPlaying = true;
+    },
+    pause() {
+      state.isPlaying = false;
+    },
+    getState() {
+      return { ...state };
+    },
+    selectTrack(gameId, trackId, { autoPlay = true } = {}) {
+      const g = GAME_FILES.find((x) => x.id === gameId) || activeGame;
+      const t = g.tracks.find((x) => x.id === trackId) || g.tracks[0];
+      activeGame = g;
+      activeTrack = t;
+      currentSession = buildSessionDescriptor(g, t);
+      getOrAssemble(g.id);
+      if (currentSession.drum.available) {
+        getOrAssemble(currentSession.drum.sourceFile);
+      }
+      if (autoPlay) state.isPlaying = true;
+      return currentSession;
+    },
+    getSession() {
+      return currentSession;
+    },
+    getTelemetry() {
+      return telemetry;
+    },
+    getAssembled(file) {
+      return getOrAssemble(file);
+    },
+    getRawSource(file) {
+      if (!sources[file]) {
+        const fullPath = path.resolve(ROOT, file);
+        if (fs.existsSync(fullPath)) {
+          sources[file] = fs.readFileSync(fullPath, "utf8");
+        }
+      }
+      return sources[file] || "";
+    },
+    updateSource(file, text) {
+      if (options.updateSource) {
+        return options.updateSource(file, text);
+      }
+      const asm = assembleOceanSource(text, { fileName: file });
+      sources[file] = text;
+      assembled.set(file, asm);
+      return asm;
+    },
+    setHardwareOptions(opts) {
+      Object.assign(state, opts);
+    },
+    injectKey(code) {
+      options.onInjectKey?.(code);
     },
   };
 }

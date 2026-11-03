@@ -235,8 +235,9 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 33 automated checks across four test files:
+`npm test` runs 34 automated checks across four test files:
 
+* **Workbench view interface.** The presentation layer sits behind `createWorkbenchView` in `src/workbench_view.js` with a small surface (`renderSession`, `renderTelemetry`, `renderSource`, `setPlaying`), element lookup behind a registry, and zero side effects on module import, while UI test suites drive the view using fake player adapters.
 * **Assembler source index.** Assembled source artifacts provide a bound `sourceIndex` exposing `lineForAddress(addr)`, `lineForSymbol(name)` and `findLines(query)`, replacing regular expression scans and backwards address loops in the view with direct index queries.
 * **Track session descriptors.** Calling `player.selectTrack()` yields a structured `TrackSession` descriptor defining the active game, tune, primary source file, drum sequencer availability and Morse banner states, removing all game identifier branching from the presentation layer.
 * **Game loader adapters.** A dispatch table of named loader adapters (`GAME_LOADERS`) encapsulates hardware initialization, zero-page word writes, custom raster setup and entry-point jumps across all six games, verified by asserting CPU states and cycle budgets.

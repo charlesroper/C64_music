@@ -51,8 +51,8 @@ export function applyVersion(nextVersion) {
     `href="./src/styles.css?v=${nextVersion}"`,
   );
   html = html.replace(
-    /src="\.\/src\/app\.js(?:\?v=[^"]*)?"/,
-    `src="./src/app.js?v=${nextVersion}"`,
+    /src="\.\/src\/(?:app|main)\.js(?:\?v=[^"]*)?"/,
+    `src="./src/main.js?v=${nextVersion}"`,
   );
   fs.writeFileSync(htmlPath, html, "utf8");
 
