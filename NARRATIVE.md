@@ -235,8 +235,9 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 26 automated checks across four test files:
+`npm test` runs 27 automated checks across four test files:
 
+* **Shared browser test harness.** A unified test harness (`tests/helpers/browser_harness.mjs`) parses authentic markup, throws on missing element identifiers to prevent silent fake drift, and manages strict WebKit audio and animation frames across UI test suites.
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
 * **Metadata.** All 73 tracks carry non-empty descriptions, valid duration hints, authentic keys and unique identifiers.

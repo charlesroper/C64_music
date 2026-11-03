@@ -10,336 +10,44 @@ import { createWorkbenchPlayer } from "../src/player_engine.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOption = false } = {}) {
-  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const elementsById = new Map();
-  const allElements = [];
+import { createBrowserHarness } from "./helpers/browser_harness.mjs";
 
-  class MockElement {
-    constructor(tag = "div", id = "") {
-      this.tagName = tag.toUpperCase();
-      this.id = id;
-      this.className = "";
-      this.textContent = "";
-      this._innerHTML = "";
-      this.value = "";
-      this.checked = false;
-      this.style = {};
-      this.dataset = {};
-      this.children = [];
-      this.parentElement = null;
-      this.listeners = {};
-      this.width = 384;
-      this.height = 272;
-      this.classList = {
-        _set: new Set(),
-        add: (...c) => {
-          c.forEach((x) => {
-            this.classList._set.add(x);
-          });
-        },
-        remove: (...c) => {
-          c.forEach((x) => {
-            this.classList._set.delete(x);
-          });
-        },
-        toggle: (c, force) => {
-          const should = force === undefined ? !this.classList._set.has(c) : Boolean(force);
-          if (should) this.classList._set.add(c);
-          else this.classList._set.delete(c);
-          return should;
-        },
-        contains: (c) => this.classList._set.has(c),
-      };
-      allElements.push(this);
-    }
-    set innerHTML(v) {
-      this._innerHTML = v;
-      if (v === "") this.children = [];
-    }
-    get innerHTML() {
-      return this._innerHTML;
-    }
-    appendChild(child) {
-      if (child.tagName === "FRAGMENT") {
-        for (const sub of child.children) {
-          sub.parentElement = this;
-          this.children.push(sub);
-          if (sub.id) elementsById.set(sub.id, sub);
-        }
-        child.children = [];
-        return child;
-      }
-      child.parentElement = this;
-      this.children.push(child);
-      if (child.id) elementsById.set(child.id, child);
-      return child;
-    }
-    addEventListener(type, fn) {
-      if (!this.listeners[type]) this.listeners[type] = [];
-      this.listeners[type].push(fn);
-    }
-    dispatchEvent(type, extra = {}) {
-      for (const fn of this.listeners[type] || []) {
-        fn({ currentTarget: this, target: this, preventDefault() {}, ...extra });
-      }
-    }
-    click() {
-      this.dispatchEvent("click");
-    }
-    closest() {
-      return new MockElement("div");
-    }
-    scrollIntoView() {}
-    getContext() {
-      return {
-        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
-        putImageData: () => {},
-        fillRect: () => {},
-        beginPath: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        closePath: () => {},
-        fill: () => {},
-        stroke: () => {},
-      };
-    }
-  }
-
-  for (const m of html.matchAll(/<([a-zA-Z0-9-]+)([^>]*)>/g)) {
-    const tag = m[1];
-    const attrs = m[2];
-    const idMatch = attrs.match(/\bid="([^"]+)"/);
-    const id = idMatch ? idMatch[1] : "";
-    const el = new MockElement(tag, id);
-    const classMatch = attrs.match(/\bclass="([^"]+)"/);
-    if (classMatch) {
-      el.className = classMatch[1];
-      classMatch[1]
-        .split(/\s+/)
-        .filter(Boolean)
-        .forEach((c) => {
-          el.classList.add(c);
-        });
-    }
-    const dataVoiceMatch = attrs.match(/\bdata-voice="([^"]+)"/);
-    if (dataVoiceMatch) {
-      el.dataset.voice = dataVoiceMatch[1];
-    }
-    if (id) {
-      if (id === "slider-digi-boost") el.value = "1.3";
-      if (id === "select-sid-model") el.value = "6581";
-      if (id === "select-video-std") el.value = "pal";
-      elementsById.set(id, el);
-    }
-  }
-
-  const audioState = {
-    ctx: null,
-    processor: null,
-    upstreamSourcesStarted: 0,
-    upstreamConnectedToProcessor: false,
-    processorConnectedToDestination: false,
-    audioSession: { type: "ambient" },
-  };
-
-  // Spec-strict WebKit/Blink AudioContext fake:
-  // - Starts "suspended" until resume() is called
-  // - Optionally rejects { sampleRate } constructor option (simulating older iOS Safari)
-  // - Requires numberOfInputChannels >= 1 AND a started upstream source connected to ScriptProcessor
-  //   before onaudioprocess will fire (catching the WebKit 0-input ScriptProcessor silence bug)
-  class StrictAudioContext {
-    constructor(opts) {
-      if (opts && opts.sampleRate && rejectSampleRateOption) {
-        throw new DOMException("Unsupported sampleRate option", "NotSupportedError");
-      }
-      this.sampleRate = hardwareSampleRate;
-      this.state = "suspended";
-      this.destination = { isDestination: true };
-      audioState.ctx = this;
-    }
-    resume() {
-      this.state = "running";
-      return Promise.resolve();
-    }
-    createBuffer(channels, length, sampleRate) {
-      return {
-        numberOfChannels: channels,
-        length,
-        sampleRate,
-        getChannelData: () => new Float32Array(length),
-      };
-    }
-    createBufferSource() {
-      const src = {
-        buffer: null,
-        loop: false,
-        _connectedTargets: [],
-        connect(target) {
-          this._connectedTargets.push(target);
-          if (target === audioState.processor) {
-            audioState.upstreamConnectedToProcessor = true;
-          }
-          return target;
-        },
-        start() {
-          audioState.upstreamSourcesStarted++;
-        },
-      };
-      return src;
-    }
-    createScriptProcessor(bufferSize, inCh = 2, outCh = 2) {
-      const proc = {
-        bufferSize,
-        inCh,
-        outCh,
-        onaudioprocess: null,
-        connect(target) {
-          if (target === audioState.ctx.destination) {
-            audioState.processorConnectedToDestination = true;
-          }
-          return target;
-        },
-      };
-      audioState.processor = proc;
-      return proc;
-    }
-  }
-
-  const rafQueue = [];
-  const windowListeners = {};
-  globalThis.window = {
-    AudioContext: StrictAudioContext,
-    addEventListener: (t, fn) => {
-      if (!windowListeners[t]) windowListeners[t] = [];
-      windowListeners[t].push(fn);
-    },
-    dispatchEvent: (type, extra = {}) => {
-      for (const fn of windowListeners[type] || []) {
-        fn({ type, preventDefault() {}, ...extra });
-      }
-    },
-  };
-  Object.defineProperty(globalThis, "navigator", {
-    value: { audioSession: audioState.audioSession },
-    configurable: true,
-    writable: true,
+test("unified browser harness enforces strict element IDs and shares environment between UI tests", () => {
+  const harness = createBrowserHarness({
+    hardwareSampleRate: 48000,
+    viewport: { width: 375, height: 812 },
   });
-  globalThis.document = {
-    activeElement: null,
-    getElementById: (id) => {
-      if (!elementsById.has(id)) {
-        const el = new MockElement("div", id);
-        elementsById.set(id, el);
-      }
-      return elementsById.get(id);
-    },
-    createElement: (tag) => new MockElement(tag),
-    createDocumentFragment: () => new MockElement("fragment"),
-    querySelectorAll: (sel) => {
-      if (sel === ".legend-chip") {
-        return allElements.filter((el) => el.classList && el.classList.contains("legend-chip"));
-      }
-      return [];
-    },
-    querySelector: (sel) => {
-      if (sel === ".modal-backdrop:not(.hidden)") {
-        return (
-          allElements.find(
-            (el) =>
-              el.classList &&
-              el.classList.contains("modal-backdrop") &&
-              !el.classList.contains("hidden"),
-          ) || null
-        );
-      }
-      if (sel.includes('data-voice="seq"')) {
-        return (
-          allElements.find(
-            (el) =>
-              el.classList &&
-              el.classList.contains("legend-chip") &&
-              el.dataset &&
-              el.dataset.voice === "seq",
-          ) || null
-        );
-      }
-      return null;
-    },
-  };
-  globalThis.requestAnimationFrame = (cb) => {
-    if (rafQueue.length < 4) rafQueue.push(cb);
-    return rafQueue.length;
-  };
-  globalThis.fetch = async (relUrl) => {
-    const clean = relUrl.replace(/^\.\//, "");
-    const full = path.join(ROOT, clean);
-    const buf = fs.readFileSync(full);
-    return {
-      ok: true,
-      status: 200,
-      arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-      text: async () => buf.toString("utf8"),
-    };
-  };
+  try {
+    // 1. Existing element lookup succeeds
+    const playBtn = globalThis.document.getElementById("btn-play");
+    assert.ok(playBtn, "Expected #btn-play in document");
+    assert.equal(playBtn.tagName, "BUTTON");
 
-  return {
-    elementsById,
-    audioState,
-    stepAnimationFrame() {
-      const cb = rafQueue.shift();
-      if (cb) cb();
-    },
-    pullWebKitStrictAudioFrames(blocks = 20) {
-      assert.ok(audioState.ctx, "AudioContext was not created");
-      assert.equal(audioState.ctx.state, "running", "AudioContext was not resumed");
-      assert.ok(audioState.processor, "ScriptProcessorNode was not created");
-      assert.equal(
-        typeof audioState.processor.onaudioprocess,
-        "function",
-        "onaudioprocess missing",
-      );
-      assert.ok(
-        audioState.processor.inCh >= 1 &&
-          audioState.upstreamConnectedToProcessor &&
-          audioState.upstreamSourcesStarted >= 1,
-        "WebKit requires >=1 input channel and a started upstream source connected to ScriptProcessorNode",
-      );
-      assert.ok(
-        audioState.processorConnectedToDestination,
-        "ScriptProcessorNode must be connected to audioCtx.destination",
-      );
+    // 2. Missing element ID throws with the id name (preventing silent test fakes)
+    assert.throws(
+      () => globalThis.document.getElementById("missing-element-xyz"),
+      /Element with id "missing-element-xyz" not found in document/,
+      "Looking up an unindexed element ID must throw with the id name",
+    );
 
-      const n = audioState.processor.bufferSize;
-      const outL = new Float32Array(n);
-      const outR = new Float32Array(n);
-      let peakL = 0;
-      let peakR = 0;
-      let sumSq = 0;
-      let nanCount = 0;
+    // 3. Dynamic element registration on id assignment or DOM append
+    const dynamicDiv = globalThis.document.createElement("div");
+    dynamicDiv.id = "dynamic-created-row";
+    assert.equal(
+      globalThis.document.getElementById("dynamic-created-row"),
+      dynamicDiv,
+      "Dynamically assigned id must be registered in the harness",
+    );
 
-      for (let b = 0; b < blocks; b++) {
-        outL.fill(0);
-        outR.fill(0);
-        audioState.processor.onaudioprocess({
-          outputBuffer: {
-            getChannelData: (ch) => (ch === 0 ? outL : outR),
-          },
-        });
-        for (let i = 0; i < n; i++) {
-          if (Number.isNaN(outL[i]) || Number.isNaN(outR[i])) nanCount++;
-          const al = Math.abs(outL[i]);
-          const ar = Math.abs(outR[i]);
-          if (al > peakL) peakL = al;
-          if (ar > peakR) peakR = ar;
-          sumSq += al * al;
-        }
-      }
-      const rms = Math.sqrt(sumSq / (blocks * n));
-      return { peakL, peakR, rms, nanCount };
-    },
-  };
-}
+    // 4. Query selectors match classes, attributes and compounds
+    const chips = globalThis.document.querySelectorAll(".legend-chip");
+    assert.ok(chips.length >= 4, "Expected legend chips");
+    const v1Chip = globalThis.document.querySelector('.legend-chip[data-voice="1"]');
+    assert.ok(v1Chip, "Expected Voice 2 legend chip");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
 
 test("booting index.html + app.js and clicking PLAY generates non-silent stereo audio on mobile/WebKit AudioContext", async () => {
   const harness = createBrowserHarness({

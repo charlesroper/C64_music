@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { createBrowserHarness } from "./helpers/browser_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -246,212 +247,19 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     "index.html must render #mobile-view-tabs for quick mobile panel switching",
   );
 
-  const elementsById = new Map();
-  const tabButtons = [];
-  const scrolledElements = [];
-
-  class MockElement {
-    constructor(tag = "div", id = "") {
-      this.tagName = tag.toUpperCase();
-      this.id = id;
-      this.className = "";
-      this.textContent = "";
-      this._innerHTML = "";
-      this.value = "";
-      this.checked = id === "chk-crt-scanlines";
-      this.style = {};
-      this.dataset = {};
-      this.children = [];
-      this.listeners = {};
-      this.width = 384;
-      this.height = 272;
-      this.classList = {
-        _set: new Set(),
-        add: (...c) => {
-          c.forEach((x) => {
-            this.classList._set.add(x);
-          });
-        },
-        remove: (...c) => {
-          c.forEach((x) => {
-            this.classList._set.delete(x);
-          });
-        },
-        toggle: (c, force) => {
-          const should = force === undefined ? !this.classList._set.has(c) : Boolean(force);
-          if (should) this.classList._set.add(c);
-          else this.classList._set.delete(c);
-          return should;
-        },
-        contains: (c) => this.classList._set.has(c),
-      };
-    }
-    set innerHTML(v) {
-      this._innerHTML = v;
-      if (v === "") this.children = [];
-    }
-    get innerHTML() {
-      return this._innerHTML;
-    }
-    appendChild(child) {
-      this.children.push(child);
-      if (child.id) elementsById.set(child.id, child);
-      return child;
-    }
-    addEventListener(type, fn) {
-      if (!this.listeners[type]) this.listeners[type] = [];
-      this.listeners[type].push(fn);
-    }
-    dispatchEvent(type, extra = {}) {
-      for (const fn of this.listeners[type] || []) {
-        fn({ currentTarget: this, target: this, preventDefault() {}, ...extra });
-      }
-    }
-    click() {
-      this.dispatchEvent("click");
-    }
-    closest() {
-      return new MockElement("div");
-    }
-    scrollIntoView() {
-      scrolledElements.push(this.id);
-    }
-    getContext() {
-      return {
-        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
-        putImageData: () => {},
-        fillRect: () => {},
-        beginPath: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        closePath: () => {},
-        fill: () => {},
-        stroke: () => {},
-      };
-    }
-  }
-
-  for (const m of html.matchAll(/\bid="([^"]+)"/g)) {
-    const id = m[1];
-    const el = new MockElement("div", id);
-    if (id === "slider-digi-boost") el.value = "1.3";
-    if (id === "select-sid-model") el.value = "6581";
-    if (id === "select-video-std") el.value = "pal";
-    elementsById.set(id, el);
-  }
-
-  const legendChips = [];
-  for (const m of html.matchAll(/class="legend-chip[^"]*"[^>]*data-voice="([^"]+)"/g)) {
-    const chip = new MockElement("button");
-    chip.className = "legend-chip";
-    chip.dataset.voice = m[1];
-    if (m[1] === "0") chip.classList.add("active-followed");
-    legendChips.push(chip);
-  }
-
-  for (const m of html.matchAll(/data-mobile-tab="([^"]+)"/g)) {
-    const btn = new MockElement("button");
-    btn.dataset.mobileTab = m[1];
-    if (m[1] === "all") btn.classList.add("active");
-    tabButtons.push(btn);
-  }
-
-  const prevGlobals = {
-    window: globalThis.window,
-    document: globalThis.document,
-    navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
-    fetch: globalThis.fetch,
-    requestAnimationFrame: globalThis.requestAnimationFrame,
-  };
-
-  let rafCb = null;
-  let resolveBoot;
-  const bootDone = new Promise((r) => {
-    resolveBoot = r;
+  const harness = createBrowserHarness({
+    viewport: { width: 375, height: 812 },
+    hardwareSampleRate: 48000,
   });
-  globalThis.window = {
-    innerWidth: 375,
-    innerHeight: 812,
-    AudioContext: class {
-      constructor() {
-        this.sampleRate = 48000;
-        this.state = "running";
-        this.destination = {};
-      }
-      resume() {
-        return Promise.resolve();
-      }
-      createBuffer(_c, len, sr) {
-        return { length: len, sampleRate: sr, getChannelData: () => new Float32Array(len) };
-      }
-      createBufferSource() {
-        return { connect() {}, start() {} };
-      }
-      createScriptProcessor() {
-        return { connect() {} };
-      }
-    },
-    addEventListener: () => {},
-  };
-  Object.defineProperty(globalThis, "navigator", {
-    value: { audioSession: { type: "ambient" } },
-    configurable: true,
-    writable: true,
-  });
-  globalThis.document = {
-    activeElement: { tagName: "BODY" },
-    getElementById: (id) => {
-      if (!elementsById.has(id)) elementsById.set(id, new MockElement("div", id));
-      return elementsById.get(id);
-    },
-    createElement: (tag) => new MockElement(tag),
-    createDocumentFragment: () => {
-      const frag = new MockElement("fragment");
-      const origAppend = MockElement.prototype.appendChild;
-      frag.appendChild = function (c) {
-        if (c.id) elementsById.set(c.id, c);
-        this.children.push(c);
-        return c;
-      };
-      void origAppend;
-      return frag;
-    },
-    querySelector: (sel) => {
-      const matchChip = sel.match(/\.legend-chip\[data-voice="([^"]+)"\]/);
-      if (matchChip) {
-        return legendChips.find((c) => c.dataset.voice === matchChip[1]) || null;
-      }
-      return null;
-    },
-    querySelectorAll: (sel) => {
-      if (sel === "[data-mobile-tab]") return tabButtons;
-      if (sel === ".legend-chip") return legendChips;
-      return [];
-    },
-  };
-  globalThis.requestAnimationFrame = (cb) => {
-    rafCb = cb;
-    if (resolveBoot) {
-      resolveBoot();
-      resolveBoot = null;
-    }
-    return 1;
-  };
-  globalThis.fetch = async (url) => {
-    const clean = url.replace(/^\.\//, "");
-    const buf = fs.readFileSync(path.join(ROOT, clean));
-    return {
-      ok: true,
-      arrayBuffer: async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-      text: async () => buf.toString("utf8"),
-    };
-  };
+  const { elementsById, scrolledElements } = harness;
+  const tabButtons = Array.from(globalThis.document.querySelectorAll("[data-mobile-tab]"));
+  const legendChips = Array.from(globalThis.document.querySelectorAll(".legend-chip"));
 
   try {
     const appUrl = new URL(`../src/app.js?t=${Date.now()}-mobile`, import.meta.url);
     await import(appUrl.href);
-    await bootDone;
-    if (rafCb) rafCb();
+    await harness.bootDone;
+    harness.stepAnimationFrame();
 
     // 1. On 375px phones, HUD Row Guide defaults to hidden so C64 40x25 screen is legible
     assert.equal(elementsById.get("chk-hud-overlay").checked, false);
@@ -490,7 +298,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
 
     // 5. Following a voice adds high-visibility .pc-followed highlight to active source line
-    if (rafCb) rafCb();
+    harness.stepAnimationFrame();
     const v1LineNo = Number(elementsById.get("v1-pc").dataset.line || "0");
     assert.ok(v1LineNo > 0, "Expected Voice 2 line number on v1-pc");
     const followedEl = elementsById.get(`asm-L${v1LineNo}`);
@@ -513,7 +321,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
     assert.ok(arkadrumItem, "Expected arkadrum.asm in game list");
     arkadrumItem.click();
-    if (rafCb) rafCb();
+    harness.stepAnimationFrame();
 
     const drmChip = legendChips.find((c) => c.dataset.voice === "seq");
     const v3Chip = legendChips.find((c) => c.dataset.voice === "2");
@@ -570,13 +378,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(elementsById.get("sid-group-v2"), "Must render #sid-group-v2");
     assert.ok(elementsById.get("sid-group-flt"), "Must render #sid-group-flt");
   } finally {
-    globalThis.window = prevGlobals.window;
-    globalThis.document = prevGlobals.document;
-    if (prevGlobals.navigator) {
-      Object.defineProperty(globalThis, "navigator", prevGlobals.navigator);
-    }
-    globalThis.fetch = prevGlobals.fetch;
-    globalThis.requestAnimationFrame = prevGlobals.requestAnimationFrame;
+    harness.restoreGlobals();
   }
 });
 
