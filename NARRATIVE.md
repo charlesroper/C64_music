@@ -330,3 +330,9 @@ The final name comes from the two facts in the README: Galway released the music
 `889c372` replaced it with requestAnimationFrame interpolation ([889c372](https://github.com/charlesroper/C64_music/commit/889c372)). The commit body explains the two faults: browser transitions restarted whenever a 100 to 200-millisecond note step interrupted a 400-millisecond animation, and sampling bounding rectangles mid-animation caused jitter. The replacement computes targets from `offsetTop`, eases short steps over 90 milliseconds and jumps most of a long distance before easing the final 40 pixels. It added 97 lines of tests, including cancellation on user touch.
 
 The regression lasted one day. No test had watched the viewer during fast passages, so the new test does.
+
+### 3 November 2026: cutting idle CPU and per-frame DOM writes
+
+An audit of the presentation layer showed the `requestAnimationFrame` loop repainting the 384x272 C64 monitor canvas, four oscilloscope canvases and 27 telemetry cells on every display tick, even while paused or backgrounded ([2e29739](https://github.com/charlesroper/C64_music/commit/2e29739)). On a 120Hz or 144Hz screen, the browser did double the work for 50Hz PAL music. In `rambload.asm`, the Morse code banner rebuilt 55 `<span>` elements through `innerHTML` up to 60 times a second. Idle CPU sat between 12% and 18%.
+
+Commit `2e29739` bypassed all canvas transfers and DOM writes when playback is paused or the document is hidden, and clamped refresh rates to 60Hz. It also cached telemetry strings, SID registers, voice states and line highlights, writing to elements only when values change. On consecutive identical frames, DOM writes dropped from 27 down to zero. The Morse banner now rebuilds only when a decoded character advances. Idle CPU dropped to near 0.0%, and lazy on-demand assembly cut initial startup assembly from 386.5 ms to 56.2 ms ([8ca5b72](https://github.com/charlesroper/C64_music/commit/8ca5b72)).
