@@ -31,3 +31,7 @@ _Avoid_: Line lookup table, symbol resolver
 **Idle Render Path**:
 The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused or the document is backgrounded, while capping unthrottled display refresh at 60 Hz.
 _Avoid_: Tick stopper, frame skipper
+
+**Seam**:
+A place where program behaviour can be altered without editing code in that place (from Michael Feathers). In this repository, it is the interface location where two modules meet, such as `createWorkbenchView` accepting a player implementation so automated UI test suites can drive presentation using `createFakePlayer` without compiling WebAssembly or initializing Web Audio.
+_Avoid_: Boundary, abstraction layer, hook
