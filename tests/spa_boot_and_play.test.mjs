@@ -59,6 +59,15 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
       return this._innerHTML;
     }
     appendChild(child) {
+      if (child.tagName === "FRAGMENT") {
+        for (const sub of child.children) {
+          sub.parentElement = this;
+          this.children.push(sub);
+          if (sub.id) elementsById.set(sub.id, sub);
+        }
+        child.children = [];
+        return child;
+      }
       child.parentElement = this;
       this.children.push(child);
       if (child.id) elementsById.set(child.id, child);
@@ -673,4 +682,60 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
   harness.stepAnimationFrame();
   const telSeq = harness.elementsById.get("seq-pc");
   assert.ok(telSeq.textContent.startsWith("DRUM: $"), "Drum PC readout should format address");
+});
+
+test("source viewer address gutter hides sentinel values and shows $0000 for address zero", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  // Wizball on boot has blank lines and comments
+  const viewer = harness.elementsById.get("source-viewer");
+  assert.ok(viewer.children.length > 0, "Source viewer should have rows");
+
+  // Check that no row in wizball contains '$00-1'
+  const badRows = viewer.children.filter((r) => r.innerHTML && r.innerHTML.includes("$00-1"));
+  assert.equal(badRows.length, 0, `Expected 0 rows with $00-1, found ${badRows.length}`);
+
+  // Now hot-reload a snippet containing ORG, EQU, comment, blank, address 0, and code row
+  const btnToggle = harness.elementsById.get("btn-toggle-edit");
+  const btnReassemble = harness.elementsById.get("btn-reassemble");
+  const editorEl = harness.elementsById.get("source-editor");
+
+  const testSource = [
+    "; Comment line",
+    "",
+    "SOME_VAL EQU 42",
+    " ORG $0000",
+    " NOP",
+    " ORG $1000",
+    " LDA #1",
+  ].join("\n");
+
+  btnToggle.click();
+  editorEl.value = testSource;
+  btnReassemble.click();
+
+  const row1 = viewer.children[0];
+  const row2 = viewer.children[1];
+  const row3 = viewer.children[2];
+  const row4 = viewer.children[3];
+  const row5 = viewer.children[4];
+  const row6 = viewer.children[5];
+  const row7 = viewer.children[6];
+
+  assert.match(row1.innerHTML, /<span class="ln-addr"><\/span>/);
+  assert.match(row2.innerHTML, /<span class="ln-addr"><\/span>/);
+  assert.match(row3.innerHTML, /<span class="ln-addr"><\/span>/);
+  assert.match(row4.innerHTML, /<span class="ln-addr"><\/span>/);
+  assert.match(row5.innerHTML, /<span class="ln-addr">\$0000<\/span>/);
+  assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
+  assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
 });
