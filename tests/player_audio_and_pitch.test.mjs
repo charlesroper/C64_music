@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   createWorkbenchPlayer,
   GAME_LOADERS,
+  getSessionSourceFile,
   jsr,
   readWord,
   setCpuState,
@@ -457,4 +458,57 @@ test("player engine lazily assembles sources on demand per game", async () => {
   // 4. Selecting greenberet assembles greenberet.asm
   player.selectTrack("greenberet.asm", "gb-title");
   assert.ok(player.getAssembledCache()["greenberet.asm"]);
+});
+
+test("track session descriptor returns complete session for each game and track", async () => {
+  const mod = await WebAssembly.compile(wasmBytes);
+  const instance = await WebAssembly.instantiate(mod, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+  });
+
+  let totalVerified = 0;
+  for (const game of GAME_FILES) {
+    for (const track of game.tracks) {
+      const session = player.selectTrack(game.id, track.id);
+      totalVerified++;
+
+      assert.equal(session.game.id, game.id);
+      assert.equal(session.track.id, track.id);
+
+      // Primary source file: arkadrum uses arkanoid.asm for 3 SID voices
+      const expectedSource = game.id === "arkadrum.asm" ? "arkanoid.asm" : game.id;
+      assert.equal(session.sourceFile, expectedSource);
+
+      // Drum availability
+      const pcSyms = (game.architecture && game.architecture.pcSymbols) || [];
+      const hasDrums = Boolean(
+        pcSyms.includes("seqPC") && (track.withDrums || track.drumsSolo || track.drumMode),
+      );
+      assert.equal(session.drum.available, hasDrums);
+      assert.equal(session.drum.symbol, hasDrums ? "seqPC" : null);
+      assert.equal(session.drum.sourceFile, game.id === "arkadrum.asm" ? "arkadrum.asm" : game.id);
+
+      // getSessionSourceFile helper
+      assert.equal(getSessionSourceFile(session, 0), expectedSource);
+      assert.equal(getSessionSourceFile(session, 1), expectedSource);
+      assert.equal(getSessionSourceFile(session, 2), expectedSource);
+      if (hasDrums) {
+        assert.equal(
+          getSessionSourceFile(session, "seq"),
+          game.id === "arkadrum.asm" ? "arkadrum.asm" : game.id,
+        );
+      } else {
+        assert.equal(getSessionSourceFile(session, "seq"), expectedSource);
+      }
+
+      // Morse capability
+      const hasMorse = game.id === "rambload.asm" || track.mode === "morse_solo";
+      assert.equal(session.morse.available, hasMorse);
+    }
+  }
+
+  assert.equal(totalVerified, 73);
 });

@@ -146,6 +146,34 @@ export const GAME_LOADERS = {
   "rambload.asm": loadRambload,
 };
 
+export function buildSessionDescriptor(game, track) {
+  const pcSyms = (game && game.architecture && game.architecture.pcSymbols) || [];
+  const hasDrums = Boolean(
+    pcSyms.includes("seqPC") && track && (track.withDrums || track.drumsSolo || track.drumMode),
+  );
+  return {
+    game,
+    track,
+    sourceFile: game.id === "arkadrum.asm" ? "arkanoid.asm" : game.id,
+    drum: {
+      available: hasDrums,
+      symbol: hasDrums ? "seqPC" : null,
+      sourceFile: game.id === "arkadrum.asm" ? "arkadrum.asm" : game.id,
+    },
+    pcSymbols: pcSyms,
+    morse: {
+      available: game.id === "rambload.asm" || Boolean(track && track.mode === "morse_solo"),
+    },
+  };
+}
+
+export function getSessionSourceFile(session, voice) {
+  if (voice === "seq" && session && session.drum && session.drum.available) {
+    return session.drum.sourceFile;
+  }
+  return session ? session.sourceFile : "wizball.asm";
+}
+
 export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, navigatorObj }) {
   const sources = { ...rawSources };
   const assembledCache = {};
@@ -171,6 +199,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
     audioCtx: null,
     scriptNode: null,
     keepAliveSource: null,
+    currentSession: null,
   };
 
   wasm.wasm_init(state.sampleRate);
@@ -444,7 +473,9 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
       // Populate initial C64 screen RAM while paused
       wasm.wasm_render_audio(2048);
     }
-    return { game, track };
+    const session = buildSessionDescriptor(game, track);
+    state.currentSession = session;
+    return session;
   }
 
   function play() {
@@ -498,6 +529,8 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
     getRawSource: (gameId) => sources[gameId],
     getAssembled,
     getAssembledCache: () => assembledCache,
+    getSession: () =>
+      state.currentSession || buildSessionDescriptor(getActiveGame(), getActiveTrack()),
     getState: () => ({ ...state }),
   };
 }

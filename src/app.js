@@ -4,7 +4,7 @@
 
 import { C64_CHAR_ROM, VIC_PALETTE_RGBA } from "./c64_charset.js";
 import { renderMarkdownToHtml } from "./markdown.js";
-import { createWorkbenchPlayer } from "./player_engine.js";
+import { createWorkbenchPlayer, getSessionSourceFile } from "./player_engine.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
@@ -17,6 +17,7 @@ const state = {
 
   activeGameId: "wizball.asm",
   activeTrackId: "wiz-title",
+  currentSession: null,
   currentSourceFile: "wizball.asm",
   activeFilter: "all",
 
@@ -155,7 +156,9 @@ function setPlayingState(playing) {
 function selectGameAndTrack(gameId, trackId, autoPlay = true) {
   if (!state.player) return;
   const prevGameId = state.activeGameId;
-  const { game, track } = state.player.selectTrack(gameId, trackId, { autoPlay });
+  const session = state.player.selectTrack(gameId, trackId, { autoPlay });
+  state.currentSession = session;
+  const { game, track } = session;
   state.activeGameId = game.id;
   state.activeTrackId = track.id;
 
@@ -163,12 +166,7 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
   renderTrackList();
   renderGameMetaCard(game);
 
-  const targetFile =
-    game.id === "arkadrum.asm" && state.followVoice === "seq"
-      ? "arkadrum.asm"
-      : game.id === "arkadrum.asm"
-        ? "arkanoid.asm"
-        : game.id;
+  const targetFile = getSessionSourceFile(session, state.followVoice);
 
   if (
     prevGameId !== game.id ||
@@ -179,7 +177,7 @@ function selectGameAndTrack(gameId, trackId, autoPlay = true) {
   }
 
   const morseBanner = document.getElementById("morse-banner");
-  if (game.id === "rambload.asm") {
+  if (session.morse.available) {
     morseBanner.classList.remove("hidden");
     renderMorseStream(0);
   } else {
@@ -380,8 +378,8 @@ function setFollowVoice(voice, forceFollow = false) {
     state.followPc = true;
   }
 
-  if (state.activeGameId === "arkadrum.asm") {
-    const targetFile = voice === "seq" ? "arkadrum.asm" : "arkanoid.asm";
+  if (state.currentSession) {
+    const targetFile = getSessionSourceFile(state.currentSession, voice);
     if (state.currentSourceFile !== targetFile) {
       renderSourceViewer(targetFile);
     }
@@ -404,15 +402,8 @@ function setFollowVoice(voice, forceFollow = false) {
 function updateDrmChipState() {
   const drmChip = document.querySelector('.legend-chip[data-voice="seq"]');
   if (!drmChip) return;
-  const game = GAME_FILES.find((g) => g.id === state.activeGameId);
-  const track =
-    game && game.tracks
-      ? game.tracks.find((t) => t.id === state.activeTrackId) || game.tracks[0]
-      : null;
-  const pcSyms = game && game.architecture ? game.architecture.pcSymbols : [];
-  const hasDrums = Boolean(
-    pcSyms.includes("seqPC") && track && (track.withDrums || track.drumsSolo || track.drumMode),
-  );
+  const session = state.currentSession || (state.player && state.player.getSession());
+  const hasDrums = Boolean(session && session.drum.available);
 
   drmChip.classList.toggle("disabled", !hasDrums);
   drmChip.title = hasDrums ? "Follow Drum Sequencer (seqPC)" : "No drum sequencer in this song";
@@ -964,13 +955,11 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
 
 function renderFrameLoop() {
   if (state.player) {
+    const session = state.currentSession || state.player.getSession();
     const tel = state.player.getTelemetry();
     const ram = tel.ram;
-    const currentFile = state.currentSourceFile || state.activeGameId;
-    const asm = state.player.getAssembled(state.activeGameId);
+    const currentFile = state.currentSourceFile || session.sourceFile;
     const currentAsm = state.player.getAssembled(currentFile);
-    const arkAsm =
-      state.activeGameId === "arkadrum.asm" ? state.player.getAssembled("arkanoid.asm") : null;
     const d = getDom();
 
     if (tel.morseIndex >= 0) {
@@ -1065,7 +1054,7 @@ function renderFrameLoop() {
         vDom.grp.classList.toggle("active", isVoiceActive);
       }
 
-      const symSource = arkAsm || asm || currentAsm;
+      const symSource = state.player.getAssembled(session.sourceFile) || currentAsm;
       if (symSource && pcSyms[v] && symSource.symbols[pcSyms[v]] !== undefined) {
         const zpAddr = symSource.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
@@ -1135,26 +1124,12 @@ function renderFrameLoop() {
       drawMasterAndFilterScope(scopeData, fc, res, mode);
     }
 
-    const track =
-      game && game.tracks
-        ? game.tracks.find((t) => t.id === state.activeTrackId) || game.tracks[0]
-        : null;
-    const hasDrums = Boolean(
-      game &&
-        game.architecture &&
-        game.architecture.pcSymbols &&
-        game.architecture.pcSymbols.includes("seqPC") &&
-        track &&
-        (track.withDrums || track.drumsSolo || track.drumMode),
-    );
-
-    if (hasDrums) {
-      const drumGameId =
-        state.activeGameId === "arkadrum.asm" ? "arkadrum.asm" : state.activeGameId;
-      const drumAsm = state.player.getAssembled(drumGameId);
+    if (session && session.drum.available) {
+      const drumAsm = state.player.getAssembled(session.drum.sourceFile);
+      const drumSym = session.drum.symbol || "seqPC";
       const seqSymAddr =
-        drumAsm && drumAsm.symbols && drumAsm.symbols.seqPC !== undefined
-          ? drumAsm.symbols.seqPC
+        drumAsm && drumAsm.symbols && drumAsm.symbols[drumSym] !== undefined
+          ? drumAsm.symbols[drumSym]
           : 0x50;
       const seqPtr = ram[seqSymAddr] | (ram[seqSymAddr + 1] << 8);
       const drumText = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -1162,7 +1137,7 @@ function renderFrameLoop() {
         lastTelemetryText.seqPc = drumText;
         d.seqPc.textContent = drumText;
       }
-      if (currentAsm && (state.activeGameId === "gameover.asm" || currentFile === "arkadrum.asm")) {
+      if (currentAsm && currentFile === session.drum.sourceFile) {
         const lineNo = findNearestSourceLine(currentAsm, seqPtr);
         if (lineNo) {
           if (d.seqPc) d.seqPc.dataset.line = lineNo;
@@ -1374,8 +1349,9 @@ function setupUIHandlers() {
 
   ["v0-pc", "v1-pc", "v2-pc", "seq-pc"].forEach((id) => {
     document.getElementById(id).addEventListener("click", (e) => {
-      if (state.activeGameId === "arkadrum.asm") {
-        const targetFile = id === "seq-pc" ? "arkadrum.asm" : "arkanoid.asm";
+      if (state.currentSession) {
+        const voice = id === "seq-pc" ? "seq" : parseInt(id.slice(1, 2), 10);
+        const targetFile = getSessionSourceFile(state.currentSession, voice);
         if (state.currentSourceFile !== targetFile) {
           renderSourceViewer(targetFile);
         }
