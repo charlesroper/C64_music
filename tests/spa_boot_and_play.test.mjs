@@ -95,12 +95,13 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
     }
   }
 
-  for (const m of html.matchAll(/<([a-zA-Z0-9-]+)[^>]*\bid="([^"]+)"[^>]*>/g)) {
-    const fullTag = m[0];
+  for (const m of html.matchAll(/<([a-zA-Z0-9-]+)([^>]*)>/g)) {
     const tag = m[1];
-    const id = m[2];
+    const attrs = m[2];
+    const idMatch = attrs.match(/\bid="([^"]+)"/);
+    const id = idMatch ? idMatch[1] : "";
     const el = new MockElement(tag, id);
-    const classMatch = fullTag.match(/\bclass="([^"]+)"/);
+    const classMatch = attrs.match(/\bclass="([^"]+)"/);
     if (classMatch) {
       el.className = classMatch[1];
       classMatch[1]
@@ -108,10 +109,16 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
         .filter(Boolean)
         .forEach((c) => el.classList.add(c));
     }
-    if (id === "slider-digi-boost") el.value = "1.3";
-    if (id === "select-sid-model") el.value = "6581";
-    if (id === "select-video-std") el.value = "pal";
-    elementsById.set(id, el);
+    const dataVoiceMatch = attrs.match(/\bdata-voice="([^"]+)"/);
+    if (dataVoiceMatch) {
+      el.dataset.voice = dataVoiceMatch[1];
+    }
+    if (id) {
+      if (id === "slider-digi-boost") el.value = "1.3";
+      if (id === "select-sid-model") el.value = "6581";
+      if (id === "select-video-std") el.value = "pal";
+      elementsById.set(id, el);
+    }
   }
 
   const audioState = {
@@ -216,7 +223,12 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
     },
     createElement: (tag) => new MockElement(tag),
     createDocumentFragment: () => new MockElement("fragment"),
-    querySelectorAll: () => [],
+    querySelectorAll: (sel) => {
+      if (sel === ".legend-chip") {
+        return allElements.filter((el) => el.classList && el.classList.contains("legend-chip"));
+      }
+      return [];
+    },
     querySelector: (sel) => {
       if (sel === ".modal-backdrop:not(.hidden)") {
         return (
@@ -225,6 +237,17 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
               el.classList &&
               el.classList.contains("modal-backdrop") &&
               !el.classList.contains("hidden"),
+          ) || null
+        );
+      }
+      if (sel.includes('data-voice="seq"')) {
+        return (
+          allElements.find(
+            (el) =>
+              el.classList &&
+              el.classList.contains("legend-chip") &&
+              el.dataset &&
+              el.dataset.voice === "seq",
           ) || null
         );
       }
@@ -586,4 +609,68 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
     preventDefault: () => {},
   });
   assert.equal(playLabel.textContent, "PAUSE", "Space on page body toggles playback");
+});
+
+test("DRM chip is track-aware, drum PC reads through seqPC symbol, and unchecking follow stays off across track switches", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+  assert.ok(drmChip, "DRM chip should exist");
+
+  // On boot (wizball.asm): hasDrums is false, DRM chip disabled
+  assert.ok(drmChip.classList.contains("disabled"), "Wizball should disable DRM chip");
+
+  // 1. Select gameover.asm
+  const gameList = harness.elementsById.get("game-list");
+  const gameOverItem = gameList.children.find(
+    (c) => c.innerHTML && c.innerHTML.includes("gameover.asm"),
+  );
+  assert.ok(gameOverItem, "gameover item in game-list");
+  gameOverItem.click();
+
+  // First track is go-title-full: withDrums is true, DRM chip must be ENABLED
+  assert.ok(!drmChip.classList.contains("disabled"), "go-title-full should enable DRM chip");
+
+  // Switch to a gameover SFX track without drums (e.g. go-sfx-laser)
+  const trackList = harness.elementsById.get("track-list");
+  const sfxTrack = trackList.children.find(
+    (c) => c.innerHTML && c.innerHTML.includes("Player Laser"),
+  );
+  assert.ok(sfxTrack, "SFX Player Laser track in track-list");
+  sfxTrack.click();
+
+  // DRM chip must be DISABLED for SFX track
+  assert.ok(drmChip.classList.contains("disabled"), "Game Over SFX track must disable DRM chip");
+
+  // Switch back to go-title-full
+  const fullTrack = trackList.children.find(
+    (c) => c.innerHTML && c.innerHTML.includes("Title Screen (Full"),
+  );
+  assert.ok(fullTrack, "Title Screen (Full) in track-list");
+  fullTrack.click();
+  assert.ok(!drmChip.classList.contains("disabled"), "go-title-full re-enables DRM chip");
+
+  // 2. Uncheck follow, switch songs, follow stays off
+  const chkFollow = harness.elementsById.get("chk-follow-pc");
+  chkFollow.checked = false;
+  chkFollow.dispatchEvent("change");
+
+  // Switch song
+  sfxTrack.click();
+  assert.equal(chkFollow.checked, false, "Follow checkbox must stay unchecked after track switch");
+
+  // 3. Drum PC readout reads through seqPC symbol
+  fullTrack.click();
+  harness.stepAnimationFrame();
+  const telSeq = harness.elementsById.get("seq-pc");
+  assert.ok(telSeq.textContent.startsWith("DRUM: $"), "Drum PC readout should format address");
 });

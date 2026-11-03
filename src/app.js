@@ -376,7 +376,7 @@ function renderSidHexStripSkeleton() {
   }
 }
 
-function setFollowVoice(voice) {
+function setFollowVoice(voice, forceFollow = false) {
   state.followVoice = voice;
   state.lastFollowedLine = 0;
   state.lastFollowedVoiceCls = null;
@@ -385,11 +385,13 @@ function setFollowVoice(voice) {
     chip.classList.toggle("active-followed", chip.dataset.voice === String(voice));
   });
 
-  const chkFollow = document.getElementById("chk-follow-pc");
-  if (chkFollow) {
-    chkFollow.checked = true;
+  if (forceFollow) {
+    const chkFollow = document.getElementById("chk-follow-pc");
+    if (chkFollow) {
+      chkFollow.checked = true;
+    }
+    state.followPc = true;
   }
-  state.followPc = true;
 
   if (state.activeGameId === "arkadrum.asm") {
     const targetFile = voice === "seq" ? "arkadrum.asm" : "arkanoid.asm";
@@ -416,11 +418,16 @@ function updateDrmChipState() {
   const drmChip = document.querySelector('.legend-chip[data-voice="seq"]');
   if (!drmChip) return;
   const game = GAME_FILES.find((g) => g.id === state.activeGameId);
+  const track =
+    game && game.tracks
+      ? game.tracks.find((t) => t.id === state.activeTrackId) || game.tracks[0]
+      : null;
   const pcSyms = game && game.architecture ? game.architecture.pcSymbols : [];
-  const hasDrums =
-    pcSyms.includes("seqPC") ||
-    state.activeGameId === "arkadrum.asm" ||
-    state.activeGameId === "gameover.asm";
+  const hasDrums = Boolean(
+    pcSyms.includes("seqPC") &&
+      track &&
+      (track.withDrums || track.drumsSolo || track.drumMode),
+  );
 
   drmChip.classList.toggle("disabled", !hasDrums);
   drmChip.title = hasDrums ? "Follow Drum Sequencer (seqPC)" : "No drum sequencer in this song";
@@ -1074,8 +1081,28 @@ function renderFrameLoop() {
       drawMasterAndFilterScope(scopeData, fc, res, mode);
     }
 
-    if (state.activeGameId === "arkadrum.asm" || state.activeGameId === "gameover.asm") {
-      const seqPtr = ram[0x50] | (ram[0x51] << 8);
+    const track =
+      game && game.tracks
+        ? game.tracks.find((t) => t.id === state.activeTrackId) || game.tracks[0]
+        : null;
+    const hasDrums = Boolean(
+      game &&
+        game.architecture &&
+        game.architecture.pcSymbols &&
+        game.architecture.pcSymbols.includes("seqPC") &&
+        track &&
+        (track.withDrums || track.drumsSolo || track.drumMode),
+    );
+
+    if (hasDrums) {
+      const drumGameId =
+        state.activeGameId === "arkadrum.asm" ? "arkadrum.asm" : state.activeGameId;
+      const drumAsm = state.player.getAssembled(drumGameId);
+      const seqSymAddr =
+        drumAsm && drumAsm.symbols && drumAsm.symbols.seqPC !== undefined
+          ? drumAsm.symbols.seqPC
+          : 0x50;
+      const seqPtr = ram[seqSymAddr] | (ram[seqSymAddr + 1] << 8);
       if (d.seqPc) {
         d.seqPc.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
       }
@@ -1308,7 +1335,7 @@ function setupUIHandlers() {
       if (chip.classList.contains("disabled")) return;
       const voiceAttr = chip.dataset.voice;
       const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
-      setFollowVoice(voice);
+      setFollowVoice(voice, true);
     });
   });
 
