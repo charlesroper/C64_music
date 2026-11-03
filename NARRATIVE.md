@@ -331,6 +331,35 @@ The final name comes from the two facts in the README: Galway released the music
 
 The regression lasted one day. No test had watched the viewer during fast passages, so the new test does.
 
+### 2 November 2026: Biome tooling and the clean-slate baseline
+
+The codebase lacked a single linter and formatter, leaving indentation and style inconsistent across JavaScript, CSS, HTML and JSON. Commit `8938d16` introduced [Biome](https://biomejs.dev/) as the sole tooling gate ([8938d16](https://github.com/charlesroper/C64_music/commit/8938d16)). A repository-wide formatting pass formatted 33 files in `0937522`, fixing syntax warnings and establishing zero-diagnostic clean code ([0937522](https://github.com/charlesroper/C64_music/commit/0937522)).
+
+To protect git history, commit `b3fdd6d` recorded the formatting revision in `.git-blame-ignore-revs` ([b3fdd6d](https://github.com/charlesroper/C64_music/commit/b3fdd6d)). Running `git blame` skips the mechanical formatting commit entirely, keeping original line attributions intact. This established Wave 0 of the review programme and resolved issue #17.
+
+### 2 November 2026: the layered review programme
+
+Fifteen open issues sat in the tracker, five earlier fixes had landed without review trails, and every architectural discussion risked re-inventing vocabulary ([Issue #16](https://github.com/charlesroper/C64_music/issues/16)). Mixing defect fixes, structural redesigns and performance work into single passes had produced churn where refactoring baked bugs into new shapes.
+
+Wave A ran a read-only audit across the repository ([c42208a](https://github.com/charlesroper/C64_music/commit/c42208a)). It validated the fifteen open issues against the code and sorted them into three sequential waves: defects first, so refactoring never hardens broken behaviour; structure second, so seams are never designed around dead code; and performance third, so optimization measures the final architecture rather than temporary shapes.
+
+### 2 November 2026: clearing the defect backlog
+
+Wave B resolved five long-standing functional defects test-first across six commits. Syntax errors in the source editor were surfaced in the status badge while protecting dirty edit buffers from being wiped during track switches ([dfd6781](https://github.com/charlesroper/C64_music/commit/dfd6781)). Global shortcuts (Space, 1-4, letter keys) were isolated from open modal dialogs and native button clicks ([a0c3748](https://github.com/charlesroper/C64_music/commit/a0c3748)).
+
+The DRM chip follow mode was made track-aware so it only activated on songs with percussion, resolving through the `seqPC` symbol and preserving user follow choices across switches ([96f822f](https://github.com/charlesroper/C64_music/commit/96f822f)). Address gutters stopped displaying sentinel -1 values while keeping valid $0000 locations ([2e1ea68](https://github.com/charlesroper/C64_music/commit/2e1ea68)). Symbol jumps and text searches were redirected to the on-screen file rather than activeGameId ([ce27e49](https://github.com/charlesroper/C64_music/commit/ce27e49)), and the assembler was hardened to reject missing operands and enforce deterministic multi-pass convergence ([87e6117](https://github.com/charlesroper/C64_music/commit/87e6117)).
+
+### 3 November 2026: six structural seams for agent navigation
+
+With defects resolved, Wave C redesigned the architecture to give AI agents and human contributors clear modular seams documented by Architectural Decision Records:
+
+1. **Shared test harness**: `c1cb150` created `tests/helpers/browser_harness.mjs`, enforcing strict element identifier lookups and eliminating 541 lines of duplicate mock harness code across test suites ([c1cb150](https://github.com/charlesroper/C64_music/commit/c1cb150)).
+2. **Telemetry snapshot boundary**: `a11e745` placed engine state behind `player.getTelemetry()`, pre-allocating reusable snapshot buffers and removing raw WebAssembly exports from the public interface ([a11e745](https://github.com/charlesroper/C64_music/commit/a11e745); [ADR 0001](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0001-telemetry-snapshot-boundary.md)).
+3. **Loader adapters & lazy assembly**: `8ca5b72` replaced a 130-line load cascade with dedicated loader adapters (`GAME_LOADERS`) and lazy on-demand source assembly, cutting boot assembly latency by 85.5% from 386.5 ms to 56.2 ms ([8ca5b72](https://github.com/charlesroper/C64_music/commit/8ca5b72); [ADR 0002](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0002-game-loader-adapters.md)).
+4. **Track session descriptors**: `67df9b9` introduced structured `TrackSession` objects returned by `player.selectTrack()` and `player.getSession()`, eliminating game identifier checks across the UI ([67df9b9](https://github.com/charlesroper/C64_music/commit/67df9b9); [ADR 0003](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0003-track-session-descriptor.md)).
+5. **Assembler source index**: `0501936` built an assembler-owned `sourceIndex` providing O(1) address and symbol lookups, removing regular expressions and reverse line loops from the view ([0501936](https://github.com/charlesroper/C64_music/commit/0501936); [ADR 0004](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0004-assembler-source-index.md)).
+6. **Workbench view boundary**: `d0315de` encapsulated all presentation, canvas scopes and DOM event handlers inside `createWorkbenchView` in `src/workbench_view.js`, moving browser boot to `src/app.js` and `src/main.js` with zero import side effects while preserving first-tap mobile audio unlock ([d0315de](https://github.com/charlesroper/C64_music/commit/d0315de); [ADR 0005](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0005-workbench-view-boundary.md)).
+
 ### 3 November 2026: cutting idle CPU and per-frame DOM writes
 
 An audit of the presentation layer showed the `requestAnimationFrame` loop repainting the 384x272 C64 monitor canvas, four oscilloscope canvases and 27 telemetry cells on every display tick, even while paused or backgrounded ([2e29739](https://github.com/charlesroper/C64_music/commit/2e29739)). On a 120Hz or 144Hz screen, the browser did double the work for 50Hz PAL music. In `rambload.asm`, the Morse code banner rebuilt 55 `<span>` elements through `innerHTML` up to 60 times a second. Idle CPU sat between 12% and 18%.
