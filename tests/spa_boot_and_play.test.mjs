@@ -7,6 +7,7 @@ import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
+import { GAME_FILES } from "../src/tracks_catalog.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -748,6 +749,273 @@ test("workbench view mounts behind focused interface and importing modules cause
     view.setPlaying(false);
     assert.equal(player.getState().isPlaying, false);
     assert.equal(view.elements.get("play-label").textContent, "PLAY");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("telemetry change guards eliminate redundant DOM writes and morse re-renders on identical frames", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    let morseInnerHtmlWrites = 0;
+    const morseContainer = harness.elementsById.get("morse-stream");
+    let morseHtml = morseContainer.innerHTML;
+    Object.defineProperty(morseContainer, "innerHTML", {
+      get: () => morseHtml,
+      set: (val) => {
+        morseInnerHtmlWrites++;
+        morseHtml = val;
+      },
+      configurable: true,
+    });
+
+    view.selectGameAndTrack("rambload.asm", "rambo-loader", false);
+    assert.equal(
+      morseInnerHtmlWrites,
+      1,
+      "Initial session selection must render morse stream once",
+    );
+
+    // List of element IDs that display dynamic telemetry and register values
+    const watchedIds = [
+      "tel-frame",
+      "tel-pc",
+      "tel-d418",
+      "seq-pc",
+      "filter-mode-tag",
+      "flt-fc",
+      "flt-res",
+      "flt-rout",
+      "flt-vol",
+      ...Array.from({ length: 25 }, (_, i) => `sid-reg-${i}`),
+      ...[0, 1, 2].flatMap((v) => [
+        `v${v}-note`,
+        `v${v}-wf`,
+        `v${v}-pw`,
+        `v${v}-adsr`,
+        `v${v}-env`,
+        `v${v}-pc`,
+      ]),
+    ];
+
+    let textWrites = 0;
+    for (const id of watchedIds) {
+      const el = harness.elementsById.get(id);
+      if (!el) continue;
+      let textVal = el.textContent;
+      Object.defineProperty(el, "textContent", {
+        get: () => textVal,
+        set: (val) => {
+          textWrites++;
+          textVal = val;
+        },
+        configurable: true,
+      });
+    }
+
+    const tel = {
+      frameCount: 100,
+      cpuPc: 0x1000,
+      d418: 0,
+      sidRegs: new Uint8Array(25).fill(0x10),
+      voices: [
+        { freq: 0x1168, pw: 0x800, ctrl: 0x11, env: 0x80 },
+        { freq: 0x08b4, pw: 0x400, ctrl: 0x21, env: 0x40 },
+        { freq: 0x045a, pw: 0x200, ctrl: 0x41, env: 0x20 },
+      ],
+      filter: { fc: 0x400, res: 8, rout: 7, mode: 0x10, vol: 15 },
+      scanlineBorder: new Uint8Array(312),
+      ram: new Uint8Array(65536),
+      morseIndex: 0,
+    };
+
+    // Frame 1: Initial telemetry render writes values to DOM
+    morseInnerHtmlWrites = 0;
+    view.renderTelemetry(tel);
+    assert.ok(textWrites > 0, "Initial frame must populate DOM elements");
+    assert.equal(morseInnerHtmlWrites, 0, "Identical morseIndex 0 must not rebuild morse stream");
+
+    // Frame 2: Exactly identical telemetry must perform ZERO textContent writes and ZERO morse rebuilds
+    textWrites = 0;
+    morseInnerHtmlWrites = 0;
+    view.renderTelemetry(tel);
+    assert.equal(
+      textWrites,
+      0,
+      "Two consecutive frames with identical telemetry must produce zero text writes",
+    );
+    assert.equal(
+      morseInnerHtmlWrites,
+      0,
+      "Identical morseIndex must not rebuild morse stream innerHTML",
+    );
+
+    // Frame 3: Updating cpuPc writes only that element
+    tel.cpuPc = 0x2500;
+    textWrites = 0;
+    view.renderTelemetry(tel);
+    assert.equal(textWrites, 1, "Changing cpuPc must write only the updated element");
+    assert.equal(harness.elementsById.get("tel-pc").textContent, "$2500");
+
+    // Frame 4: Updating voice 0 frequency updates note text
+    tel.voices[0].freq = 0x1b00;
+    textWrites = 0;
+    view.renderTelemetry(tel);
+    assert.equal(textWrites, 1, "Changing voice 0 frequency must update note display");
+
+    // Frame 5: Incrementing morseIndex (MWK) rebuilds morse stream exactly once
+    morseInnerHtmlWrites = 0;
+    tel.morseIndex = 1;
+    view.renderTelemetry(tel);
+    assert.equal(morseInnerHtmlWrites, 1, "Advancing morseIndex must rebuild morse stream");
+
+    // Frame 6: Keeping the new morseIndex does not rebuild
+    morseInnerHtmlWrites = 0;
+    view.renderTelemetry(tel);
+    assert.equal(
+      morseInnerHtmlWrites,
+      0,
+      "Identical morseIndex on subsequent frame must not rebuild morse stream",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("idle render loop skips canvas repaints and DOM writes when paused or hidden, resuming on visibility", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    // Spy on C64 screen canvas putImageData
+    let putImageDataCount = 0;
+    const c64Canvas = harness.elementsById.get("c64-monitor-canvas");
+    const mockCtx = c64Canvas.getContext("2d");
+    mockCtx.putImageData = () => {
+      putImageDataCount++;
+    };
+
+    // Spy on voice and filter scope fillRect and stroke
+    let scopeDrawCount = 0;
+    for (const scopeId of ["scope-v0", "scope-v1", "scope-v2", "scope-master"]) {
+      const scopeEl = harness.elementsById.get(scopeId);
+      const ctx = scopeEl.getContext("2d");
+      const origFillRect = ctx.fillRect;
+      const origStroke = ctx.stroke;
+      ctx.fillRect = (...args) => {
+        scopeDrawCount++;
+        return origFillRect(...args);
+      };
+      ctx.stroke = (...args) => {
+        scopeDrawCount++;
+        return origStroke(...args);
+      };
+    }
+
+    // Spy on telemetry text writes
+    let telWrites = 0;
+    const telFrame = harness.elementsById.get("tel-frame");
+    let telFrameText = telFrame.textContent;
+    Object.defineProperty(telFrame, "textContent", {
+      get: () => telFrameText,
+      set: (v) => {
+        telWrites++;
+        telFrameText = v;
+      },
+      configurable: true,
+    });
+
+    // 1. Paused player: start paused, advance one frame to flush initial state, then test idle path
+    view.setPlaying(false);
+    harness.stepAnimationFrame();
+
+    putImageDataCount = 0;
+    scopeDrawCount = 0;
+    telWrites = 0;
+
+    // Advance 5 animation frames while paused
+    for (let i = 0; i < 5; i++) {
+      harness.stepAnimationFrame();
+    }
+    assert.equal(
+      putImageDataCount,
+      0,
+      "Paused player must perform zero canvas monitor draws across frames",
+    );
+    assert.equal(
+      scopeDrawCount,
+      0,
+      "Paused player must perform zero oscilloscope draws across frames",
+    );
+    assert.equal(
+      telWrites,
+      0,
+      "Paused player must perform zero telemetry text writes across frames",
+    );
+
+    // 2. Resume play: playback restarts rendering immediately
+    view.setPlaying(true);
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.ok(putImageDataCount > 0, "Resuming playback must draw C64 monitor canvas");
+    assert.ok(scopeDrawCount > 0, "Resuming playback must draw oscilloscopes");
+
+    // 3. Document hidden: background tab skips canvas and DOM work while rescheduling
+    globalThis.document.hidden = true;
+    putImageDataCount = 0;
+    scopeDrawCount = 0;
+    telWrites = 0;
+
+    for (let i = 0; i < 5; i++) {
+      player.getTelemetry().frameCount++;
+      harness.stepAnimationFrame();
+    }
+    assert.equal(putImageDataCount, 0, "Hidden document must perform zero canvas monitor draws");
+    assert.equal(scopeDrawCount, 0, "Hidden document must perform zero oscilloscope draws");
+    assert.equal(telWrites, 0, "Hidden document must perform zero telemetry text writes");
+
+    // 4. Restore visibility: visibilitychange restores drawing
+    globalThis.document.hidden = false;
+    globalThis.document.dispatchEvent("visibilitychange");
+    putImageDataCount = 0;
+    scopeDrawCount = 0;
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.ok(putImageDataCount > 0, "Restoring visibility must resume C64 monitor canvas draws");
+    assert.ok(scopeDrawCount > 0, "Restoring visibility must resume oscilloscope draws");
+
+    // 5. Stale cache regression: re-rendering SID hex skeleton and stepping frame updates cell text
+    player.getTelemetry().sidRegs[0] = 0x2b;
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(harness.elementsById.get("sid-reg-0").textContent, "2B");
+
+    // Re-render hex skeleton: DOM spans are recreated with default "00"
+    view.renderSidHexStripSkeleton();
+    assert.equal(harness.elementsById.get("sid-reg-0").textContent, "00");
+
+    // Next frame must populate the new DOM node rather than writing to detached nodes
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      harness.elementsById.get("sid-reg-0").textContent,
+      "2B",
+      "Advancing frame after skeleton rebuild must update newly mounted cell",
+    );
   } finally {
     view.destroy();
     harness.restoreGlobals();

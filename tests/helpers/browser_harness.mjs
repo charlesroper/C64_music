@@ -101,6 +101,7 @@ export function createBrowserHarness({
       this.dataset = {};
       this.children = [];
       this.parentElement = null;
+      this._isConnected = true;
       this.listeners = {};
       this.width = 384;
       this.height = 272;
@@ -152,12 +153,21 @@ export function createBrowserHarness({
     set innerHTML(v) {
       this._innerHTML = v;
       if (v === "") {
+        for (const child of this.children) {
+          child.parentElement = null;
+          child._isConnected = false;
+        }
         this.children = [];
       }
     }
 
     get innerHTML() {
       return this._innerHTML;
+    }
+
+    get isConnected() {
+      if (this._isConnected !== undefined) return this._isConnected;
+      return true;
     }
 
     appendChild(child) {
@@ -210,18 +220,25 @@ export function createBrowserHarness({
       return fallback;
     }
 
-    getContext() {
-      return {
-        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
-        putImageData: () => {},
-        fillRect: () => {},
-        beginPath: () => {},
-        moveTo: () => {},
-        lineTo: () => {},
-        closePath: () => {},
-        fill: () => {},
-        stroke: () => {},
-      };
+    getContext(type = "2d") {
+      if (type === "2d") {
+        if (!this._ctx2d) {
+          this._ctx2d = {
+            canvas: this,
+            createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+            putImageData: () => {},
+            fillRect: () => {},
+            beginPath: () => {},
+            moveTo: () => {},
+            lineTo: () => {},
+            closePath: () => {},
+            fill: () => {},
+            stroke: () => {},
+          };
+        }
+        return this._ctx2d;
+      }
+      return null;
     }
   }
 
@@ -341,6 +358,7 @@ export function createBrowserHarness({
     navigator: Object.getOwnPropertyDescriptor(globalThis, "navigator"),
     fetch: globalThis.fetch,
     requestAnimationFrame: globalThis.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.cancelAnimationFrame,
     setInterval: globalThis.setInterval,
     clearInterval: globalThis.clearInterval,
     setTimeout: globalThis.setTimeout,
@@ -380,10 +398,14 @@ export function createBrowserHarness({
     return prevGlobals.clearTimeout(id);
   };
 
+  const docListeners = {};
+
   globalThis.window = {
     innerWidth: viewport.width,
     innerHeight: viewport.height,
     AudioContext: StrictAudioContext,
+    requestAnimationFrame: (cb) => globalThis.requestAnimationFrame(cb),
+    cancelAnimationFrame: (id) => globalThis.cancelAnimationFrame(id),
     addEventListener: (t, fn) => {
       if (!windowListeners[t]) windowListeners[t] = [];
       windowListeners[t].push(fn);
@@ -407,6 +429,7 @@ export function createBrowserHarness({
   });
 
   globalThis.document = {
+    hidden: false,
     activeElement: { tagName: "BODY" },
     getElementById: (id) => {
       const el = elementsById.get(id);
@@ -422,17 +445,56 @@ export function createBrowserHarness({
     createDocumentFragment: () => new MockElement("fragment"),
     querySelector: (sel) => allElements.find((el) => matchesSelector(el, sel)) || null,
     querySelectorAll: (sel) => allElements.filter((el) => matchesSelector(el, sel)),
+    addEventListener: (t, fn) => {
+      if (!docListeners[t]) docListeners[t] = [];
+      docListeners[t].push(fn);
+    },
+    removeEventListener: (t, fn) => {
+      if (docListeners[t]) {
+        docListeners[t] = docListeners[t].filter((f) => f !== fn);
+      }
+    },
+    dispatchEvent: (type, extra = {}) => {
+      const evt = {
+        type,
+        target: globalThis.document,
+        currentTarget: globalThis.document,
+        preventDefault() {},
+        ...extra,
+      };
+      for (const fn of docListeners[type] || []) {
+        fn(evt);
+      }
+    },
+    contains: (node) => {
+      if (!node) return false;
+      if (node.isConnected === false) return false;
+      return true;
+    },
   };
 
+  let rafSeq = 1;
+  const rafCallbacks = new Map();
+
   globalThis.requestAnimationFrame = (cb) => {
-    if (rafQueue.length < 16) {
-      rafQueue.push(cb);
+    const id = rafSeq++;
+    rafCallbacks.set(id, cb);
+    if (rafQueue.length < 32) {
+      rafQueue.push(id);
     }
     if (resolveBoot) {
       resolveBoot();
       resolveBoot = null;
     }
-    return rafQueue.length;
+    return id;
+  };
+
+  globalThis.cancelAnimationFrame = (id) => {
+    rafCallbacks.delete(id);
+    const idx = rafQueue.indexOf(id);
+    if (idx !== -1) {
+      rafQueue.splice(idx, 1);
+    }
   };
 
   globalThis.fetch = async (relUrl) => {
@@ -453,18 +515,36 @@ export function createBrowserHarness({
     audioState,
     scrolledElements,
     bootDone,
-    stepAnimationFrame() {
-      const cb = rafQueue.shift();
-      if (cb) cb();
-      return Boolean(cb);
+    stepAnimationFrame(timestamp) {
+      while (rafQueue.length > 0) {
+        const item = rafQueue.shift();
+        if (typeof item === "function") {
+          item(timestamp);
+          return true;
+        }
+        const cb = rafCallbacks.get(item);
+        if (cb) {
+          rafCallbacks.delete(item);
+          cb(timestamp);
+          return true;
+        }
+      }
+      return false;
     },
-    runAllAnimationFrames() {
+    runAllAnimationFrames(timestamp) {
       let ran = 0;
       while (rafQueue.length > 0) {
-        const cb = rafQueue.shift();
-        if (cb) {
-          cb();
+        const item = rafQueue.shift();
+        if (typeof item === "function") {
+          item(timestamp);
           ran++;
+        } else {
+          const cb = rafCallbacks.get(item);
+          if (cb) {
+            rafCallbacks.delete(item);
+            cb(timestamp);
+            ran++;
+          }
         }
       }
       return ran;
@@ -554,6 +634,7 @@ export function createBrowserHarness({
       }
       globalThis.fetch = prevGlobals.fetch;
       globalThis.requestAnimationFrame = prevGlobals.requestAnimationFrame;
+      globalThis.cancelAnimationFrame = prevGlobals.cancelAnimationFrame;
     },
   };
 }
@@ -561,7 +642,7 @@ export function createBrowserHarness({
 export function createFakePlayer(options = {}) {
   let activeGame = options.initialGame || GAME_FILES[0];
   let activeTrack = options.initialTrack || activeGame.tracks[0];
-  let isPlaying = options.isPlaying || false;
+  const isPlaying = options.isPlaying || false;
   let currentSession = buildSessionDescriptor(activeGame, activeTrack);
   const sources = { ...options.sources };
   const assembled = new Map(Object.entries(options.assembled || {}));

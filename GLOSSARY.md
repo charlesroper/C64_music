@@ -27,3 +27,7 @@ _Avoid_: Boot branch, track init script
 **Source Index**:
 An index structure bound to an assembled source module providing O(1) address-to-line resolution, symbol-to-line location, and text search across original assembly source lines.
 _Avoid_: Line lookup table, symbol resolver
+
+**Idle Render Path**:
+The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused or the document is backgrounded, while capping unthrottled display refresh at 60 Hz.
+_Avoid_: Tick stopper, frame skipper

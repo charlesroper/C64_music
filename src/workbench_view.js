@@ -255,12 +255,20 @@ export function createWorkbenchView({
     viewer: null,
   };
 
+  function isNodeConnected(node) {
+    if (!node) return false;
+    if (typeof node.isConnected === "boolean") return node.isConnected;
+    if (doc && typeof doc.contains === "function") return doc.contains(node);
+    return true;
+  }
+
   function getDom() {
-    if (!domCache.telFrame) {
+    if (!domCache.telFrame || !isNodeConnected(domCache.telFrame)) {
       domCache.telFrame = getEl("tel-frame");
       domCache.telPc = getEl("tel-pc");
       domCache.telD418 = getEl("tel-d418");
-      domCache.sidCells = Array.from({ length: 25 }, (_, i) => getEl(`sid-reg-${i}`));
+      domCache.sidCells = null;
+      lastSidRegs.fill(-1);
       domCache.voices = [0, 1, 2].map((v) => ({
         note: getEl(`v${v}-note`),
         wf: getEl(`v${v}-wf`),
@@ -280,6 +288,9 @@ export function createWorkbenchView({
       domCache.grid = getEl("workbench-grid");
       domCache.viewer = getEl("source-viewer");
     }
+    if (!domCache.sidCells) {
+      domCache.sidCells = Array.from({ length: 25 }, (_, i) => getEl(`sid-reg-${i}`));
+    }
     return domCache;
   }
 
@@ -294,7 +305,7 @@ export function createWorkbenchView({
     return scopeCache[id];
   }
 
-  const lastSidRegs = new Uint8Array(25).fill(0xff);
+  const lastSidRegs = new Int16Array(25).fill(-1);
   const lastTelemetryText = {
     frame: null,
     pc: null,
@@ -313,6 +324,37 @@ export function createWorkbenchView({
     { note: null, wf: null, pw: null, adsr: null, env: null, pc: null },
     { note: null, wf: null, pw: null, adsr: null, env: null, pc: null },
   ];
+  const lastVoiceActive = [null, null, null];
+  let lastFilterActive = null;
+
+  let lastRenderedFrame = -1;
+  let lastRenderedSessionId = null;
+  let lastWasPlaying = false;
+
+  function resetTelemetryCaches() {
+    lastSidRegs.fill(-1);
+    lastTelemetryText.frame = null;
+    lastTelemetryText.pc = null;
+    lastTelemetryText.d418 = null;
+    lastTelemetryText.seqPc = null;
+    lastFilterText.mode = null;
+    lastFilterText.fc = null;
+    lastFilterText.res = null;
+    lastFilterText.rout = null;
+    lastFilterText.vol = null;
+    for (let v = 0; v < 3; v++) {
+      lastVoiceText[v].note = null;
+      lastVoiceText[v].wf = null;
+      lastVoiceText[v].pw = null;
+      lastVoiceText[v].adsr = null;
+      lastVoiceText[v].env = null;
+      lastVoiceText[v].pc = null;
+      lastVoiceActive[v] = null;
+    }
+    lastFilterActive = null;
+    lastMorseActiveIndex = -1;
+    lastRenderedFrame = -1;
+  }
 
   function renderC64Monitor(ram, scanlineBorder) {
     if (!ensureC64ScreenCanvas() || !scanlineBorder || !ram) return;
@@ -659,6 +701,7 @@ export function createWorkbenchView({
       container.appendChild(grpEl);
     }
     domCache.sidCells = null;
+    lastSidRegs.fill(-1);
   }
 
   function setFollowVoice(voice, forceFollow = false) {
@@ -956,7 +999,8 @@ export function createWorkbenchView({
         }
 
         const isVoiceActive = env > 0 || (ctrl & 0x01) !== 0;
-        if (vDom.grp) {
+        if (vDom.grp && lastVoiceActive[v] !== isVoiceActive) {
+          lastVoiceActive[v] = isVoiceActive;
           vDom.grp.classList.toggle("active", isVoiceActive);
         }
 
@@ -973,7 +1017,9 @@ export function createWorkbenchView({
           if (currentAsm && currentAsm.sourceIndex) {
             const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
             if (lineNo) {
-              if (vDom.pc) vDom.pc.dataset.line = lineNo;
+              if (vDom.pc && vDom.pc.dataset.line !== String(lineNo)) {
+                vDom.pc.dataset.line = lineNo;
+              }
               activeLines.push({ lineNo, cls: `pc-v${v}` });
             }
           }
@@ -1025,7 +1071,8 @@ export function createWorkbenchView({
       }
 
       const isFltActive = vol > 0 && rout > 0;
-      if (d.fltGrp) {
+      if (d.fltGrp && lastFilterActive !== isFltActive) {
+        lastFilterActive = isFltActive;
         d.fltGrp.classList.toggle("active", isFltActive);
       }
 
@@ -1050,7 +1097,9 @@ export function createWorkbenchView({
       if (currentAsm && currentAsm.sourceIndex && currentFile === session.drum.sourceFile) {
         const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
         if (lineNo) {
-          if (d.seqPc) d.seqPc.dataset.line = lineNo;
+          if (d.seqPc && d.seqPc.dataset.line !== String(lineNo)) {
+            d.seqPc.dataset.line = lineNo;
+          }
           activeLines.push({ lineNo, cls: "pc-seq" });
         }
       }
@@ -1147,6 +1196,7 @@ export function createWorkbenchView({
 
   function renderSession(session) {
     if (!session) return;
+    resetTelemetryCaches();
     const prevGameId = state.activeGameId;
     state.currentSession = session;
     const { game, track } = session;
@@ -1694,18 +1744,68 @@ export function createWorkbenchView({
 
   let rafId = null;
   let isDestroyed = false;
+  let lastFrameTimestamp = 0;
+  const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
 
-  function renderFrameLoop() {
+  function renderFrameLoop(timestamp) {
     if (isDestroyed) return;
-    if (state.player) {
-      const tel = state.player.getTelemetry();
-      if (tel) {
-        renderTelemetry(tel);
-      }
-    }
+
     if (win && typeof win.requestAnimationFrame === "function") {
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
+
+    if (doc && doc.hidden) {
+      return;
+    }
+
+    if (typeof timestamp === "number") {
+      if (lastFrameTimestamp && timestamp - lastFrameTimestamp < MIN_FRAME_INTERVAL_MS) {
+        return;
+      }
+      lastFrameTimestamp = timestamp;
+    }
+
+    if (state.player) {
+      const isPlaying = Boolean(state.player.getState().isPlaying);
+      const tel = state.player.getTelemetry();
+      const sessionId = state.currentSession ? state.currentSession.id : null;
+
+      if (
+        !isPlaying &&
+        !lastWasPlaying &&
+        tel &&
+        lastRenderedFrame === tel.frameCount &&
+        lastRenderedSessionId === sessionId
+      ) {
+        return;
+      }
+
+      lastWasPlaying = isPlaying;
+      if (tel) {
+        lastRenderedFrame = tel.frameCount;
+        lastRenderedSessionId = sessionId;
+        renderTelemetry(tel);
+      }
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (!doc.hidden) {
+      resetTelemetryCaches();
+      if (state.player) {
+        const tel = state.player.getTelemetry();
+        if (tel) {
+          lastRenderedFrame = tel.frameCount;
+          lastRenderedSessionId = state.currentSession ? state.currentSession.id : null;
+          renderTelemetry(tel);
+        }
+      }
+    }
+  }
+
+  if (doc && typeof doc.addEventListener === "function") {
+    doc.addEventListener("visibilitychange", handleVisibilityChange);
+    attachedListeners.push({ target: doc, type: "visibilitychange", fn: handleVisibilityChange });
   }
 
   if (win && typeof win.requestAnimationFrame === "function") {
@@ -1737,6 +1837,7 @@ export function createWorkbenchView({
     renderSession,
     renderTelemetry,
     renderSource,
+    renderSidHexStripSkeleton,
     setPlaying,
     setPlayer,
     setAssets,
