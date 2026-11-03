@@ -235,7 +235,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 21 automated checks across four test files:
+`npm test` runs 22 automated checks across four test files:
 
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
@@ -249,6 +249,7 @@ Martin Galway uploaded his original assembly files to GitHub in early 2026. In O
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronise on boot with Follow Voice off by default, interactive chips select the voice to follow, and the bottom SID register strip groups voices responsively with active sound lights.
 * **Smooth code tracking.** The assembly viewer uses adaptive requestAnimationFrame timing to follow fast 16th notes without lag, pre-positions large leaps near their targets and yields immediately on user gestures.
 * **Source editor safety.** Reassembly surfaces syntax errors in the status badge and preserves text, and unsaved edits survive track changes.
+* **Modal keyboard isolation.** Keyboard shortcuts ignore modal dialogs and preserve native button activation.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.

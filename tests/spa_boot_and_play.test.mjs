@@ -95,9 +95,19 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
     }
   }
 
-  for (const m of html.matchAll(/\bid="([^"]+)"/g)) {
-    const id = m[1];
-    const el = new MockElement("div", id);
+  for (const m of html.matchAll(/<([a-zA-Z0-9-]+)[^>]*\bid="([^"]+)"[^>]*>/g)) {
+    const fullTag = m[0];
+    const tag = m[1];
+    const id = m[2];
+    const el = new MockElement(tag, id);
+    const classMatch = fullTag.match(/\bclass="([^"]+)"/);
+    if (classMatch) {
+      el.className = classMatch[1];
+      classMatch[1]
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach((c) => el.classList.add(c));
+    }
     if (id === "slider-digi-boost") el.value = "1.3";
     if (id === "select-sid-model") el.value = "6581";
     if (id === "select-video-std") el.value = "pal";
@@ -177,9 +187,18 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
   }
 
   const rafQueue = [];
+  const windowListeners = {};
   globalThis.window = {
     AudioContext: StrictAudioContext,
-    addEventListener: () => {},
+    addEventListener: (t, fn) => {
+      if (!windowListeners[t]) windowListeners[t] = [];
+      windowListeners[t].push(fn);
+    },
+    dispatchEvent: (type, extra = {}) => {
+      for (const fn of windowListeners[type] || []) {
+        fn({ type, preventDefault() {}, ...extra });
+      }
+    },
   };
   Object.defineProperty(globalThis, "navigator", {
     value: { audioSession: audioState.audioSession },
@@ -198,7 +217,19 @@ function createBrowserHarness({ hardwareSampleRate = 44100, rejectSampleRateOpti
     createElement: (tag) => new MockElement(tag),
     createDocumentFragment: () => new MockElement("fragment"),
     querySelectorAll: () => [],
-    querySelector: () => null,
+    querySelector: (sel) => {
+      if (sel === ".modal-backdrop:not(.hidden)") {
+        return (
+          allElements.find(
+            (el) =>
+              el.classList &&
+              el.classList.contains("modal-backdrop") &&
+              !el.classList.contains("hidden"),
+          ) || null
+        );
+      }
+      return null;
+    },
   };
   globalThis.requestAnimationFrame = (cb) => {
     if (rafQueue.length < 4) rafQueue.push(cb);
@@ -483,4 +514,76 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     "; My unsaved modification",
     "Unsaved editor edits must not be wiped on track switch",
   );
+});
+
+test("global keyboard shortcuts ignore Space and letter keys while modal is open, and preserve native button activation", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  const playLabel = harness.elementsById.get("play-label");
+  assert.equal(playLabel.textContent, "PLAY");
+
+  // 1. Open narrative modal
+  const btnNarrative = harness.elementsById.get("btn-narrative-modal");
+  const narrativeModal = harness.elementsById.get("narrative-modal");
+  btnNarrative.click();
+  assert.ok(!narrativeModal.classList.contains("hidden"), "Modal must be open");
+
+  // Press Space while modal is open
+  let spacePrevented = false;
+  globalThis.window.dispatchEvent("keydown", {
+    code: "Space",
+    key: " ",
+    preventDefault: () => {
+      spacePrevented = true;
+    },
+  });
+
+  // Playback must NOT start
+  assert.equal(playLabel.textContent, "PLAY", "Space while modal is open must not toggle playback");
+  assert.equal(spacePrevented, false, "Space while modal is open must not preventDefault");
+
+  // Press a letter key while modal is open
+  globalThis.window.dispatchEvent("keydown", {
+    code: "KeyW",
+    key: "w",
+    preventDefault: () => {},
+  });
+  assert.equal(playLabel.textContent, "PLAY", "Letter key while modal is open must not start playback");
+
+  // Close modal
+  const btnClose = harness.elementsById.get("btn-close-narrative-modal");
+  btnClose.click();
+  assert.ok(narrativeModal.classList.contains("hidden"), "Modal must be closed");
+
+  // 2. Focused button receives Space without global shortcut stealing it
+  const btnPlay = harness.elementsById.get("btn-play");
+  globalThis.document.activeElement = btnPlay;
+  let btnSpacePrevented = false;
+  globalThis.window.dispatchEvent("keydown", {
+    code: "Space",
+    key: " ",
+    preventDefault: () => {
+      btnSpacePrevented = true;
+    },
+  });
+  assert.equal(btnSpacePrevented, false, "Space on focused button must not be prevented by global shortcut");
+  assert.equal(playLabel.textContent, "PLAY");
+
+  // 3. Focus on body (no active element): global shortcut works
+  globalThis.document.activeElement = null;
+  globalThis.window.dispatchEvent("keydown", {
+    code: "Space",
+    key: " ",
+    preventDefault: () => {},
+  });
+  assert.equal(playLabel.textContent, "PAUSE", "Space on page body toggles playback");
 });

@@ -1504,8 +1504,25 @@ function setupUIHandlers() {
   }
 
   window.addEventListener("keydown", (e) => {
-    const tag = document.activeElement ? document.activeElement.tagName : "";
-    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    const active = document.activeElement;
+    const tag = active ? active.tagName : "";
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      tag === "BUTTON" ||
+      tag === "A"
+    ) {
+      return;
+    }
+
+    const directivesModal = document.getElementById("directives-modal");
+    const narrativeModal = document.getElementById("narrative-modal");
+    const isModalOpen =
+      (directivesModal && !directivesModal.classList.contains("hidden")) ||
+      (narrativeModal && !narrativeModal.classList.contains("hidden")) ||
+      Boolean(document.querySelector && document.querySelector(".modal-backdrop:not(.hidden)"));
+    if (isModalOpen) return;
 
     if (e.code === "Space") {
       e.preventDefault();
