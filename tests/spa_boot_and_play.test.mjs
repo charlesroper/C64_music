@@ -739,3 +739,53 @@ test("source viewer address gutter hides sentinel values and shows $0000 for add
   assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
   assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
 });
+
+test("symbol jump and source search use the on-screen file instead of activeGameId", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  await import(path.join(ROOT, `src/app.js?t=${Date.now()}`));
+  const readyDeadline = Date.now() + 4000;
+  while (
+    !harness.elementsById.get("status-led").classList.contains("ready") &&
+    Date.now() < readyDeadline
+  ) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  harness.stepAnimationFrame();
+
+  // 1. Select arkadrum.asm. With default followVoice = 0, on-screen file is arkanoid.asm
+  const gameList = harness.elementsById.get("game-list");
+  const arkadrumItem = gameList.children.find(
+    (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
+  );
+  assert.ok(arkadrumItem, "arkadrum item in game-list");
+  arkadrumItem.click();
+
+  // Verify the viewer has arkanoid lines (arkanoid has ~1787 lines, arkadrum has ~328)
+  const viewer = harness.elementsById.get("source-viewer");
+  assert.ok(viewer.children.length > 1000, "Viewer should display arkanoid.asm (>1000 lines)");
+
+  // 2. Search for 'TITLE0', which only exists in arkanoid.asm
+  const searchInput = harness.elementsById.get("input-source-search");
+  searchInput.value = "TITLE0";
+  searchInput.dispatchEvent("input");
+
+  const matches = viewer.children.filter(
+    (r) => r.classList && r.classList.contains("search-match"),
+  );
+  assert.ok(matches.length > 0, "Searching TITLE0 must find matches in arkanoid.asm on screen");
+
+  // 3. Switch to drum follow (seq), so on-screen file becomes arkadrum.asm
+  const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+  assert.ok(drmChip, "DRM chip exists");
+  drmChip.click();
+  assert.ok(viewer.children.length < 500, "Viewer should display arkadrum.asm (<500 lines)");
+
+  // Search for 'TOMhiTABLE', which only exists in arkadrum.asm
+  searchInput.value = "TOMhiTABLE";
+  searchInput.dispatchEvent("input");
+
+  const drmMatches = viewer.children.filter(
+    (r) => r.classList && r.classList.contains("search-match"),
+  );
+  assert.ok(drmMatches.length > 0, "Searching TOMhiTABLE must find matches in arkadrum.asm on screen");
+});

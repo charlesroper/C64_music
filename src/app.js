@@ -1394,7 +1394,8 @@ function setupUIHandlers() {
   document.getElementById("select-symbol-jump").addEventListener("change", (e) => {
     const symName = e.target.value;
     if (!symName || !state.player) return;
-    const asm = state.player.getAssembled(state.activeGameId);
+    const currentFile = state.currentSourceFile || state.activeGameId;
+    const asm = state.player.getAssembled(currentFile);
     if (!asm) return;
     const idx = asm.rawLines.findIndex((line) =>
       new RegExp(`^${symName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(line),
@@ -1405,7 +1406,8 @@ function setupUIHandlers() {
   document.getElementById("input-source-search").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
     if (!state.player) return;
-    const asm = state.player.getAssembled(state.activeGameId);
+    const currentFile = state.currentSourceFile || state.activeGameId;
+    const asm = state.player.getAssembled(currentFile);
     if (!asm) return;
     document.querySelectorAll(".asm-line.search-match").forEach((el) => {
       el.classList.remove("search-match");
