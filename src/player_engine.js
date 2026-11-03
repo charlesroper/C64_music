@@ -32,8 +32,109 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
 
   wasm.wasm_init(state.sampleRate);
 
+  let cachedBuffer = null;
+  let cachedRam = null;
+  let cachedBorder = null;
+  let cachedSidRegs = null;
+  let cachedScope = null;
+
+  function refreshViews() {
+    if (cachedBuffer !== wasm.memory.buffer) {
+      cachedBuffer = wasm.memory.buffer;
+      cachedRam = new Uint8Array(cachedBuffer, wasm.wasm_get_ram_ptr(), 65536);
+      cachedBorder = new Uint8Array(cachedBuffer, wasm.wasm_get_border_ptr(), 312);
+      cachedSidRegs = new Uint8Array(cachedBuffer, wasm.wasm_get_sid_regs_ptr(), 32);
+      cachedScope = new Float32Array(cachedBuffer, wasm.wasm_get_scope_ptr(), 4 * 512);
+    }
+  }
+
   function getRamView() {
-    return new Uint8Array(wasm.memory.buffer, wasm.wasm_get_ram_ptr(), 65536);
+    refreshViews();
+    return cachedRam;
+  }
+
+  const telemetry = {
+    frameCount: 0,
+    cpuPc: 0,
+    d418: 0,
+    sidRegs: null,
+    scopeData: null,
+    voices: [
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+    ],
+    filter: {
+      fc: 0,
+      res: 0,
+      rout: 0,
+      mode: 0,
+      vol: 0,
+    },
+    scanlineBorder: null,
+    ram: null,
+    morseIndex: -1,
+  };
+
+  function updateRamboMonitorScreen(ram, asm) {
+    const s = asm.symbols;
+    for (let i = 0; i < 16; i++) {
+      ram[0x0400 + 5 * 40 + 2 + i] = ram[0x10 + i];
+      ram[0xd800 + 5 * 40 + 2 + i] = 3;
+    }
+    if (s.SB0 && s.SB1 && s.SB2) {
+      for (let i = 0; i < 38; i++) {
+        ram[0x0400 + 14 * 40 + 1 + i] = ram[s.SB0 + i];
+        ram[0xd800 + 14 * 40 + 1 + i] = 3;
+        ram[0x0400 + 16 * 40 + 1 + i] = ram[s.SB1 + i];
+        ram[0xd800 + 16 * 40 + 1 + i] = 4;
+        ram[0x0400 + 18 * 40 + 1 + i] = ram[s.SB2 + i];
+        ram[0xd800 + 18 * 40 + 1 + i] = 7;
+      }
+    }
+  }
+
+  function getTelemetry() {
+    refreshViews();
+
+    if (state.activeGameId === "rambload.asm") {
+      const asm = assembledCache["rambload.asm"];
+      if (asm) {
+        updateRamboMonitorScreen(cachedRam, asm);
+        if (asm.symbols.MWK !== undefined) {
+          telemetry.morseIndex = cachedRam[asm.symbols.MWK] >> 1;
+        } else {
+          telemetry.morseIndex = -1;
+        }
+      }
+    } else {
+      telemetry.morseIndex = -1;
+    }
+
+    telemetry.frameCount = wasm.wasm_get_frame_count();
+    telemetry.cpuPc = wasm.wasm_get_cpu_pc();
+    telemetry.d418 = wasm.wasm_get_d418_activity();
+    telemetry.sidRegs = cachedSidRegs;
+    telemetry.scopeData = cachedScope;
+    telemetry.scanlineBorder = cachedBorder;
+    telemetry.ram = cachedRam;
+
+    for (let v = 0; v < 3; v++) {
+      const voice = telemetry.voices[v];
+      voice.freq = wasm.wasm_get_voice_freq(v);
+      voice.pw = wasm.wasm_get_voice_pw(v);
+      voice.ctrl = wasm.wasm_get_voice_control(v);
+      voice.env = wasm.wasm_get_voice_env(v);
+    }
+
+    const flt = telemetry.filter;
+    flt.fc = wasm.wasm_get_filter_fc();
+    flt.res = wasm.wasm_get_filter_res();
+    flt.rout = wasm.wasm_get_filter_routing();
+    flt.mode = wasm.wasm_get_filter_mode();
+    flt.vol = wasm.wasm_get_master_vol();
+
+    return telemetry;
   }
 
   function updateEffectiveMuteMask() {
@@ -351,7 +452,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
   }
 
   return {
-    wasm,
+    getTelemetry,
     selectTrack,
     play,
     pause,

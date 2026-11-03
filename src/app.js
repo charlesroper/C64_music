@@ -143,24 +143,6 @@ function setPlayingState(playing) {
   }
 }
 
-function updateRamboMonitorScreen(ram, asm) {
-  const s = asm.symbols;
-  for (let i = 0; i < 16; i++) {
-    ram[0x0400 + 5 * 40 + 2 + i] = ram[0x10 + i];
-    ram[0xd800 + 5 * 40 + 2 + i] = 3;
-  }
-  if (s.SB0 && s.SB1 && s.SB2) {
-    for (let i = 0; i < 38; i++) {
-      ram[0x0400 + 14 * 40 + 1 + i] = ram[s.SB0 + i];
-      ram[0xd800 + 14 * 40 + 1 + i] = 3;
-      ram[0x0400 + 16 * 40 + 1 + i] = ram[s.SB1 + i];
-      ram[0xd800 + 16 * 40 + 1 + i] = 4;
-      ram[0x0400 + 18 * 40 + 1 + i] = ram[s.SB2 + i];
-      ram[0xd800 + 18 * 40 + 1 + i] = 7;
-    }
-  }
-}
-
 // ============================================================================
 // UI Rendering: Games, Tracks, Source Viewer, Keypad
 // ============================================================================
@@ -468,7 +450,12 @@ function renderHudGuideOverlay() {
   }
 }
 
+let lastMorseActiveIndex = -1;
+
 function renderMorseStream(activeIndex) {
+  if (activeIndex === lastMorseActiveIndex) return;
+  lastMorseActiveIndex = activeIndex;
+
   const game = GAME_FILES.find((g) => g.id === "rambload.asm");
   if (!game || !game.morseSecret) return;
   const secret = game.morseSecret;
@@ -485,7 +472,7 @@ function renderMorseStream(activeIndex) {
   if (activeIndex < secret.length) {
     readout.textContent = `CHAR ${activeIndex + 1}/${secret.length}: '${secret[activeIndex]}'`;
   } else {
-    readout.textContent = `TRANSMISSION COMPLETE (LEAD MELODY ACTIVE)`;
+    readout.textContent = "TRANSMISSION COMPLETE (LEAD MELODY ACTIVE)";
   }
 }
 
@@ -766,11 +753,27 @@ function getScopeCanvas(id) {
 }
 
 const lastSidRegs = new Uint8Array(25).fill(0xff);
+const lastTelemetryText = {
+  frame: null,
+  pc: null,
+  d418: null,
+  seqPc: null,
+};
+const lastFilterText = {
+  mode: null,
+  fc: null,
+  res: null,
+  rout: null,
+  vol: null,
+};
+const lastVoiceText = [
+  { note: null, wf: null, pw: null, adsr: null, env: null, pc: null },
+  { note: null, wf: null, pw: null, adsr: null, env: null, pc: null },
+  { note: null, wf: null, pw: null, adsr: null, env: null, pc: null },
+];
 
-function renderC64Monitor(ram, wasm) {
-  if (!ensureC64ScreenCanvas()) return;
-  const borderPtr = wasm.wasm_get_border_ptr();
-  const scanlineBorder = new Uint8Array(wasm.memory.buffer, borderPtr, 312);
+function renderC64Monitor(ram, scanlineBorder) {
+  if (!ensureC64ScreenCanvas() || !scanlineBorder) return;
 
   for (let y = 0; y < 272; y++) {
     const vicLine = y + 20;
@@ -944,8 +947,8 @@ function drawMasterAndFilterScope(scopeData, fcReg, resReg, modeBits) {
 
 function renderFrameLoop() {
   if (state.player) {
-    const wasm = state.player.wasm;
-    const ram = state.player.getRamView();
+    const tel = state.player.getTelemetry();
+    const ram = tel.ram;
     const currentFile = state.currentSourceFile || state.activeGameId;
     const asm = state.player.getAssembled(state.activeGameId);
     const currentAsm = state.player.getAssembled(currentFile);
@@ -953,12 +956,8 @@ function renderFrameLoop() {
       state.activeGameId === "arkadrum.asm" ? state.player.getAssembled("arkanoid.asm") : null;
     const d = getDom();
 
-    if (state.activeGameId === "rambload.asm" && asm) {
-      updateRamboMonitorScreen(ram, asm);
-      if (asm.symbols.MWK !== undefined) {
-        const morseIdx = ram[asm.symbols.MWK] >> 1;
-        renderMorseStream(morseIdx);
-      }
+    if (tel.morseIndex >= 0) {
+      renderMorseStream(tel.morseIndex);
     }
 
     const isMonitorVisible =
@@ -969,17 +968,23 @@ function renderFrameLoop() {
       d.grid.dataset.mobileView === "monitor";
 
     if (isMonitorVisible) {
-      renderC64Monitor(ram, wasm);
+      renderC64Monitor(ram, tel.scanlineBorder);
     }
 
-    if (d.telFrame) d.telFrame.textContent = wasm.wasm_get_frame_count();
-    if (d.telPc) {
-      d.telPc.textContent =
-        "$" + wasm.wasm_get_cpu_pc().toString(16).toUpperCase().padStart(4, "0");
+    if (d.telFrame && lastTelemetryText.frame !== tel.frameCount) {
+      lastTelemetryText.frame = tel.frameCount;
+      d.telFrame.textContent = tel.frameCount;
     }
-    if (d.telD418) d.telD418.textContent = wasm.wasm_get_d418_activity();
+    if (d.telPc && lastTelemetryText.pc !== tel.cpuPc) {
+      lastTelemetryText.pc = tel.cpuPc;
+      d.telPc.textContent = `$${tel.cpuPc.toString(16).toUpperCase().padStart(4, "0")}`;
+    }
+    if (d.telD418 && lastTelemetryText.d418 !== tel.d418) {
+      lastTelemetryText.d418 = tel.d418;
+      d.telD418.textContent = tel.d418;
+    }
 
-    const sidRegs = new Uint8Array(wasm.memory.buffer, wasm.wasm_get_sid_regs_ptr(), 32);
+    const sidRegs = tel.sidRegs;
     for (let i = 0; i <= 0x18; i++) {
       if (lastSidRegs[i] !== sidRegs[i]) {
         lastSidRegs[i] = sidRegs[i];
@@ -990,7 +995,7 @@ function renderFrameLoop() {
       }
     }
 
-    const scopeData = new Float32Array(wasm.memory.buffer, wasm.wasm_get_scope_ptr(), 4 * 512);
+    const scopeData = tel.scopeData;
 
     const colors = ["#38e2ff", "#ff56b1", "#ffaa00"];
     const game = GAME_FILES.find((g) => g.id === state.activeGameId);
@@ -999,24 +1004,39 @@ function renderFrameLoop() {
     const activeLines = [];
 
     for (let v = 0; v < 3; v++) {
-      const freq = wasm.wasm_get_voice_freq(v);
-      const pw = wasm.wasm_get_voice_pw(v);
-      const ctrl = wasm.wasm_get_voice_control(v);
-      const env = wasm.wasm_get_voice_env(v);
+      const voice = tel.voices[v];
+      const freq = voice.freq;
+      const pw = voice.pw;
+      const ctrl = voice.ctrl;
+      const env = voice.env;
       const ad = sidRegs[v * 7 + 5];
       const sr = sidRegs[v * 7 + 6];
 
       const vDom = d.voices[v];
-      if (vDom.note) vDom.note.textContent = sidFreqToNoteString(freq);
-      if (vDom.wf) vDom.wf.textContent = decodeControlWaveforms(ctrl);
-      if (vDom.pw) {
-        vDom.pw.textContent = "$" + pw.toString(16).toUpperCase().padStart(3, "0");
+      const noteStr = sidFreqToNoteString(freq);
+      if (vDom.note && lastVoiceText[v].note !== noteStr) {
+        lastVoiceText[v].note = noteStr;
+        vDom.note.textContent = noteStr;
       }
-      if (vDom.adsr) {
-        vDom.adsr.textContent = `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
+      const wfStr = decodeControlWaveforms(ctrl);
+      if (vDom.wf && lastVoiceText[v].wf !== wfStr) {
+        lastVoiceText[v].wf = wfStr;
+        vDom.wf.textContent = wfStr;
       }
-      if (vDom.env) {
-        vDom.env.textContent = env.toString(16).toUpperCase().padStart(2, "0");
+      const pwStr = `$${pw.toString(16).toUpperCase().padStart(3, "0")}`;
+      if (vDom.pw && lastVoiceText[v].pw !== pwStr) {
+        lastVoiceText[v].pw = pwStr;
+        vDom.pw.textContent = pwStr;
+      }
+      const adsrStr = `${ad.toString(16).toUpperCase().padStart(2, "0")}/${sr.toString(16).toUpperCase().padStart(2, "0")}`;
+      if (vDom.adsr && lastVoiceText[v].adsr !== adsrStr) {
+        lastVoiceText[v].adsr = adsrStr;
+        vDom.adsr.textContent = adsrStr;
+      }
+      const envStr = env.toString(16).toUpperCase().padStart(2, "0");
+      if (vDom.env && lastVoiceText[v].env !== envStr) {
+        lastVoiceText[v].env = envStr;
+        vDom.env.textContent = envStr;
       }
 
       if (isMonitorVisible) {
@@ -1032,8 +1052,10 @@ function renderFrameLoop() {
       if (symSource && pcSyms[v] && symSource.symbols[pcSyms[v]] !== undefined) {
         const zpAddr = symSource.symbols[pcSyms[v]];
         const seqPtr = ram[zpAddr] | (ram[zpAddr + 1] << 8);
-        if (vDom.pc) {
-          vDom.pc.textContent = `PC${v}: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+        const pcText = `PC${v}: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+        if (vDom.pc && lastVoiceText[v].pc !== pcText) {
+          lastVoiceText[v].pc = pcText;
+          vDom.pc.textContent = pcText;
         }
         if (currentAsm) {
           const lineNo = findNearestSourceLine(currentAsm, seqPtr);
@@ -1045,30 +1067,47 @@ function renderFrameLoop() {
       }
     }
 
-    const fc = wasm.wasm_get_filter_fc();
-    const res = wasm.wasm_get_filter_res();
-    const rout = wasm.wasm_get_filter_routing();
-    const mode = wasm.wasm_get_filter_mode();
-    const vol = wasm.wasm_get_master_vol();
+    const flt = tel.filter;
+    const fc = flt.fc;
+    const res = flt.res;
+    const rout = flt.rout;
+    const mode = flt.mode;
+    const vol = flt.vol;
 
     const modeTags = [];
     if (mode & 0x10) modeTags.push("LP");
     if (mode & 0x20) modeTags.push("BP");
     if (mode & 0x40) modeTags.push("HP");
     if (mode & 0x80) modeTags.push("3OFF");
-    if (d.fltMode) d.fltMode.textContent = modeTags.length ? modeTags.join("+") : "BYPASS";
+    const modeStr = modeTags.length ? modeTags.join("+") : "BYPASS";
+    if (d.fltMode && lastFilterText.mode !== modeStr) {
+      lastFilterText.mode = modeStr;
+      d.fltMode.textContent = modeStr;
+    }
 
     const cutoffHz = Math.round(30 + (fc / 2047) * 10000);
-    if (d.fltFc) {
-      d.fltFc.textContent = `$${fc.toString(16).toUpperCase().padStart(3, "0")} (${cutoffHz}Hz)`;
+    const fcStr = `$${fc.toString(16).toUpperCase().padStart(3, "0")} (${cutoffHz}Hz)`;
+    if (d.fltFc && lastFilterText.fc !== fcStr) {
+      lastFilterText.fc = fcStr;
+      d.fltFc.textContent = fcStr;
     }
-    if (d.fltRes) d.fltRes.textContent = res;
+    if (d.fltRes && lastFilterText.res !== res) {
+      lastFilterText.res = res;
+      d.fltRes.textContent = res;
+    }
 
-    const routStr = [rout & 1 ? "V1" : "", rout & 2 ? "V2" : "", rout & 4 ? "V3" : ""]
-      .filter(Boolean)
-      .join("+");
-    if (d.fltRout) d.fltRout.textContent = routStr || "NONE";
-    if (d.fltVol) d.fltVol.textContent = vol;
+    const routStr =
+      [rout & 1 ? "V1" : "", rout & 2 ? "V2" : "", rout & 4 ? "V3" : ""]
+        .filter(Boolean)
+        .join("+") || "NONE";
+    if (d.fltRout && lastFilterText.rout !== routStr) {
+      lastFilterText.rout = routStr;
+      d.fltRout.textContent = routStr;
+    }
+    if (d.fltVol && lastFilterText.vol !== vol) {
+      lastFilterText.vol = vol;
+      d.fltVol.textContent = vol;
+    }
 
     const isFltActive = vol > 0 && rout > 0;
     if (d.fltGrp) {
@@ -1101,8 +1140,10 @@ function renderFrameLoop() {
           ? drumAsm.symbols.seqPC
           : 0x50;
       const seqPtr = ram[seqSymAddr] | (ram[seqSymAddr + 1] << 8);
-      if (d.seqPc) {
-        d.seqPc.textContent = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+      const drumText = `DRUM: $${seqPtr.toString(16).toUpperCase().padStart(4, "0")}`;
+      if (d.seqPc && lastTelemetryText.seqPc !== drumText) {
+        lastTelemetryText.seqPc = drumText;
+        d.seqPc.textContent = drumText;
       }
       if (currentAsm && (state.activeGameId === "gameover.asm" || currentFile === "arkadrum.asm")) {
         const lineNo = findNearestSourceLine(currentAsm, seqPtr);
@@ -1111,7 +1152,8 @@ function renderFrameLoop() {
           activeLines.push({ lineNo, cls: "pc-seq" });
         }
       }
-    } else if (d.seqPc) {
+    } else if (d.seqPc && lastTelemetryText.seqPc !== "DRUM: ----") {
+      lastTelemetryText.seqPc = "DRUM: ----";
       d.seqPc.textContent = "DRUM: ----";
     }
 

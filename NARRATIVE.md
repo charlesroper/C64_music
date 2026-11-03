@@ -187,7 +187,7 @@ The filter is a 2x-oversampled Chamberlin state-variable design. The output stag
 
 ### Browser audio (`src/player_engine.js`)
 
-The player picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tells the emulator. On phones, it unlocks audio inside the first tap, because browsers block sound otherwise. It also keeps the Web Audio processing node fed with a silent looping buffer, which some WebKit browsers need to keep running.
+The player picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tells the emulator. On phones, it unlocks audio inside the first tap, because browsers block sound otherwise. It also keeps the Web Audio processing node fed with a silent looping buffer, which some WebKit browsers need to keep running. Hardware telemetry, SID registers, voice states and screen RAM are packaged into a reusable telemetry snapshot, so the rendering loop never touches emulator internals directly.
 
 ### Interface
 
@@ -235,8 +235,9 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 27 automated checks across four test files:
+`npm test` runs 28 automated checks across four test files:
 
+* **Telemetry snapshot encapsulation.** Engine state (cycles, PC, SID registers, voices, filter, scope buffers and screen RAM) returns as a reusable, pre-allocated snapshot from `player.getTelemetry()`, eliminating per-frame allocations and hiding the WebAssembly C ABI from the presentation layer.
 * **Shared browser test harness.** A unified test harness (`tests/helpers/browser_harness.mjs`) parses authentic markup, throws on missing element identifiers to prevent silent fake drift, and manages strict WebKit audio and animation frames across UI test suites.
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.

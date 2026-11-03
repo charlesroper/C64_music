@@ -305,3 +305,48 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
   const keys = wiz.tracks.map((t) => t.key).sort();
   assert.deepEqual(keys, ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]);
 });
+
+test("player engine encapsulates telemetry snapshot, reuses buffers, and removes wasm from interface", async () => {
+  const mod = await WebAssembly.compile(wasmBytes);
+  const instance = await WebAssembly.instantiate(mod, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+  });
+
+  // 1. player.wasm is hidden
+  assert.equal(player.wasm, undefined, "player.wasm must not be exposed on the public interface");
+
+  // 2. getTelemetry returns pre-allocated snapshot structure
+  const snap1 = player.getTelemetry();
+  assert.ok(snap1, "Expected telemetry snapshot");
+  assert.equal(typeof snap1.frameCount, "number");
+  assert.equal(typeof snap1.cpuPc, "number");
+  assert.equal(typeof snap1.d418, "number");
+  assert.ok(snap1.sidRegs instanceof Uint8Array);
+  assert.equal(snap1.sidRegs.length, 32);
+  assert.ok(snap1.scopeData instanceof Float32Array);
+  assert.equal(snap1.scopeData.length, 2048);
+  assert.ok(snap1.scanlineBorder instanceof Uint8Array);
+  assert.equal(snap1.scanlineBorder.length, 312);
+  assert.ok(snap1.ram instanceof Uint8Array);
+  assert.equal(snap1.ram.length, 65536);
+  assert.equal(snap1.voices.length, 3);
+  assert.equal(typeof snap1.filter.fc, "number");
+  assert.equal(typeof snap1.filter.vol, "number");
+
+  // 3. Buffer and snapshot reuse (zero per-frame allocations)
+  const snap2 = player.getTelemetry();
+  assert.equal(snap1, snap2, "getTelemetry must return the same reusable snapshot instance");
+  assert.equal(snap1.sidRegs, snap2.sidRegs, "sidRegs buffer must be reused");
+  assert.equal(snap1.scopeData, snap2.scopeData, "scopeData buffer must be reused");
+  assert.equal(snap1.scanlineBorder, snap2.scanlineBorder, "scanlineBorder buffer must be reused");
+  assert.equal(snap1.ram, snap2.ram, "ram view buffer must be reused");
+
+  // 4. Switching to rambload updates morseIndex and live screen RAM
+  player.selectTrack("rambload.asm", "rambo-loader");
+  const snapRambo = player.getTelemetry();
+  assert.ok(snapRambo.morseIndex >= 0, "rambload track must populate morseIndex");
+  assert.equal(snapRambo.ram[0x0400 + 1 * 40 + 2], "R".charCodeAt(0));
+});
