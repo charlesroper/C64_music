@@ -235,7 +235,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 46 automated checks across five test files:
+`npm test` runs 47 automated checks across five test files:
 
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
@@ -246,7 +246,7 @@ Martin Galway uploaded his original assembly files to GitHub in early 2026. In O
 * **Track session descriptors.** Calling `player.selectTrack()` yields a structured `TrackSession` descriptor defining the active game, tune, primary source file, drum sequencer availability and Morse banner states, removing all game identifier branching from the presentation layer.
 * **Game loader adapters.** A dispatch table of named loader adapters (`GAME_LOADERS`) encapsulates hardware initialization, zero-page word writes, custom raster setup and entry-point jumps across all six games, verified by asserting CPU states and cycle budgets.
 * **Lazy assembly and cached HTML.** Sources assemble on demand per game rather than all six eagerly on boot, reducing initial assembly time by 85.5% (from 386.5 ms to 56.2 ms), while rendered source viewer HTML is cached per file and reused across switches.
-* **Assembly status badges.** Panel 1 displays a status badge for each game card showing ASM... while compilation runs and updating reactively to READY once assembled.
+* **Assembly status badges.** Panel 1 displays a status badge for each game card showing ASM... while compilation runs and updating reactively to READY once assembled, while the section header tracks compilation progress (ASSEMBLING X/6) before flipping to ASSEMBLED OK.
 * **Telemetry snapshot encapsulation.** Engine state (cycles, PC, SID registers, voices, filter, scope buffers and screen RAM) returns as a reusable, pre-allocated snapshot from `player.getTelemetry()`, eliminating per-frame allocations and hiding the WebAssembly C ABI from the presentation layer.
 * **Shared browser test harness.** A unified test harness (`tests/helpers/browser_harness.mjs`) parses authentic markup, throws on missing element identifiers to prevent silent fake drift, and manages strict WebKit audio and animation frames across UI test suites.
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
@@ -409,3 +409,16 @@ A retrospective review showed we had treated symptoms with transitional muting r
 4. **Native CSS Content Visibility**: Applied `content-visibility: auto; contain-intrinsic-size: 18px;` to `.asm-line` in `src/styles.css`, allowing the browser engine to skip off-screen layout without JavaScript DOM thrashing during fast 16th-note leaps.
 
 Automated suite coverage expanded to 46 checks across five files, verified by asserting immediate unmuted sample-zero audio in `tests/player_audio_and_pitch.test.mjs` and reactive badge updates in `tests/spa_boot_and_play.test.mjs`.
+
+### 4 November 2026: reactive assembly progress badge in Panel 1
+
+With background compilation moved off the main thread, the Panel 1 header badge (`#asm-compile-badge`) still hardcoded a static green `ASSEMBLED OK` from initial markup, misleading users while background tasks were still queued ([Issue #31](https://github.com/charlesroper/C64_music/issues/31)).
+
+To reflect reality:
+* The header badge initializes in an orange pending state (`.panel-badge.pending`) with text `ASSEMBLING...`.
+* `src/workbench_view.js` dynamically tallies compiled files against the catalog total, updating the header badge to `ASSEMBLING X/6` on every worker completion event.
+* Once all six games finish compiling, the badge clears the pending state and switches to green `ASSEMBLED OK`.
+* If a user triggers a syntax error in the source code editor, the badge reflects `ERROR: <msg>` in red (`.panel-badge.error`), restoring `HOT-RELOADED OK` on successful assembly.
+
+Automated coverage in `tests/spa_boot_and_play.test.mjs` expanded the test suite to 47 checks across five files.
+

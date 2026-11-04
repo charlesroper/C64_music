@@ -413,6 +413,19 @@ button.active {
   background: rgba(69, 240, 139, 0.14);
   color: var(--accent-green);
   border: 1px solid rgba(69, 240, 139, 0.35);
+  transition: all 0.15s ease;
+}
+
+.panel-badge.pending {
+  background: rgba(255, 170, 0, 0.15);
+  color: var(--accent-orange);
+  border: 1px solid rgba(255, 170, 0, 0.4);
+}
+
+.panel-badge.error {
+  background: rgba(255, 60, 60, 0.15);
+  color: #ff5555;
+  border: 1px solid rgba(255, 60, 60, 0.4);
 }
 
 /* ==================== LEFT PANEL: GAMES & TRACKS ==================== */

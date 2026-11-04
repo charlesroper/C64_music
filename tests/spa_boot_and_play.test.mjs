@@ -1124,3 +1124,58 @@ test("Panel 1 game list displays assembly status badges that update reactively w
     harness.restoreGlobals();
   }
 });
+
+test("Panel 1 header badge reflects background assembly progress and flips to ASSEMBLED OK when all complete", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const fakePlayer = createFakePlayer();
+  let assembleListener = null;
+  fakePlayer.onAssembled = (fn) => {
+    assembleListener = fn;
+    return () => {};
+  };
+
+  // Initially only wizball.asm is assembled
+  const assembledStatus = { "wizball.asm": true };
+  fakePlayer.isAssembled = (id) => Boolean(assembledStatus[id]);
+
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player: fakePlayer,
+  });
+
+  try {
+    const headerBadge = harness.elementsById.get("asm-compile-badge");
+    assert.ok(headerBadge, "asm-compile-badge must exist");
+
+    // Initially 1 of 6 assembled -> shows pending state with count
+    assert.equal(headerBadge.textContent, "ASSEMBLING 1/6");
+    assert.ok(
+      headerBadge.classList.contains("pending"),
+      "Badge should have pending class while assembling",
+    );
+
+    // Simulate second game assembling
+    assembledStatus["arkanoid.asm"] = true;
+    if (assembleListener) assembleListener("arkanoid.asm");
+    assert.equal(headerBadge.textContent, "ASSEMBLING 2/6");
+    assert.ok(headerBadge.classList.contains("pending"));
+
+    // Simulate all games assembling
+    const allFiles = ["arkadrum.asm", "gameover.asm", "greenberet.asm", "rambload.asm"];
+    for (const f of allFiles) {
+      assembledStatus[f] = true;
+      if (assembleListener) assembleListener(f);
+    }
+
+    // Now 6/6 assembled -> flips to green ASSEMBLED OK
+    assert.equal(headerBadge.textContent, "ASSEMBLED OK");
+    assert.ok(
+      !headerBadge.classList.contains("pending"),
+      "Pending class should be removed when all assembled",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});

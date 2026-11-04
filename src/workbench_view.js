@@ -1330,6 +1330,32 @@ export function createWorkbenchView({
     selectGameAndTrack(game.id, game.tracks[nextIdx].id, true);
   }
 
+  function updateGlobalAsmBadge() {
+    const badge = getEl("asm-compile-badge");
+    if (!badge || state.isEditingSource) return;
+    const allCount = GAME_FILES.length;
+    let assembledCount = 0;
+    if (state.player && typeof state.player.isAssembled === "function") {
+      for (const game of GAME_FILES) {
+        if (state.player.isAssembled(game.id)) {
+          assembledCount++;
+        }
+      }
+    }
+    if (assembledCount >= allCount) {
+      badge.textContent = "ASSEMBLED OK";
+      if (badge.classList) {
+        badge.classList.remove("pending", "error");
+      }
+    } else {
+      badge.textContent = `ASSEMBLING ${assembledCount}/${allCount}`;
+      if (badge.classList) {
+        badge.classList.add("pending");
+        badge.classList.remove("error");
+      }
+    }
+  }
+
   function updateAsmBadges(gameId) {
     const container = getEl("game-list");
     if (!container) return;
@@ -1358,6 +1384,7 @@ export function createWorkbenchView({
         }
       }
     }
+    updateGlobalAsmBadge();
   }
 
   let playerUnsub = null;
@@ -1379,6 +1406,7 @@ export function createWorkbenchView({
     setupPlayerAssemblyListener(newPlayer);
     updateDrmChipState();
     renderGameList();
+    updateGlobalAsmBadge();
   }
 
   function setAssets(newAssets) {
@@ -1710,6 +1738,10 @@ export function createWorkbenchView({
           const badge = getEl("asm-compile-badge");
           if (badge) {
             badge.textContent = `ERROR: ${err.message || String(err)}`;
+            if (badge.classList) {
+              badge.classList.add("error");
+              badge.classList.remove("pending");
+            }
           }
           return;
         }
@@ -1718,6 +1750,9 @@ export function createWorkbenchView({
         const badge = getEl("asm-compile-badge");
         if (badge) {
           badge.textContent = "HOT-RELOADED OK";
+          if (badge.classList) {
+            badge.classList.remove("pending", "error");
+          }
         }
 
         state.isEditingSource = false;
@@ -1842,6 +1877,7 @@ export function createWorkbenchView({
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
   updateDrmChipState();
+  updateGlobalAsmBadge();
 
   if (state.directivesText) {
     const dirPre = getEl("directives-pre");
