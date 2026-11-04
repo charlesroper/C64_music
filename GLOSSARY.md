@@ -32,6 +32,18 @@ _Avoid_: Line lookup table, symbol resolver
 The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused or the document is backgrounded, while capping unthrottled display refresh at 60 Hz.
 _Avoid_: Tick stopper, frame skipper
 
+**Assembly Status Badge**:
+A visual status indicator on each game card in Panel 1 reflecting whether its 6502 assembly source file is pending compilation (`ASM...`) or ready for instant switching and playback (`READY`).
+_Avoid_: Compile spinner, build chip
+
+**Assembly Worker**:
+A dedicated background Web Worker that compiles Martin Galway's 6502 assembly sources off the main UI thread at startup, posting pre-assembled memory buffers and symbol maps back to the player engine without competing with audio processing or user interactions.
+_Avoid_: Compiler thread, background process
+
+**Immediate Track Start**:
+The guarantee that switching tracks or games loads emulator memory and begins audible playback from sample 0 of beat 1 without transitional muting delays, animation frame stalls, or skipped opening bars.
+_Avoid_: Instant play, hot switch
+
 **Seam**:
 A place where program behaviour can be altered without editing code in that place (from Michael Feathers). In this repository, it is the interface location where two modules meet, such as `createWorkbenchView` accepting a player implementation so automated UI test suites can drive presentation using `createFakePlayer` without compiling WebAssembly or initializing Web Audio.
 _Avoid_: Boundary, abstraction layer, hook
