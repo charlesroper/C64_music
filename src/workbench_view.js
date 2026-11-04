@@ -1435,10 +1435,10 @@ export function createWorkbenchView({
     const btnPlay = getEl("btn-play");
     if (btnPlay) {
       addListener(btnPlay, "click", () => {
+        if (onFirstInteraction) {
+          onFirstInteraction();
+        }
         if (!state.player) {
-          if (onFirstInteraction) {
-            onFirstInteraction();
-          }
           state.pendingPlayOnBoot = !state.pendingPlayOnBoot;
           const playLabel = getEl("play-label");
           if (playLabel) {

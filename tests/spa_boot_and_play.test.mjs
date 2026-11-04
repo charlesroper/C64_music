@@ -1179,3 +1179,21 @@ test("Panel 1 header badge reflects background assembly progress and flips to AS
     harness.restoreGlobals();
   }
 });
+
+test("initial boot populates full C64 monitor screen RAM rather than truncated placeholder", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const { player, view } = await bootWorkbench();
+    const tel = player.getTelemetry();
+    const ram = tel.ram;
+    let nonSpace = 0;
+    for (let i = 0; i < 1000; i++) {
+      if (ram[0x0400 + i] !== 0x20 && ram[0x0400 + i] !== 0) nonSpace++;
+    }
+    // Wizball title screen renders 235 non-space characters across rows, not just 2 chars
+    assert.ok(nonSpace > 100, `Expected full screen render (>100 chars), got ${nonSpace}`);
+    view.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+});

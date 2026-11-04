@@ -235,7 +235,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 47 automated checks across five test files:
+`npm test` runs 48 automated checks across five test files:
 
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
@@ -421,4 +421,16 @@ To reflect reality:
 * If a user triggers a syntax error in the source code editor, the badge reflects `ERROR: <msg>` in red (`.panel-badge.error`), restoring `HOT-RELOADED OK` on successful assembly.
 
 Automated coverage in `tests/spa_boot_and_play.test.mjs` expanded the test suite to 47 checks across five files.
+
+### 4 November 2026: restoring complete boot screen rendering and instant play
+
+Testing on mobile devices uncovered two boot lifecycle defects:
+1. On initial load, clicking the Play button did not start audio until a game in the catalog was tapped.
+2. The live C64 monitor initialized to `@@-@@-@@` with the rest of the display missing.
+
+Investigation revealed:
+* When paused on initial boot, `selectTrack` scaled down audio rendering to 128 samples (2.6 milliseconds). While intended to avoid lag, 2.6 ms was only enough time for Galway's `InitScreen` to clear RAM and write the 8-character `TIMER` equate (`@@-@@-@@`). Martin Galway's title screen rendering routine (`DREFRESH`) runs inside `DLoop` across multiple raster frame synchronization points (`WAITCLOCK00`), requiring approximately 2,048 samples (~42 ms) to finish drawing title banners, equates, and borders. Raising paused initialization to 2,048 samples and draining the audio buffers populates all 235 screen characters immediately.
+* On initial tap on `#btn-play`, `audioCtx.state` was suspended while waking up on Android OS audio hardware. Scheduling a 5 ms `linearRampToValueAtTime` while `audioCtx` was suspended meant the ramp target time expired before the audio driver finished resuming, leaving `masterGain` stuck at 0.0. Replacing the scheduled ramp with a direct gain assignment to 1.0 and ensuring `resume()` handles unmuting restores instant sound on the first user tap.
+
+Automated coverage in `tests/spa_boot_and_play.test.mjs` expanded the test suite to 48 checks across five files.
 

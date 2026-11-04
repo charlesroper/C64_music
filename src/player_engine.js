@@ -547,7 +547,14 @@ export function createWorkbenchPlayer({
     }
 
     if (state.audioCtx && state.audioCtx.state !== "running") {
-      state.audioCtx.resume();
+      state.audioCtx
+        .resume()
+        .then(() => {
+          if (state.isPlaying && state.masterGain) {
+            state.masterGain.gain.value = 1;
+          }
+        })
+        .catch(() => {});
     }
   }
 
@@ -565,8 +572,14 @@ export function createWorkbenchPlayer({
       play();
     } else {
       muteMasterGain();
-      // Populate initial C64 screen RAM while paused
-      wasm.wasm_render_audio(128);
+      // Populate initial C64 screen RAM while paused (needs ~2048 samples for DREFRESH raster frames)
+      wasm.wasm_render_audio(2048);
+      if (wasm && typeof wasm.wasm_get_audio_l_ptr === "function") {
+        const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), bufferSize);
+        const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), bufferSize);
+        wasmL.fill(0);
+        wasmR.fill(0);
+      }
     }
     const session = buildSessionDescriptor(game, track);
     state.currentSession = session;
@@ -576,19 +589,16 @@ export function createWorkbenchPlayer({
   function play() {
     ensureAudio();
     state.isPlaying = true;
-    if (state.masterGain && state.audioCtx) {
-      try {
-        const now = state.audioCtx.currentTime;
-        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
-          state.masterGain.gain.cancelScheduledValues(now);
-          state.masterGain.gain.setValueAtTime(state.masterGain.gain.value, now);
-          state.masterGain.gain.linearRampToValueAtTime(1, now + 0.005);
-        } else {
-          state.masterGain.gain.value = 1;
-        }
-      } catch (_) {
-        state.masterGain.gain.value = 1;
+    if (state.masterGain) {
+      if (state.audioCtx) {
+        try {
+          const now = state.audioCtx.currentTime;
+          if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+            state.masterGain.gain.cancelScheduledValues(now);
+          }
+        } catch (_) {}
       }
+      state.masterGain.gain.value = 1;
     }
   }
 
