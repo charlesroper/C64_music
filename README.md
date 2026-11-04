@@ -90,7 +90,7 @@ Run the test suite from the repository root:
 npm test
 ```
 
-`npm test` first runs `biome check --write .`, applying Biome's formatter and safe lint fixes across the repository, then executes the checks. Formatting drift is corrected on every test run, so the working tree stays consistently rendered without a separate command.
+`npm test` first runs `biome format --write .`, applying Biome's formatter across the repository, then executes the checks. Formatting drift is corrected on every test run, so the working tree stays consistently rendered without a separate command. Safe lint fixes remain the job of `npm run format` and the deploy gate.
 
 The test runner executes 45 automated checks across five test files:
 * `tests/repo_rules.test.mjs`: Enforces repository integrity rules: blocks CalVer downgrades from clock-skewed machines in version calculation (`scripts/bump_version.mjs`), verifies clean working tree and remote configuration preflight guards in deployment automation (`scripts/deploy.mjs`), guarantees zero literal em-dash characters (Unicode U+2014) across all tracked prose and code, confirms SHA-256 cryptographic authenticity of frozen historical Ocean assembly sources and directives, validates automated test count synchronization across documentation, and asserts four-file CalVer synchronization across `package.json`, `package-lock.json`, `index.html`, and `src/version.js`.

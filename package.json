@@ -6,7 +6,7 @@
   "type": "module",
   "description": "Galway 2664: WebAssembly MOS 6510 + 6581/8580 SID emulator and live 1987 Ocean Software 6502 cross-assembler",
   "scripts": {
-    "test": "biome check --write . && node --test tests/*.test.mjs",
+    "test": "biome format --write . && node --test tests/*.test.mjs",
     "lint": "biome check .",
     "format": "biome check --write .",
     "bump": "node scripts/bump_version.mjs",
