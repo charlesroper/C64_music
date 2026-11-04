@@ -558,8 +558,8 @@ export function createWorkbenchView({
         <span class="game-item-file">${game.id}</span>
       </div>
       <div class="game-item-badges">
-        <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${game.id}">${isAssembled ? "READY" : "ASM..."}</span>
         <span class="game-item-badge">${game.badge}</span>
+        <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${game.id}">${isAssembled ? "READY" : "ASM..."}</span>
       </div>
     `;
   }
