@@ -1098,7 +1098,6 @@ test("Panel 1 game list displays assembly status badges that update reactively w
   });
 
   try {
-    view.renderGameList();
     const gameList = harness.elementsById.get("game-list");
     assert.ok(gameList, "game-list container must exist");
     const wizItem = gameList.children.find((c) => c.innerHTML?.includes("wizball.asm"));
@@ -1116,10 +1115,9 @@ test("Panel 1 game list displays assembly status badges that update reactively w
     assembledStatus["gameover.asm"] = true;
     if (assembleListener) assembleListener("gameover.asm");
 
-    view.renderGameList();
     assert.ok(
       goItem.innerHTML.includes("READY"),
-      "Game Over badge must update to READY once assembled",
+      "Game Over badge must update to READY once assembled reactively",
     );
   } finally {
     view.destroy();

@@ -689,6 +689,15 @@ export function createFakePlayer(options = {}) {
   let currentSession = buildSessionDescriptor(activeGame, activeTrack);
   const sources = { ...options.sources };
   const assembled = new Map(Object.entries(options.assembled || {}));
+  const assembledListeners = new Set();
+
+  function notifyAssembled(file, asm) {
+    for (const listener of assembledListeners) {
+      try {
+        listener(file, asm);
+      } catch (_) {}
+    }
+  }
 
   function getOrAssemble(file) {
     if (assembled.has(file)) return assembled.get(file);
@@ -698,6 +707,7 @@ export function createFakePlayer(options = {}) {
       sources[file] = src;
       const asm = assembleOceanSource(src, { fileName: file });
       assembled.set(file, asm);
+      notifyAssembled(file, asm);
       return asm;
     }
     return null;
@@ -812,6 +822,16 @@ export function createFakePlayer(options = {}) {
     },
     setHardwareOptions(opts) {
       Object.assign(state, opts);
+    },
+    isAssembled(file) {
+      return assembled.has(file);
+    },
+    onAssembled(callback) {
+      if (typeof callback !== "function") return () => {};
+      assembledListeners.add(callback);
+      return () => {
+        assembledListeners.delete(callback);
+      };
     },
     preassembleRemaining() {},
     injectKey(code) {

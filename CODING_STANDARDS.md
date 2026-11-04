@@ -52,8 +52,8 @@ The system follows John Ousterhout's philosophy of deep modules: small, simple i
 **Rule 4.2 (Telemetry Change Guards)**:
 * Presentation updates must check previous values before modifying DOM elements, hexadecimal register cells, voice classes, or dataset attributes. Redundant identical writes must be zero.
 * Morse code subtitle strings must only re-render when the decoded character index advances.
-**Rule 4.3 (Lazy Assembly and Cache Reuse)**:
-* Historical assembly files must assemble lazily on demand when a game is selected, not eagerly on boot.
+**Rule 4.3 (Assembly Worker, Lazy Fallback, and Cache Reuse)**:
+* Historical assembly files compile in the background off the main UI thread via a dedicated Web Worker at startup, with lazy on-demand fallback when a game is selected before background compilation finishes. Compilation must never block audio processing or user interactions on the UI thread.
 * Formatted source viewer HTML must be cached per file to eliminate redundant tokenization when switching back and forth between games.
 **Rule 4.4 (Zero Allocation Telemetry)**:
 * Engine telemetry snapshots (`player.getTelemetry()`) must populate a pre-allocated object and reuse typed array buffers to prevent garbage collection pauses during live audio synthesis.

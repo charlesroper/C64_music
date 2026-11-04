@@ -483,7 +483,8 @@ button.active {
   border-radius: 3px;
   white-space: nowrap;
   letter-spacing: 0.5px;
-  min-width: 38px;
+  width: 40px;
+  box-sizing: border-box;
   text-align: center;
 }
 

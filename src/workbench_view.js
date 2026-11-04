@@ -551,6 +551,19 @@ export function createWorkbenchView({
     `;
   }
 
+  function buildGameItemHtml(game, isAssembled) {
+    return `
+      <div class="game-item-left">
+        <span class="game-item-title">${game.title} (${game.year})</span>
+        <span class="game-item-file">${game.id}</span>
+      </div>
+      <div class="game-item-badges">
+        <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${game.id}">${isAssembled ? "READY" : "ASM..."}</span>
+        <span class="game-item-badge">${game.badge}</span>
+      </div>
+    `;
+  }
+
   function renderGameList() {
     const container = getEl("game-list");
     if (!container) return;
@@ -578,16 +591,7 @@ export function createWorkbenchView({
           typeof item.innerHTML === "string" &&
           item.innerHTML.includes("asm-status-badge")
         ) {
-          item.innerHTML = `
-        <div class="game-item-left">
-          <span class="game-item-title">${GAME_FILES[i].title} (${GAME_FILES[i].year})</span>
-          <span class="game-item-file">${GAME_FILES[i].id}</span>
-        </div>
-        <div class="game-item-badges">
-          <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${GAME_FILES[i].id}">${isAssembled ? "READY" : "ASM..."}</span>
-          <span class="game-item-badge">${GAME_FILES[i].badge}</span>
-        </div>
-      `;
+          item.innerHTML = buildGameItemHtml(GAME_FILES[i], isAssembled);
         }
       }
       return;
@@ -599,16 +603,7 @@ export function createWorkbenchView({
       const isAssembled = state.player ? Boolean(state.player.isAssembled?.(game.id)) : false;
       const div = doc.createElement("div");
       div.className = `game-item${game.id === state.activeGameId ? " active" : ""}`;
-      div.innerHTML = `
-        <div class="game-item-left">
-          <span class="game-item-title">${game.title} (${game.year})</span>
-          <span class="game-item-file">${game.id}</span>
-        </div>
-        <div class="game-item-badges">
-          <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${game.id}">${isAssembled ? "READY" : "ASM..."}</span>
-          <span class="game-item-badge">${game.badge}</span>
-        </div>
-      `;
+      div.innerHTML = buildGameItemHtml(game, isAssembled);
       div.addEventListener("click", () => {
         selectGameAndTrack(game.id, game.tracks[0].id, true);
       });
@@ -1336,15 +1331,33 @@ export function createWorkbenchView({
   }
 
   function updateAsmBadges(gameId) {
-    if (!doc) return;
-    const badges = doc.querySelectorAll ? doc.querySelectorAll(`[data-asm-game="${gameId}"]`) : [];
-    badges.forEach((b) => {
-      if (b.classList) {
-        b.classList.remove("pending");
-        b.classList.add("ready");
+    const container = getEl("game-list");
+    if (!container) return;
+    const badges = container.querySelectorAll
+      ? container.querySelectorAll(`[data-asm-game="${gameId}"]`)
+      : doc?.querySelectorAll
+        ? doc.querySelectorAll(`[data-asm-game="${gameId}"]`)
+        : [];
+    if (badges.length > 0) {
+      badges.forEach((b) => {
+        if (b.classList) {
+          b.classList.remove("pending");
+          b.classList.add("ready");
+        }
+        b.textContent = "READY";
+      });
+    } else if (container.children) {
+      for (const item of container.children) {
+        if (
+          typeof item.innerHTML === "string" &&
+          item.innerHTML.includes(`data-asm-game="${gameId}"`)
+        ) {
+          item.innerHTML = item.innerHTML
+            .replace(/asm-status-badge\s+pending/, "asm-status-badge ready")
+            .replace(/>ASM\.\.\.<\/span>/, ">READY</span>");
+        }
       }
-      b.textContent = "READY";
-    });
+    }
   }
 
   let playerUnsub = null;
@@ -1947,7 +1960,6 @@ export function createWorkbenchView({
   return {
     state,
     elements: registry,
-    renderGameList,
     renderSession,
     renderTelemetry,
     renderSource,
