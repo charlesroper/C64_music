@@ -31,6 +31,7 @@ for (const name of [
 function makeFakeAudioContext(sampleRate = 48000) {
   return () => ({
     sampleRate,
+    currentTime: 1.0,
     state: "suspended",
     destination: {},
     resume() {
@@ -48,6 +49,27 @@ function makeFakeAudioContext(sampleRate = 48000) {
       connect() {},
       start() {},
     }),
+    createGain: () => {
+      const events = [];
+      return {
+        gain: {
+          value: 1,
+          events,
+          cancelScheduledValues(t) {
+            events.push({ type: "cancel", time: t });
+          },
+          setValueAtTime(v, t) {
+            this.value = v;
+            events.push({ type: "set", value: v, time: t });
+          },
+          linearRampToValueAtTime(v, t) {
+            this.value = v;
+            events.push({ type: "ramp", value: v, time: t });
+          },
+        },
+        connect() {},
+      };
+    },
     createScriptProcessor: (bufferSize, inCh, outCh) => ({
       bufferSize,
       inCh,
@@ -189,14 +211,39 @@ test("pause and channel mute controls silence output deterministically", async (
   for (let i = 0; i < 6; i++) player.pullAudioBlock(outL, outR);
 
   player.pause();
+  assert.equal(
+    player.getState().masterGain.gain.value,
+    0,
+    "pause() must immediately mute masterGain to silence queued ScriptProcessor buffers",
+  );
   outL.fill(1);
   outR.fill(1);
   player.pullAudioBlock(outL, outR);
   assert.equal(Math.max(...outL.map(Math.abs)), 0, "Paused player must output exact zero");
   assert.equal(Math.max(...outR.map(Math.abs)), 0, "Paused player must output exact zero");
 
-  // Resume and mute all 4 channels (V1, V2, V3, Digi = 0x0F)
+  // Resume and verify masterGain stays at 0 until pullAudioBlock runs with playbackTime
   player.play();
+  assert.equal(
+    player.getState().masterGain.gain.value,
+    0,
+    "play() must keep masterGain muted at 0 until pullAudioBlock fills the new buffer",
+  );
+  player.getState().masterGain.gain.events.length = 0;
+  player.pullAudioBlock(outL, outR, 1.085);
+  assert.equal(outL[0], 0, "First sample of fade-in block must start at 0");
+  assert.deepEqual(
+    player.getState().masterGain.gain.events,
+    [
+      { type: "cancel", time: 1.0 },
+      { type: "set", value: 0, time: 1.0 },
+      { type: "set", value: 0, time: 1.085 },
+      { type: "ramp", value: 1, time: 1.085 + 0.015 },
+    ],
+    "pullAudioBlock must hold masterGain at 0 until playbackTime and ramp to 1 over 15ms",
+  );
+
+  // Mute all 4 channels (V1, V2, V3, Digi = 0x0F)
   player.setHardwareOptions({ muteMask: 0x0f });
   player.pullAudioBlock(outL, outR);
   player.pullAudioBlock(outL, outR);

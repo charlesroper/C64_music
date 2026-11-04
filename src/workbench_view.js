@@ -183,7 +183,17 @@ export function createWorkbenchView({
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
   const registry = createDomRegistry(doc, elements);
-  const getEl = (id) => registry.get(id);
+  const getEl = (id) => {
+    if (typeof id === "string" && id.startsWith("asm-L")) {
+      const lineNo = Number.parseInt(id.slice(5), 10);
+      const cached = state.sourceRowCache.get(state.currentSourceFile);
+      if (cached?.rows && lineNo >= 1 && lineNo <= cached.rows.length) {
+        return cached.rows[lineNo - 1];
+      }
+      return doc ? doc.getElementById(id) : null;
+    }
+    return registry.get(id);
+  };
 
   const state = {
     player: player || null,
@@ -213,6 +223,7 @@ export function createWorkbenchView({
     prevHighlightedLines: [],
     sourceHtmlCache: new Map(),
     sourceRowCache: new Map(),
+    switchToken: 0,
   };
 
   if (typeof window !== "undefined") {
@@ -879,56 +890,75 @@ export function createWorkbenchView({
       statsEl.textContent = `${asm.rawLines.length} lines | ${Object.keys(asm.symbols).length} symbols`;
     }
 
-    const symSelect = getEl("select-symbol-jump");
-    if (symSelect) {
-      symSelect.innerHTML = `<option value="">Jump to Symbol / Label (${Object.keys(asm.symbols).length})...</option>`;
+    let cached = state.sourceRowCache.get(gameId);
+    if (!cached) {
+      let symHtml = `<option value="">Jump to Symbol / Label (${Object.keys(asm.symbols).length})...</option>`;
       const sortedSyms = Object.entries(asm.symbols)
         .filter(([k]) => !/^N\d\d$/.test(k))
         .sort((a, b) => a[0].localeCompare(b[0]));
 
       for (const [name, val] of sortedSyms) {
-        const opt = doc.createElement("option");
-        opt.value = name;
-        opt.textContent = `${name} ($${(val & 0xffff).toString(16).toUpperCase().padStart(4, "0")})`;
-        symSelect.appendChild(opt);
+        symHtml += `<option value="${escapeHtml(name)}">${escapeHtml(name)} ($${(val & 0xffff).toString(16).toUpperCase().padStart(4, "0")})</option>`;
       }
+
+      const rowHtmls = new Array(asm.rawLines.length);
+      const htmlParts = new Array(asm.rawLines.length);
+      for (let i = 0; i < asm.rawLines.length; i++) {
+        const lineNo = i + 1;
+        const addr = asm.lineAddresses[lineNo];
+        const addrHex =
+          addr !== undefined && addr >= 0
+            ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
+            : "";
+
+        const rowHtml = `<span class="ln-num">${lineNo}</span><span class="ln-addr">${addrHex}</span><span class="ln-code">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
+        rowHtmls[i] = rowHtml;
+        htmlParts[i] = `<div class="asm-line" id="asm-L${lineNo}">${rowHtml}</div>`;
+      }
+      const html = htmlParts.join("");
+
+      let rows = [];
+      if (doc && typeof doc.createElement === "function") {
+        const temp = doc.createElement("div");
+        temp.innerHTML = html;
+        if (temp.children && temp.children.length === asm.rawLines.length) {
+          rows = Array.from(temp.children);
+        } else {
+          for (let i = 0; i < asm.rawLines.length; i++) {
+            const lineNo = i + 1;
+            const row = doc.createElement("div");
+            row.className = "asm-line";
+            row.id = `asm-L${lineNo}`;
+            row.innerHTML = rowHtmls[i];
+            rows.push(row);
+          }
+        }
+      }
+
+      cached = { rows, html, symHtml };
+      state.sourceRowCache.set(gameId, cached);
+      state.sourceHtmlCache.set(gameId, html);
+    }
+
+    const symSelect = getEl("select-symbol-jump");
+    if (symSelect) {
+      symSelect.innerHTML = cached.symHtml;
     }
 
     const viewer = getEl("source-viewer");
     if (viewer) {
-      let cached = state.sourceRowCache.get(gameId);
-      if (!cached) {
-        const rows = [];
-        let html = "";
-        for (let i = 0; i < asm.rawLines.length; i++) {
-          const lineNo = i + 1;
-          const addr = asm.lineAddresses[lineNo];
-          const addrHex =
-            addr !== undefined && addr >= 0
-              ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
-              : "";
-
-          const rowHtml = `<span class="ln-num">${lineNo}</span><span class="ln-addr">${addrHex}</span><span class="ln-code">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
-          html += `<div class="asm-line" id="asm-L${lineNo}">${rowHtml}</div>`;
-
-          const row = doc.createElement("div");
-          row.className = "asm-line";
-          row.id = `asm-L${lineNo}`;
-          row.innerHTML = rowHtml;
-          rows.push(row);
+      if (typeof viewer.replaceChildren === "function") {
+        viewer.replaceChildren(...cached.rows);
+      } else {
+        viewer.innerHTML = "";
+        for (const r of cached.rows) {
+          viewer.appendChild(r);
         }
-        cached = { rows, html };
-        state.sourceRowCache.set(gameId, cached);
-        state.sourceHtmlCache.set(gameId, html);
-      }
-      viewer.innerHTML = "";
-      for (const r of cached.rows) {
-        viewer.appendChild(r);
       }
     }
 
     const editor = getEl("source-editor");
-    if (editor && !state.isEditingSource && !state.isEditorDirty) {
+    if (editor && state.isEditingSource && !state.isEditorDirty) {
       editor.value = state.player.getRawSource(gameId);
     }
     state.prevHighlightedLines = [];
@@ -1260,6 +1290,7 @@ export function createWorkbenchView({
 
   function selectGameAndTrack(gameId, trackId, autoPlay = true, { immediate = false } = {}) {
     if (!state.player) return;
+    const token = ++state.switchToken;
     setPlaying(false);
     const session = state.player.selectTrack(gameId, trackId, { autoPlay: false });
     renderSession(session);
@@ -1268,7 +1299,11 @@ export function createWorkbenchView({
         setPlaying(true);
       } else {
         requestAnimationFrame(() => {
-          setPlaying(true);
+          requestAnimationFrame(() => {
+            if (state.switchToken === token) {
+              setPlaying(true);
+            }
+          });
         });
       }
     }
@@ -1594,6 +1629,9 @@ export function createWorkbenchView({
     if (btnToggleEdit && viewerEl && editorEl && btnReassemble) {
       addListener(btnToggleEdit, "click", () => {
         state.isEditingSource = !state.isEditingSource;
+        if (state.isEditingSource && !state.isEditorDirty && state.player) {
+          editorEl.value = state.player.getRawSource(state.currentSourceFile || state.activeGameId);
+        }
         viewerEl.classList.toggle("hidden", state.isEditingSource);
         editorEl.classList.toggle("hidden", !state.isEditingSource);
         btnReassemble.classList.toggle("hidden", !state.isEditingSource);

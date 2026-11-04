@@ -1060,7 +1060,7 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
     view.selectGameAndTrack("arkanoid.asm", "ark-title", true);
 
     // Immediately after selectGameAndTrack, pause and selectTrack have run, and DOM is rendered,
-    // but play is deferred to the next animation frame so audio stays silent during the transition
+    // but play is deferred across two animation frames (post-layout) so audio stays silent during transition
     assert.deepEqual(
       eventLog.map((e) => e.type),
       ["pause", "selectTrack"],
@@ -1080,8 +1080,16 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
 
     assert.equal(fakePlayer.getState().isPlaying, false, "Player must remain paused during frame");
 
-    // Advance animation frame to resume audio
-    harness.runAllAnimationFrames();
+    // First rAF pass (pre-paint) must still keep player paused
+    harness.runAllAnimationFrames(undefined, 1);
+    assert.equal(
+      fakePlayer.getState().isPlaying,
+      false,
+      "Player must remain paused after first rAF until layout/paint completes",
+    );
+
+    // Second rAF pass (post-layout/paint) resumes audio
+    harness.runAllAnimationFrames(undefined, 1);
 
     // Check sequence of events:
     // 1. Pause was called first

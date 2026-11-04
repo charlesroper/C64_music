@@ -170,6 +170,18 @@ export function createBrowserHarness({
       return true;
     }
 
+    replaceChildren(...nodes) {
+      for (const child of this.children) {
+        child.parentElement = null;
+        child._isConnected = false;
+      }
+      this.children = [];
+      for (const node of nodes) {
+        node._isConnected = true;
+        this.appendChild(node);
+      }
+    }
+
     appendChild(child) {
       if (child.tagName === "FRAGMENT") {
         for (const sub of child.children) {
@@ -559,19 +571,22 @@ export function createBrowserHarness({
       }
       return false;
     },
-    runAllAnimationFrames(timestamp) {
+    runAllAnimationFrames(timestamp, passes = 2) {
       let ran = 0;
-      const snapshot = rafQueue.splice(0, rafQueue.length);
-      for (const item of snapshot) {
-        if (typeof item === "function") {
-          item(timestamp);
-          ran++;
-        } else {
-          const cb = rafCallbacks.get(item);
-          if (cb) {
-            rafCallbacks.delete(item);
-            cb(timestamp);
+      for (let p = 0; p < passes; p++) {
+        const snapshot = rafQueue.splice(0, rafQueue.length);
+        if (snapshot.length === 0) break;
+        for (const item of snapshot) {
+          if (typeof item === "function") {
+            item(timestamp);
             ran++;
+          } else {
+            const cb = rafCallbacks.get(item);
+            if (cb) {
+              rafCallbacks.delete(item);
+              cb(timestamp);
+              ran++;
+            }
           }
         }
       }

@@ -194,6 +194,7 @@ export function createWorkbenchPlayer({
   const state = {
     isPlaying: false,
     isFastForward: false,
+    pendingFadeIn: false,
     activeGameId: "wizball.asm",
     activeTrackId: "wiz-title",
     sidModel8580: false,
@@ -398,7 +399,23 @@ export function createWorkbenchPlayer({
     updateEffectiveMuteMask();
   }
 
-  function pullAudioBlock(outL, outR) {
+  function muteMasterGain() {
+    if (state.masterGain && state.audioCtx) {
+      try {
+        const now = state.audioCtx.currentTime;
+        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+          state.masterGain.gain.cancelScheduledValues(now);
+          state.masterGain.gain.setValueAtTime(0, now);
+        } else {
+          state.masterGain.gain.value = 0;
+        }
+      } catch (_) {
+        state.masterGain.gain.value = 0;
+      }
+    }
+  }
+
+  function pullAudioBlock(outL, outR, playbackTime) {
     const n = outL.length;
     if (!state.isPlaying) {
       outL.fill(0);
@@ -415,6 +432,35 @@ export function createWorkbenchPlayer({
     const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
     outL.set(wasmL);
     outR.set(wasmR);
+
+    if (state.pendingFadeIn) {
+      state.pendingFadeIn = false;
+      const fadeLen = Math.min(256, n);
+      for (let i = 0; i < fadeLen; i++) {
+        const g = i / fadeLen;
+        outL[i] *= g;
+        outR[i] *= g;
+      }
+      if (state.masterGain && state.audioCtx) {
+        try {
+          const now = state.audioCtx.currentTime;
+          const startTime =
+            typeof playbackTime === "number" && playbackTime >= now
+              ? playbackTime
+              : now + n / (state.sampleRate || 48000);
+          if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+            state.masterGain.gain.cancelScheduledValues(now);
+            state.masterGain.gain.setValueAtTime(0, now);
+            state.masterGain.gain.setValueAtTime(0, startTime);
+            state.masterGain.gain.linearRampToValueAtTime(1, startTime + 0.015);
+          } else {
+            state.masterGain.gain.value = 1;
+          }
+        } catch (_) {
+          state.masterGain.gain.value = 1;
+        }
+      }
+    }
   }
 
   function ensureAudio() {
@@ -443,7 +489,7 @@ export function createWorkbenchPlayer({
       scriptNode.onaudioprocess = (e) => {
         const outL = e.outputBuffer.getChannelData(0);
         const outR = e.outputBuffer.getChannelData(1);
-        pullAudioBlock(outL, outR);
+        pullAudioBlock(outL, outR, e.playbackTime);
       };
 
       const silentBuf = ctx.createBuffer(1, 128, state.sampleRate);
@@ -473,6 +519,8 @@ export function createWorkbenchPlayer({
 
   function selectTrack(gameId, trackId, { autoPlay = false } = {}) {
     state.isPlaying = false;
+    state.pendingFadeIn = false;
+    muteMasterGain();
     const game = GAME_FILES.find((g) => g.id === gameId) || GAME_FILES[0];
     const track = game.tracks.find((t) => t.id === trackId) || game.tracks[0];
     state.activeGameId = game.id;
@@ -483,6 +531,7 @@ export function createWorkbenchPlayer({
     if (autoPlay) {
       ensureAudio();
       state.isPlaying = true;
+      state.pendingFadeIn = true;
     } else {
       // Populate initial C64 screen RAM while paused
       wasm.wasm_render_audio(128);
@@ -495,37 +544,13 @@ export function createWorkbenchPlayer({
   function play() {
     ensureAudio();
     state.isPlaying = true;
-    if (state.masterGain && state.audioCtx) {
-      try {
-        const now = state.audioCtx.currentTime;
-        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
-          state.masterGain.gain.cancelScheduledValues(now);
-          state.masterGain.gain.setValueAtTime(0, now);
-          state.masterGain.gain.linearRampToValueAtTime(1, now + 0.015);
-        } else {
-          state.masterGain.gain.value = 1;
-        }
-      } catch (_) {
-        state.masterGain.gain.value = 1;
-      }
-    }
+    state.pendingFadeIn = true;
   }
 
   function pause() {
     state.isPlaying = false;
-    if (state.masterGain && state.audioCtx) {
-      try {
-        const now = state.audioCtx.currentTime;
-        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
-          state.masterGain.gain.cancelScheduledValues(now);
-          state.masterGain.gain.setValueAtTime(0, now);
-        } else {
-          state.masterGain.gain.value = 0;
-        }
-      } catch (_) {
-        state.masterGain.gain.value = 0;
-      }
-    }
+    state.pendingFadeIn = false;
+    muteMasterGain();
     if (wasm && typeof wasm.wasm_get_audio_l_ptr === "function") {
       const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), bufferSize);
       const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), bufferSize);
@@ -539,6 +564,10 @@ export function createWorkbenchPlayer({
     queue.sort((a, b) => (a === "gameover.asm" ? -1 : b === "gameover.asm" ? 1 : 0));
     function step() {
       if (queue.length === 0) return;
+      if (idle && state.isPlaying) {
+        setTimeout(step, 250);
+        return;
+      }
       const file = queue.shift();
       getAssembled(file);
       if (queue.length > 0) {

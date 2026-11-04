@@ -1181,16 +1181,19 @@ button.active {
   background: #0a0d14;
   padding: 4px 0;
   user-select: text;
+  contain: content;
 }
 
 .asm-line {
   display: flex;
   align-items: baseline;
+  height: 18px;
   padding: 0 8px;
   white-space: pre;
   border-left: 3px solid transparent;
   min-width: 100%;
   box-sizing: border-box;
+  contain: layout style;
 }
 
 .asm-line:hover {
