@@ -174,7 +174,13 @@ export function getSessionSourceFile(session, voice) {
   return session ? session.sourceFile : "wizball.asm";
 }
 
-export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, navigatorObj }) {
+export function createWorkbenchPlayer({
+  wasm,
+  rawSources,
+  createAudioContext,
+  navigatorObj,
+  bufferSize = 4096,
+}) {
   const sources = { ...rawSources };
   const assembledCache = {};
 
@@ -431,7 +437,6 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
       state.sampleRate = ctx.sampleRate || 48000;
       wasm.wasm_set_sample_rate(state.sampleRate);
 
-      const bufferSize = 2048;
       // Use 1 input channel + started looping silent BufferSourceNode so WebKit/iOS Safari
       // reliably pulls through the ScriptProcessorNode without stalling or GCing it.
       const scriptNode = ctx.createScriptProcessor(bufferSize, 1, 2);
@@ -471,7 +476,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
       state.isPlaying = true;
     } else {
       // Populate initial C64 screen RAM while paused
-      wasm.wasm_render_audio(2048);
+      wasm.wasm_render_audio(bufferSize);
     }
     const session = buildSessionDescriptor(game, track);
     state.currentSession = session;
