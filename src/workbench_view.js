@@ -10,6 +10,11 @@ import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
 
+// Source rows use a fixed height so follow scrolling can compute offsets without
+// reading layout geometry from elements that use content-visibility.
+const ASM_LINE_HEIGHT_PX = 18;
+const SOURCE_VIEWER_PADDING_TOP_PX = 4;
+
 const VIC_PALETTE_U32 = new Uint32Array(16);
 for (let i = 0; i < 16; i++) {
   const [r, g, b, a] = VIC_PALETTE_RGBA[i];
@@ -133,15 +138,14 @@ export function scrollToSourceLine(
   const el = findEl(`asm-L${lineNo}`);
   const viewer = findEl("source-viewer");
   if (el && viewer && viewer.clientHeight > 0) {
-    let top = typeof el.offsetTop === "number" ? el.offsetTop : 0;
-    let curr = el.offsetParent;
-    while (curr && curr !== viewer && curr !== documentObj?.body && curr != null) {
-      top += curr.offsetTop;
-      curr = curr.offsetParent;
-    }
     const targetTop = Math.max(
       0,
-      Math.round(top - viewer.clientHeight / 2 + (el.clientHeight || 18) / 2),
+      Math.round(
+        SOURCE_VIEWER_PADDING_TOP_PX +
+          (lineNo - 1) * ASM_LINE_HEIGHT_PX -
+          viewer.clientHeight / 2 +
+          ASM_LINE_HEIGHT_PX / 2,
+      ),
     );
     smoothScrollSourceViewer(viewer, targetTop, { instant });
   } else if (el && typeof el.scrollIntoView === "function") {
@@ -1802,7 +1806,6 @@ export function createWorkbenchView({
       let sparkleTimer = null;
       const triggerSparkle = () => {
         brandLogo.classList.remove("sparkle-active");
-        void brandLogo.offsetWidth;
         brandLogo.classList.add("sparkle-active");
         if (sparkleTimer) clearTimeout(sparkleTimer);
         sparkleTimer = setTimeout(() => {
@@ -1841,13 +1844,7 @@ export function createWorkbenchView({
           return;
         }
 
-        const dirMod = getEl("directives-modal");
-        const narMod = getEl("narrative-modal");
-        const isModalOpen =
-          (dirMod && !dirMod.classList.contains("hidden")) ||
-          (narMod && !narMod.classList.contains("hidden")) ||
-          Boolean(doc.querySelector?.(".modal-backdrop:not(.hidden)"));
-        if (isModalOpen) return;
+        if (isAnyModalOpen()) return;
 
         if (e.code === "Space") {
           e.preventDefault();
@@ -1909,6 +1906,16 @@ export function createWorkbenchView({
   let lastFrameTimestamp = 0;
   const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
 
+  function isAnyModalOpen() {
+    const dirMod = getEl("directives-modal");
+    const narMod = getEl("narrative-modal");
+    return Boolean(
+      (dirMod && !dirMod.classList.contains("hidden")) ||
+        (narMod && !narMod.classList.contains("hidden")) ||
+        doc?.querySelector?.(".modal-backdrop:not(.hidden)"),
+    );
+  }
+
   function renderFrameLoop(timestamp) {
     if (isDestroyed) return;
 
@@ -1916,7 +1923,7 @@ export function createWorkbenchView({
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
 
-    if (doc?.hidden) {
+    if (doc?.hidden || isAnyModalOpen()) {
       return;
     }
 

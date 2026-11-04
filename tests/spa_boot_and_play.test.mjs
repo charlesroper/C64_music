@@ -7,7 +7,7 @@ import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
-import { createWorkbenchView } from "../src/workbench_view.js";
+import { createWorkbenchView, scrollToSourceLine } from "../src/workbench_view.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -476,6 +476,53 @@ test("source viewer address gutter hides sentinel values and shows $0000 for add
     assert.match(row5.innerHTML, /<span class="ln-addr">\$0000<\/span>/);
     assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
     assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("follow scrolling computes source offsets from fixed line height without layout reads", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+  try {
+    const viewer = harness.elementsById.get("source-viewer");
+    const target = harness.elementsById.get("asm-L100");
+    assert.ok(target, "Expected source line 100");
+
+    viewer.clientHeight = 200;
+    viewer.scrollTop = 0;
+
+    let layoutReads = 0;
+    for (const prop of ["offsetTop", "offsetParent", "clientHeight"]) {
+      Object.defineProperty(target, prop, {
+        get() {
+          layoutReads++;
+          throw new Error(`layout read: ${prop}`);
+        },
+        configurable: true,
+      });
+    }
+
+    scrollToSourceLine(100, {
+      doc: globalThis.document,
+      getEl: (id) => harness.elementsById.get(id),
+      instant: true,
+    });
+
+    assert.equal(layoutReads, 0, "Follow scrolling must not read line layout geometry");
+    assert.equal(
+      viewer.scrollTop,
+      Math.max(0, Math.round(4 + 99 * 18 - 200 / 2 + 18 / 2)),
+      "Line 100 must scroll to the fixed-height arithmetic position",
+    );
   } finally {
     view.destroy();
     harness.restoreGlobals();
@@ -1002,6 +1049,67 @@ test("idle render loop skips canvas repaints and DOM writes when paused or hidde
       harness.elementsById.get("sid-reg-0").textContent,
       "2B",
       "Advancing frame after skeleton rebuild must update newly mounted cell",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("modal popovers suspend frame rendering and resume when closed", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer({ isPlaying: true });
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    view.setPlaying(true);
+    harness.stepAnimationFrame();
+
+    const tel = player.getTelemetry();
+    const telFrame = harness.elementsById.get("tel-frame");
+    assert.equal(telFrame.textContent, tel.frameCount, "Initial frame must render");
+
+    const narrativeModal = harness.elementsById.get("narrative-modal");
+    const directivesModal = harness.elementsById.get("directives-modal");
+
+    narrativeModal.classList.remove("hidden");
+    tel.frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      telFrame.textContent,
+      tel.frameCount - 1,
+      "Narrative modal must suspend telemetry rendering",
+    );
+
+    narrativeModal.classList.add("hidden");
+    tel.frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      telFrame.textContent,
+      tel.frameCount,
+      "Closing the narrative modal must resume rendering",
+    );
+
+    directivesModal.classList.remove("hidden");
+    tel.frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      telFrame.textContent,
+      tel.frameCount - 1,
+      "Directives modal must suspend telemetry rendering",
+    );
+
+    directivesModal.classList.add("hidden");
+    tel.frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      telFrame.textContent,
+      tel.frameCount,
+      "Closing the directives modal must resume rendering",
     );
   } finally {
     view.destroy();

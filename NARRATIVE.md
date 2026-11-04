@@ -235,11 +235,13 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 48 automated checks across five test files:
+`npm test` runs 51 automated checks across five test files:
 
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
-* **Idle render throttling.** The presentation loop takes an early return idle path when paused or when `document.hidden` is true, eliminating all C64 monitor canvas draws, oscilloscope strokes, and telemetry DOM writes, throttling refresh rates to 60 Hz, and restoring immediately on visibility.
+* **Idle render throttling.** The presentation loop takes an early return idle path when paused, when `document.hidden` is true, or when a modal popover is open, eliminating all C64 monitor canvas draws, oscilloscope strokes, and telemetry DOM writes, throttling refresh rates to 60 Hz, and restoring immediately on visibility or modal close.
+* **Follow scrolling without layout reads.** Source follow offsets derive from the fixed 18px line height and viewer padding rather than `offsetTop` and `offsetParent`, so note tracking never forces layout of 2,000+ `content-visibility` rows.
+* **Playback-aware assembly.** The no-worker fallback pre-assembly queue yields while audio plays, then resumes after pause, leaving the audio callback and touch events with the main thread.
 * **Telemetry change guards.** All telemetry text elements, SID register hex cells, active voice classes, and Morse stream spans compare against previous values before writing to the DOM, eliminating redundant mutations on consecutive identical frames.
 * **Workbench view interface.** The presentation layer sits behind `createWorkbenchView` in `src/workbench_view.js` with a small surface (`renderSession`, `renderTelemetry`, `renderSource`, `setPlaying`), element lookup behind a registry, and zero side effects on module import, while UI test suites drive the view using fake player adapters.
 * **Assembler source index.** Assembled source artifacts provide a bound `sourceIndex` exposing `lineForAddress(addr)`, `lineForSymbol(name)` and `findLines(query)`, replacing regular expression scans and backwards address loops in the view with direct index queries.
@@ -434,3 +436,15 @@ Investigation revealed:
 
 Automated coverage in `tests/spa_boot_and_play.test.mjs` expanded the test suite to 48 checks across five files.
 
+
+### 4 November 2026: follow scrolling and modals stop freezing the main thread
+
+Mobile testing on Vivaldi and WebKit exposed three symptoms: the initial Play button did nothing, the Story modal would not scroll or close, and switching voice chips during playback froze the interface for more than ten seconds while audio stuttered ([Issue #32](https://github.com/charlesroper/C64_music/issues/32)).
+
+The startup fault was already fixed by [`ba3b6f4`](https://github.com/charlesroper/C64_music/commit/ba3b6f4), which pre-unlocks the AudioContext inside the first tap and unmutes when resume completes. Existing tests cover both an immediate tap and a tap made while assets still download.
+
+The freeze had two main causes. `scrollToSourceLine()` read `offsetTop` and walked `offsetParent` for every followed note. Each `.asm-line` uses `content-visibility: auto`, so those reads forced the browser to lay out more than 2,100 source rows while the main-thread ScriptProcessorNode tried to fill audio buffers. The follow calculation now uses the fixed 18px row height and 4px viewer padding, with no geometry reads. `renderFrameLoop()` also continued redrawing the C64 monitor, oscilloscope scopes and telemetry behind open modal popovers. It now returns early while either modal is visible.
+
+Two smaller changes: the no-worker fallback assembler pauses between files while audio plays and resumes after pause, and the 10-second brand sparkle no longer forces a synchronous reflow with `offsetWidth`.
+
+Tests in `tests/spa_boot_and_play.test.mjs` poison `offsetTop` and `offsetParent` getters to prove follow scrolling performs no layout reads, and check that both modals suspend and restore telemetry frames. `tests/player_audio_and_pitch.test.mjs` confirms fallback assembly yields during playback. The suite now runs 51 checks across five files.

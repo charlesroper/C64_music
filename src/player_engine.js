@@ -624,6 +624,10 @@ export function createWorkbenchPlayer({
     }
     function step() {
       if (queue.length === 0) return;
+      if (state.isPlaying) {
+        setTimeout(step, 250);
+        return;
+      }
       const file = queue.shift();
       getAssembled(file);
       if (queue.length > 0) {

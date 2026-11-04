@@ -513,6 +513,33 @@ test("player engine lazily assembles sources on demand per game", async () => {
   unsubscribe();
 });
 
+test("background fallback assembly yields while playback is active", async () => {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+  });
+
+  player.play();
+  player.preassembleRemaining({ idle: false });
+  await new Promise((r) => setTimeout(r, 400));
+
+  assert.equal(
+    player.isAssembled("gameover.asm"),
+    false,
+    "Playing audio must defer fallback assembly",
+  );
+
+  player.pause();
+  const deadline = Date.now() + 2000;
+  while (!player.isAssembled("gameover.asm") && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+
+  assert.equal(player.isAssembled("gameover.asm"), true, "Pausing must resume fallback assembly");
+});
+
 test("track session descriptor returns complete session for each game and track", async () => {
   const mod = await WebAssembly.compile(wasmBytes);
   const instance = await WebAssembly.instantiate(mod, {});
