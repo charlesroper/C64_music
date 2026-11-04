@@ -113,3 +113,4 @@ Commit messages must adhere to Chris Beams' guidelines:
 **Rule 9.1 (Test-First Bug Fixes)**: Every bug fix must begin with a reproduction test that fails at the baseline commit before any fix code is written.
 **Rule 9.2 (Seam-Driven Assertions)**: Tests must assert on external caller-observable behavior through module seams. Tests must not inspect internal private state or duplicate the implementation in assertions.
 **Rule 9.3 (Strict Element Identification)**: Browser harness mocks must throw on missing element IDs to prevent silent drift between test doubles and production markup.
+**Rule 9.4 (Issue Definition of Done Synchronization)**: When working on issues with a Definition of Done (DoD) or task checklist, update the issue body to check off items as tasks are implemented and verified. Do not leave completed DoD items unchecked.
