@@ -451,11 +451,19 @@ export function createWorkbenchPlayer({
       keepAlive.buffer = silentBuf;
       keepAlive.loop = true;
       keepAlive.connect(scriptNode);
-      scriptNode.connect(ctx.destination);
+
+      const masterGain = typeof ctx.createGain === "function" ? ctx.createGain() : null;
+      if (masterGain) {
+        scriptNode.connect(masterGain);
+        masterGain.connect(ctx.destination);
+      } else {
+        scriptNode.connect(ctx.destination);
+      }
       keepAlive.start(0);
 
       state.scriptNode = scriptNode;
       state.keepAliveSource = keepAlive;
+      state.masterGain = masterGain;
     }
 
     if (state.audioCtx && state.audioCtx.state !== "running") {
@@ -487,10 +495,37 @@ export function createWorkbenchPlayer({
   function play() {
     ensureAudio();
     state.isPlaying = true;
+    if (state.masterGain && state.audioCtx) {
+      try {
+        const now = state.audioCtx.currentTime;
+        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+          state.masterGain.gain.cancelScheduledValues(now);
+          state.masterGain.gain.setValueAtTime(0, now);
+          state.masterGain.gain.linearRampToValueAtTime(1, now + 0.015);
+        } else {
+          state.masterGain.gain.value = 1;
+        }
+      } catch (_) {
+        state.masterGain.gain.value = 1;
+      }
+    }
   }
 
   function pause() {
     state.isPlaying = false;
+    if (state.masterGain && state.audioCtx) {
+      try {
+        const now = state.audioCtx.currentTime;
+        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+          state.masterGain.gain.cancelScheduledValues(now);
+          state.masterGain.gain.setValueAtTime(0, now);
+        } else {
+          state.masterGain.gain.value = 0;
+        }
+      } catch (_) {
+        state.masterGain.gain.value = 0;
+      }
+    }
     if (wasm && typeof wasm.wasm_get_audio_l_ptr === "function") {
       const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), bufferSize);
       const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), bufferSize);
@@ -501,6 +536,7 @@ export function createWorkbenchPlayer({
 
   function preassembleRemaining({ idle = true } = {}) {
     const queue = Object.keys(sources).filter((id) => !assembledCache[id]);
+    queue.sort((a, b) => (a === "gameover.asm" ? -1 : b === "gameover.asm" ? 1 : 0));
     function step() {
       if (queue.length === 0) return;
       const file = queue.shift();
@@ -509,14 +545,14 @@ export function createWorkbenchPlayer({
         if (idle && typeof requestIdleCallback === "function") {
           requestIdleCallback(step);
         } else {
-          setTimeout(step, 60);
+          setTimeout(step, 40);
         }
       }
     }
     if (idle && typeof requestIdleCallback === "function") {
       requestIdleCallback(step);
     } else {
-      setTimeout(step, 100);
+      setTimeout(step, 40);
     }
   }
 

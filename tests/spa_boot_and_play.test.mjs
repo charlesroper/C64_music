@@ -1059,6 +1059,30 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
     // Switch game/track with autoPlay: true
     view.selectGameAndTrack("arkanoid.asm", "ark-title", true);
 
+    // Immediately after selectGameAndTrack, pause and selectTrack have run, and DOM is rendered,
+    // but play is deferred to the next animation frame so audio stays silent during the transition
+    assert.deepEqual(
+      eventLog.map((e) => e.type),
+      ["pause", "selectTrack"],
+      "Expected pause and selectTrack before animation frame",
+    );
+
+    assert.equal(
+      eventLog[1].autoPlayOption,
+      false,
+      "selectTrack must be invoked with autoPlay: false so audio engine remains silent during load",
+    );
+    assert.equal(
+      eventLog[1].isPlayingDuringLoad,
+      false,
+      "Player must not be playing while selectTrack loads the emulator and parses track data",
+    );
+
+    assert.equal(fakePlayer.getState().isPlaying, false, "Player must remain paused during frame");
+
+    // Advance animation frame to resume audio
+    harness.runAllAnimationFrames();
+
     // Check sequence of events:
     // 1. Pause was called first
     // 2. selectTrack was executed while isPlaying is false, with autoPlay: false

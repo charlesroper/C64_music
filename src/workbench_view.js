@@ -543,6 +543,17 @@ export function createWorkbenchView({
   function renderGameList() {
     const container = getEl("game-list");
     if (!container) return;
+
+    if (container.children && container.children.length === GAME_FILES.length) {
+      for (let i = 0; i < GAME_FILES.length; i++) {
+        const item = container.children[i];
+        if (item?.classList) {
+          item.classList.toggle("active", GAME_FILES[i].id === state.activeGameId);
+        }
+      }
+      return;
+    }
+
     container.innerHTML = "";
 
     for (const game of GAME_FILES) {
@@ -565,7 +576,6 @@ export function createWorkbenchView({
   function renderTrackList() {
     const container = getEl("track-list");
     if (!container) return;
-    container.innerHTML = "";
 
     const game = GAME_FILES.find((g) => g.id === state.activeGameId);
     if (!game) return;
@@ -574,6 +584,28 @@ export function createWorkbenchView({
       if (state.activeFilter === "all") return true;
       return t.category === state.activeFilter;
     });
+
+    if (
+      container.dataset &&
+      container.dataset.gameId === state.activeGameId &&
+      container.dataset.filter === state.activeFilter &&
+      container.children &&
+      container.children.length === filtered.length
+    ) {
+      for (let i = 0; i < filtered.length; i++) {
+        const item = container.children[i];
+        if (item?.classList) {
+          item.classList.toggle("active", filtered[i].id === state.activeTrackId);
+        }
+      }
+      return;
+    }
+
+    if (container.dataset) {
+      container.dataset.gameId = state.activeGameId;
+      container.dataset.filter = state.activeFilter;
+    }
+    container.innerHTML = "";
 
     for (const track of filtered) {
       const div = doc.createElement("div");
@@ -1226,13 +1258,19 @@ export function createWorkbenchView({
     updateDrmChipState();
   }
 
-  function selectGameAndTrack(gameId, trackId, autoPlay = true) {
+  function selectGameAndTrack(gameId, trackId, autoPlay = true, { immediate = false } = {}) {
     if (!state.player) return;
     setPlaying(false);
     const session = state.player.selectTrack(gameId, trackId, { autoPlay: false });
     renderSession(session);
     if (autoPlay) {
-      setPlaying(true);
+      if (immediate || typeof requestAnimationFrame !== "function") {
+        setPlaying(true);
+      } else {
+        requestAnimationFrame(() => {
+          setPlaying(true);
+        });
+      }
     }
   }
 

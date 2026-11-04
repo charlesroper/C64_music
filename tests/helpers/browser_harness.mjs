@@ -334,6 +334,29 @@ export function createBrowserHarness({
       return src;
     }
 
+    createGain() {
+      const gainNode = {
+        gain: {
+          value: 1,
+          setValueAtTime(v) {
+            this.value = v;
+          },
+          linearRampToValueAtTime(v) {
+            this.value = v;
+          },
+          cancelScheduledValues() {},
+        },
+        connect(target) {
+          if (target === audioState.ctx.destination) {
+            audioState.processorConnectedToDestination = true;
+          }
+          return target;
+        },
+      };
+      audioState.gainNode = gainNode;
+      return gainNode;
+    }
+
     createScriptProcessor(bufferSize, inCh = 2, outCh = 2) {
       const proc = {
         bufferSize,
@@ -341,7 +364,12 @@ export function createBrowserHarness({
         outCh,
         onaudioprocess: null,
         connect(target) {
-          if (target === audioState.ctx.destination) {
+          if (
+            target === audioState.ctx.destination ||
+            target.isDestination ||
+            target === audioState.gainNode ||
+            target.gain
+          ) {
             audioState.processorConnectedToDestination = true;
           }
           return target;
@@ -533,8 +561,8 @@ export function createBrowserHarness({
     },
     runAllAnimationFrames(timestamp) {
       let ran = 0;
-      while (rafQueue.length > 0) {
-        const item = rafQueue.shift();
+      const snapshot = rafQueue.splice(0, rafQueue.length);
+      for (const item of snapshot) {
         if (typeof item === "function") {
           item(timestamp);
           ran++;
