@@ -230,7 +230,7 @@ test("calendar version is synchronized across package.json, package-lock.json, i
   );
 
   assert.equal(lock.version, calver, "package-lock.json version must match package.json");
-  if (lock.packages && lock.packages[""]) {
+  if (lock.packages?.[""]) {
     assert.equal(
       lock.packages[""].version,
       calver,

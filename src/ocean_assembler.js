@@ -368,7 +368,7 @@ function parseStatement(stmt, isFirstOnLine) {
   if (!ALL_OPS.has(op)) {
     for (const m of ["LSR", "ROR", "ROL", "ASL"]) {
       if (op.startsWith(m)) {
-        arg = (op.slice(m.length) + " " + arg).trim();
+        arg = `${op.slice(m.length)} ${arg}`.trim();
         op = m;
         break;
       }
@@ -550,8 +550,8 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
           const idxReg = a.slice(-1).toLowerCase();
           const inner = a.slice(0, -2).trim();
           const valProbe = evalExpr(inner, symbols, pc, false);
-          const zpMode = "zp" + idxReg;
-          const absMode = "abs" + idxReg;
+          const zpMode = `zp${idxReg}`;
+          const absMode = `abs${idxReg}`;
           if (valProbe !== null && valProbe >= 0 && valProbe < 256 && modes[zpMode] !== undefined) {
             const val = evalExpr(inner, symbols, pc, strict) || 0;
             writeByte(modes[zpMode], lineNo);

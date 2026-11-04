@@ -7,7 +7,6 @@ import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
-import { GAME_FILES } from "../src/tracks_catalog.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -378,9 +377,7 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
 
     // 1. Select gameover.asm
     const gameList = harness.elementsById.get("game-list");
-    const gameOverItem = gameList.children.find(
-      (c) => c.innerHTML && c.innerHTML.includes("gameover.asm"),
-    );
+    const gameOverItem = gameList.children.find((c) => c.innerHTML?.includes("gameover.asm"));
     assert.ok(gameOverItem, "gameover item in game-list");
     gameOverItem.click();
 
@@ -389,9 +386,7 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
 
     // Switch to a gameover SFX track without drums (e.g. go-sfx-laser)
     const trackList = harness.elementsById.get("track-list");
-    const sfxTrack = trackList.children.find(
-      (c) => c.innerHTML && c.innerHTML.includes("Player Laser"),
-    );
+    const sfxTrack = trackList.children.find((c) => c.innerHTML?.includes("Player Laser"));
     assert.ok(sfxTrack, "SFX Player Laser track in track-list");
     sfxTrack.click();
 
@@ -399,9 +394,7 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
     assert.ok(drmChip.classList.contains("disabled"), "Game Over SFX track must disable DRM chip");
 
     // Switch back to go-title-full
-    const fullTrack = trackList.children.find(
-      (c) => c.innerHTML && c.innerHTML.includes("Title Screen (Full"),
-    );
+    const fullTrack = trackList.children.find((c) => c.innerHTML?.includes("Title Screen (Full"));
     assert.ok(fullTrack, "Title Screen (Full) in track-list");
     fullTrack.click();
     assert.ok(!drmChip.classList.contains("disabled"), "go-title-full re-enables DRM chip");
@@ -446,7 +439,7 @@ test("source viewer address gutter hides sentinel values and shows $0000 for add
     assert.ok(viewer.children.length > 0, "Source viewer should have rows");
 
     // Check that no row in wizball contains '$00-1'
-    const badRows = viewer.children.filter((r) => r.innerHTML && r.innerHTML.includes("$00-1"));
+    const badRows = viewer.children.filter((r) => r.innerHTML?.includes("$00-1"));
     assert.equal(badRows.length, 0, `Expected 0 rows with $00-1, found ${badRows.length}`);
 
     // Now hot-reload a snippet containing ORG, EQU, comment, blank, address 0, and code row
@@ -502,9 +495,7 @@ test("symbol jump and source search use the on-screen file instead of activeGame
   try {
     // 1. Select arkadrum.asm. With default followVoice = 0, on-screen file is arkanoid.asm
     const gameList = harness.elementsById.get("game-list");
-    const arkadrumItem = gameList.children.find(
-      (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
-    );
+    const arkadrumItem = gameList.children.find((c) => c.innerHTML?.includes("arkadrum.asm"));
     assert.ok(arkadrumItem, "arkadrum item in game-list");
     arkadrumItem.click();
 
@@ -517,9 +508,7 @@ test("symbol jump and source search use the on-screen file instead of activeGame
     searchInput.value = "TITLE0";
     searchInput.dispatchEvent("input");
 
-    const matches = viewer.children.filter(
-      (r) => r.classList && r.classList.contains("search-match"),
-    );
+    const matches = viewer.children.filter((r) => r.classList?.contains("search-match"));
     assert.ok(matches.length > 0, "Searching TITLE0 must find matches in arkanoid.asm on screen");
 
     // 3. Switch to drum follow (seq), so on-screen file becomes arkadrum.asm
@@ -532,9 +521,7 @@ test("symbol jump and source search use the on-screen file instead of activeGame
     searchInput.value = "TOMhiTABLE";
     searchInput.dispatchEvent("input");
 
-    const drmMatches = viewer.children.filter(
-      (r) => r.classList && r.classList.contains("search-match"),
-    );
+    const drmMatches = viewer.children.filter((r) => r.classList?.contains("search-match"));
     assert.ok(
       drmMatches.length > 0,
       "Searching TOMhiTABLE must find matches in arkadrum.asm on screen",
