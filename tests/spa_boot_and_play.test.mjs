@@ -1073,9 +1073,9 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
     view.selectGameAndTrack("arkanoid.asm", "ark-title", true);
 
     // Check sequence of events:
-    // 1. Pause must be called before track loading
-    // 2. selectTrack must be executed while isPlaying is false, with autoPlay: false
-    // 3. Play must only be called after renderSession has updated the DOM
+    // 1. Pause was called first
+    // 2. selectTrack was executed while isPlaying is false, with autoPlay: false
+    // 3. Play was only called after renderSession updated the DOM
     assert.deepEqual(
       eventLog.map((e) => e.type),
       ["pause", "selectTrack", "play"],

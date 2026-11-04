@@ -770,6 +770,7 @@ export function createFakePlayer(options = {}) {
     setHardwareOptions(opts) {
       Object.assign(state, opts);
     },
+    preassembleRemaining() {},
     injectKey(code) {
       options.onInjectKey?.(code);
     },

@@ -477,7 +477,7 @@ export function createWorkbenchPlayer({
       state.isPlaying = true;
     } else {
       // Populate initial C64 screen RAM while paused
-      wasm.wasm_render_audio(bufferSize);
+      wasm.wasm_render_audio(128);
     }
     const session = buildSessionDescriptor(game, track);
     state.currentSession = session;
@@ -491,6 +491,33 @@ export function createWorkbenchPlayer({
 
   function pause() {
     state.isPlaying = false;
+    if (wasm && typeof wasm.wasm_get_audio_l_ptr === "function") {
+      const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), bufferSize);
+      const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), bufferSize);
+      wasmL.fill(0);
+      wasmR.fill(0);
+    }
+  }
+
+  function preassembleRemaining({ idle = true } = {}) {
+    const queue = Object.keys(sources).filter((id) => !assembledCache[id]);
+    function step() {
+      if (queue.length === 0) return;
+      const file = queue.shift();
+      getAssembled(file);
+      if (queue.length > 0) {
+        if (idle && typeof requestIdleCallback === "function") {
+          requestIdleCallback(step);
+        } else {
+          setTimeout(step, 60);
+        }
+      }
+    }
+    if (idle && typeof requestIdleCallback === "function") {
+      requestIdleCallback(step);
+    } else {
+      setTimeout(step, 100);
+    }
   }
 
   function togglePlay() {
@@ -538,5 +565,6 @@ export function createWorkbenchPlayer({
     getSession: () =>
       state.currentSession || buildSessionDescriptor(getActiveGame(), getActiveTrack()),
     getState: () => ({ ...state }),
+    preassembleRemaining,
   };
 }

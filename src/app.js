@@ -102,6 +102,10 @@ export async function bootWorkbench(options = {}) {
   const autoPlay = view.isPendingPlayOnBoot();
   view.selectGameAndTrack("wizball.asm", "wiz-title", autoPlay);
 
+  if (player && typeof player.preassembleRemaining === "function") {
+    player.preassembleRemaining();
+  }
+
   return { player, view };
 }
 

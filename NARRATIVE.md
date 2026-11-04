@@ -379,11 +379,15 @@ Finally, `tests/repo_rules.test.mjs` introduced eight deterministic regression c
 
 ### 4 November 2026: silencing audio during game switches
 
-Testing on mobile devices revealed audible stutter and ring buffer glitches when switching between games during playback ([Issue #30](https://github.com/charlesroper/C64_music/issues/30)). The stutter stemmed from two issues in the playback lifecycle:
+Testing on mobile devices revealed audible stutter and ring buffer glitches when switching between games during playback, particularly to Game Over ([Issue #30](https://github.com/charlesroper/C64_music/issues/30)). The stutter stemmed from three distinct bottlenecks in the playback lifecycle:
 
-1. `selectTrack` in `src/player_engine.js` did not pause audio while reinitializing the WebAssembly emulator core (`wasm_init`), resetting 6502 memory, and compiling source code. If an audio buffer tick occurred during initialization, it read partially configured registers.
-2. `selectGameAndTrack` in `src/workbench_view.js` set `isPlaying = true` before calling `renderSession(session)`. Building hundreds of assembly source elements, token DOM spans, and track metadata on the main thread blocked the event loop and starved the newly started audio buffer.
+1. `selectTrack` in `src/player_engine.js` did not pause audio while reinitializing the WebAssembly emulator core (`wasm_init`), resetting 6502 memory, and compiling source code.
+2. In `src/workbench_view.js`, `selectGameAndTrack` previously set `isPlaying = true` before calling `renderSession(session)`. Building hundreds of assembly source elements, token DOM spans, and track metadata on the main thread blocked the event loop and starved the newly started audio buffer.
+3. Most critically, `gameover.asm` was unassembled on initial boot. When the user tapped Game Over, the main thread froze for 500ms on mobile devices to assemble 2,141 lines of 6502 source code and step 4,096 audio samples. Because `ScriptProcessorNode` runs on the browser UI thread with an 85.3ms buffer, this 500ms main-thread lockup starved the hardware audio output for multiple consecutive blocks, causing mobile Web Audio to repeat the ring buffer.
 
-The solution ensures the audio engine is silent during loading and rendering. `selectGameAndTrack` immediately calls `setPlaying(false)` to pause the engine, passes `{ autoPlay: false }` to `selectTrack`, completes the entire `renderSession` DOM pass, and only resumes playback (`setPlaying(true)`) once layout is finished. In addition, `selectTrack` resets `isPlaying = false` at entry so direct engine calls remain quiet during compilation.
+The solution silences playback and eliminates the main-thread freeze:
+* `selectGameAndTrack` immediately calls `setPlaying(false)` to pause the engine, passes `{ autoPlay: false }` to `selectTrack`, completes the entire `renderSession` DOM pass, and only resumes playback (`setPlaying(true)`) once layout finishes.
+* `src/player_engine.js` introduces `preassembleRemaining()`, which compiles the remaining games during browser idle slices (`requestIdleCallback`) after initial boot. When the user selects Game Over, assembly latency is 0ms.
+* Pausing immediately zeroes the WebAssembly audio output buffers so lingering audio cannot repeat, and paused audio rendering scales down from 4,096 samples to 128 samples to initialize screen RAM without lag.
 
-A regression test in `tests/spa_boot_and_play.test.mjs` verifies the complete lifecycle: `pause` -> `selectTrack` (with `autoPlay: false` and `isPlaying: false`) -> DOM render -> `play`. The test suite expanded to 45 checks across five test files.
+A regression test in `tests/spa_boot_and_play.test.mjs` verifies the complete lifecycle: `pause` -> `selectTrack` (with `autoPlay: false` and `isPlaying: false`) -> DOM render -> `play`, and `tests/player_audio_and_pitch.test.mjs` confirms background idle pre-assembly.

@@ -458,6 +458,12 @@ test("player engine lazily assembles sources on demand per game", async () => {
   // 4. Selecting greenberet assembles greenberet.asm
   player.selectTrack("greenberet.asm", "gb-title");
   assert.ok(player.getAssembledCache()["greenberet.asm"]);
+
+  // 5. preassembleRemaining compiles remaining sources in background
+  player.preassembleRemaining({ idle: false });
+  await new Promise((r) => setTimeout(r, 400));
+  assert.ok(player.getAssembledCache()["gameover.asm"], "gameover.asm should be pre-assembled");
+  assert.ok(player.getAssembledCache()["rambload.asm"], "rambload.asm should be pre-assembled");
 });
 
 test("track session descriptor returns complete session for each game and track", async () => {
