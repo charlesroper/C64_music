@@ -222,25 +222,17 @@ test("pause and channel mute controls silence output deterministically", async (
   assert.equal(Math.max(...outL.map(Math.abs)), 0, "Paused player must output exact zero");
   assert.equal(Math.max(...outR.map(Math.abs)), 0, "Paused player must output exact zero");
 
-  // Resume and verify masterGain stays at 0 until pullAudioBlock runs with playbackTime
+  // Resume and verify masterGain ramps to 1 immediately so beat 1 sample 0 is audible
   player.play();
   assert.equal(
     player.getState().masterGain.gain.value,
-    0,
-    "play() must keep masterGain muted at 0 until pullAudioBlock fills the new buffer",
+    1,
+    "play() must ramp masterGain to 1 immediately so newly selected tracks start on beat 1",
   );
-  player.getState().masterGain.gain.events.length = 0;
-  player.pullAudioBlock(outL, outR, 1.085);
-  assert.equal(outL[0], 0, "First sample of fade-in block must start at 0");
-  assert.deepEqual(
-    player.getState().masterGain.gain.events,
-    [
-      { type: "cancel", time: 1.0 },
-      { type: "set", value: 0, time: 1.0 },
-      { type: "set", value: 0, time: 1.085 },
-      { type: "ramp", value: 1, time: 1.085 + 0.015 },
-    ],
-    "pullAudioBlock must hold masterGain at 0 until playbackTime and ramp to 1 over 15ms",
+  player.pullAudioBlock(outL, outR);
+  assert.ok(
+    outL.some((s) => s !== 0),
+    "First buffer after play must contain active audio without software fade-in suppression",
   );
 
   // Mute all 4 channels (V1, V2, V3, Digi = 0x0F)
@@ -504,11 +496,21 @@ test("player engine lazily assembles sources on demand per game", async () => {
   player.selectTrack("greenberet.asm", "gb-title");
   assert.ok(player.getAssembledCache()["greenberet.asm"]);
 
-  // 5. preassembleRemaining compiles remaining sources in background
+  // 5. preassembleRemaining compiles remaining sources in background and fires onAssembled events
+  const assembledEvents = [];
+  const unsubscribe = player.onAssembled((id) => assembledEvents.push(id));
+  assert.equal(player.isAssembled("wizball.asm"), true);
+  assert.equal(player.isAssembled("gameover.asm"), false);
+
   player.preassembleRemaining({ idle: false });
   await new Promise((r) => setTimeout(r, 400));
   assert.ok(player.getAssembledCache()["gameover.asm"], "gameover.asm should be pre-assembled");
   assert.ok(player.getAssembledCache()["rambload.asm"], "rambload.asm should be pre-assembled");
+  assert.equal(player.isAssembled("gameover.asm"), true);
+  assert.equal(player.isAssembled("rambload.asm"), true);
+  assert.ok(assembledEvents.includes("gameover.asm"), "onAssembled must fire for gameover.asm");
+  assert.ok(assembledEvents.includes("rambload.asm"), "onAssembled must fire for rambload.asm");
+  unsubscribe();
 });
 
 test("track session descriptor returns complete session for each game and track", async () => {

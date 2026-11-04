@@ -235,7 +235,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 45 automated checks across five test files:
+`npm test` runs 46 automated checks across five test files:
 
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
@@ -246,6 +246,7 @@ Martin Galway uploaded his original assembly files to GitHub in early 2026. In O
 * **Track session descriptors.** Calling `player.selectTrack()` yields a structured `TrackSession` descriptor defining the active game, tune, primary source file, drum sequencer availability and Morse banner states, removing all game identifier branching from the presentation layer.
 * **Game loader adapters.** A dispatch table of named loader adapters (`GAME_LOADERS`) encapsulates hardware initialization, zero-page word writes, custom raster setup and entry-point jumps across all six games, verified by asserting CPU states and cycle budgets.
 * **Lazy assembly and cached HTML.** Sources assemble on demand per game rather than all six eagerly on boot, reducing initial assembly time by 85.5% (from 386.5 ms to 56.2 ms), while rendered source viewer HTML is cached per file and reused across switches.
+* **Assembly status badges.** Panel 1 displays a status badge for each game card showing ASM... while compilation runs and updating reactively to READY once assembled.
 * **Telemetry snapshot encapsulation.** Engine state (cycles, PC, SID registers, voices, filter, scope buffers and screen RAM) returns as a reusable, pre-allocated snapshot from `player.getTelemetry()`, eliminating per-frame allocations and hiding the WebAssembly C ABI from the presentation layer.
 * **Shared browser test harness.** A unified test harness (`tests/helpers/browser_harness.mjs`) parses authentic markup, throws on missing element identifiers to prevent silent fake drift, and manages strict WebKit audio and animation frames across UI test suites.
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula at 44.1kHz and 48kHz, in PAL and NTSC.
@@ -395,3 +396,16 @@ The solution silences playback and eliminates the main-thread freeze:
 * Pausing immediately zeroes the WebAssembly audio output buffers so lingering audio cannot repeat, and paused audio rendering scales down from 4,096 samples to 128 samples to initialize screen RAM without lag.
 
 A regression test in `tests/spa_boot_and_play.test.mjs` verifies the complete lifecycle: `pause` -> `selectTrack` (with `autoPlay: false` and `isPlaying: false`) -> DOM render -> two animation frame passes -> `play`, and `tests/player_audio_and_pitch.test.mjs` confirms `playbackTime`-aligned `masterGain` unmute scheduling and background idle pre-assembly.
+
+### 4 November 2026: background worker assembly and immediate playback
+
+Listening tests on mobile after the initial muting fixes revealed a new defect: while audio stutter was gone, newly switched tunes started several beats late with their opening bars swallowed ([Issue #30](https://github.com/charlesroper/C64_music/issues/30)). The transitional muting held `masterGain` at 0.0 across animation frames, but Web Audio's `onaudioprocess` continued firing on the main thread, advancing the 6502 engine in total silence before unmuting.
+
+A retrospective review showed we had treated symptoms with transitional muting rather than removing the main-thread stalls at their root. The solution re-architected background compilation and playback immediacy:
+
+1. **Rollback of Muting Hacks**: Stripped out `pendingFadeIn`, `playbackTime` alignment delays, and multi-frame animation deferrals. When a track is selected with `autoPlay: true`, `player.selectTrack()` resets emulator state and renders audio immediately from sample 0 of beat 1.
+2. **Background Assembly in a Web Worker**: Martin Galway's assembly sources compile off the main UI thread via a dedicated Web Worker (`src/assembler_worker.js`) at boot. The worker transfers zero-copy byte buffers (`mem.buffer`) and symbol maps, and the main thread re-attaches helper methods on receipt. When workers are absent (such as in Node.js test runners), the player falls back cleanly to synchronous on-demand compilation ([ADR 0007](docs/adr/0007-worker-assembly-and-immediate-playback.md)).
+3. **Assembly Status Badges**: Added a reactive `.asm-status-badge` to each game card in Panel 1, displaying `ASM...` during compilation and flipping to `READY` when cached.
+4. **Native CSS Content Visibility**: Applied `content-visibility: auto; contain-intrinsic-size: 18px;` to `.asm-line` in `src/styles.css`, allowing the browser engine to skip off-screen layout without JavaScript DOM thrashing during fast 16th-note leaps.
+
+Automated suite coverage expanded to 46 checks across five files, verified by asserting immediate unmuted sample-zero audio in `tests/player_audio_and_pitch.test.mjs` and reactive badge updates in `tests/spa_boot_and_play.test.mjs`.

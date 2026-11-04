@@ -377,6 +377,32 @@ function parseStatement(stmt, isFirstOnLine) {
   return { label, op, arg };
 }
 
+export function createSourceIndex({ addrToLine, symbolLines, rawLines }) {
+  return {
+    lineForAddress: (addr, maxDelta = 16) => {
+      if (!addr || addr < 0x0800) return 0;
+      for (let delta = 0; delta < maxDelta; delta++) {
+        const ln = addrToLine[(addr - delta) & 0xffff];
+        if (ln > 0) return ln;
+      }
+      return 0;
+    },
+    lineForSymbol: (name) => symbolLines[name] || 0,
+    findLines: (query) => {
+      if (!query) return [];
+      const q = query.trim().toLowerCase();
+      if (!q) return [];
+      const matches = [];
+      for (let i = 0; i < rawLines.length; i++) {
+        if (rawLines[i].toLowerCase().includes(q)) {
+          matches.push(i + 1);
+        }
+      }
+      return matches;
+    },
+  };
+}
+
 export function assembleOceanSource(sourceText, initialSymbols = {}) {
   const rawLines = sourceText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const parsedStmts = [];
@@ -596,29 +622,7 @@ export function assembleOceanSource(sourceText, initialSymbols = {}) {
     }
   }
 
-  const sourceIndex = {
-    lineForAddress: (addr, maxDelta = 16) => {
-      if (!addr || addr < 0x0800) return 0;
-      for (let delta = 0; delta < maxDelta; delta++) {
-        const ln = addrToLine[(addr - delta) & 0xffff];
-        if (ln > 0) return ln;
-      }
-      return 0;
-    },
-    lineForSymbol: (name) => symbolLines[name] || 0,
-    findLines: (query) => {
-      if (!query) return [];
-      const q = query.trim().toLowerCase();
-      if (!q) return [];
-      const matches = [];
-      for (let i = 0; i < rawLines.length; i++) {
-        if (rawLines[i].toLowerCase().includes(q)) {
-          matches.push(i + 1);
-        }
-      }
-      return matches;
-    },
-  };
+  const sourceIndex = createSourceIndex({ addrToLine, symbolLines, rawLines });
 
   return {
     mem,

@@ -3,7 +3,7 @@
 // Shared between the browser SPA (src/app.js) and automated test suites.
 // ============================================================================
 
-import { assembleOceanSource } from "./ocean_assembler.js";
+import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 export function jsr(wasm, pc, a = 0, x = 0, y = 0, maxCycles = 50000) {
@@ -180,21 +180,84 @@ export function createWorkbenchPlayer({
   createAudioContext,
   navigatorObj,
   bufferSize = 4096,
+  createWorker = null,
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
+  const assembledListeners = new Set();
+
+  function notifyAssembled(gameId, asm) {
+    for (const listener of assembledListeners) {
+      try {
+        listener(gameId, asm);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
 
   function getAssembled(gameId) {
     if (!assembledCache[gameId] && sources[gameId]) {
       assembledCache[gameId] = assembleOceanSource(sources[gameId]);
+      notifyAssembled(gameId, assembledCache[gameId]);
     }
     return assembledCache[gameId];
+  }
+
+  function isAssembled(gameId) {
+    return Boolean(assembledCache[gameId]);
+  }
+
+  function onAssembled(callback) {
+    if (typeof callback !== "function") return () => {};
+    assembledListeners.add(callback);
+    return () => {
+      assembledListeners.delete(callback);
+    };
+  }
+
+  let worker = null;
+  if (typeof createWorker === "function") {
+    try {
+      worker = createWorker();
+    } catch (_) {
+      worker = null;
+    }
+  } else if (typeof Worker !== "undefined") {
+    try {
+      worker = new Worker(new URL("./assembler_worker.js", import.meta.url), { type: "module" });
+    } catch (_) {
+      worker = null;
+    }
+  }
+
+  if (worker) {
+    worker.onmessage = (event) => {
+      const payload = event.data;
+      if (!payload || payload.error || !payload.gameId) return;
+      const { gameId, mem, symbols, symbolLines, entryPoint, addrToLine, lineAddresses, rawLines } =
+        payload;
+      if (!assembledCache[gameId]) {
+        const memArr = new Uint8Array(mem);
+        const sourceIndex = createSourceIndex({ addrToLine, symbolLines, rawLines });
+        assembledCache[gameId] = {
+          mem: memArr,
+          symbols,
+          symbolLines,
+          entryPoint,
+          addrToLine,
+          lineAddresses,
+          rawLines,
+          sourceIndex,
+        };
+        notifyAssembled(gameId, assembledCache[gameId]);
+      }
+    };
   }
 
   const state = {
     isPlaying: false,
     isFastForward: false,
-    pendingFadeIn: false,
     activeGameId: "wizball.asm",
     activeTrackId: "wiz-title",
     sidModel8580: false,
@@ -415,7 +478,7 @@ export function createWorkbenchPlayer({
     }
   }
 
-  function pullAudioBlock(outL, outR, playbackTime) {
+  function pullAudioBlock(outL, outR) {
     const n = outL.length;
     if (!state.isPlaying) {
       outL.fill(0);
@@ -432,35 +495,6 @@ export function createWorkbenchPlayer({
     const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
     outL.set(wasmL);
     outR.set(wasmR);
-
-    if (state.pendingFadeIn) {
-      state.pendingFadeIn = false;
-      const fadeLen = Math.min(256, n);
-      for (let i = 0; i < fadeLen; i++) {
-        const g = i / fadeLen;
-        outL[i] *= g;
-        outR[i] *= g;
-      }
-      if (state.masterGain && state.audioCtx) {
-        try {
-          const now = state.audioCtx.currentTime;
-          const startTime =
-            typeof playbackTime === "number" && playbackTime >= now
-              ? playbackTime
-              : now + n / (state.sampleRate || 48000);
-          if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
-            state.masterGain.gain.cancelScheduledValues(now);
-            state.masterGain.gain.setValueAtTime(0, now);
-            state.masterGain.gain.setValueAtTime(0, startTime);
-            state.masterGain.gain.linearRampToValueAtTime(1, startTime + 0.015);
-          } else {
-            state.masterGain.gain.value = 1;
-          }
-        } catch (_) {
-          state.masterGain.gain.value = 1;
-        }
-      }
-    }
   }
 
   function ensureAudio() {
@@ -489,7 +523,7 @@ export function createWorkbenchPlayer({
       scriptNode.onaudioprocess = (e) => {
         const outL = e.outputBuffer.getChannelData(0);
         const outR = e.outputBuffer.getChannelData(1);
-        pullAudioBlock(outL, outR, e.playbackTime);
+        pullAudioBlock(outL, outR);
       };
 
       const silentBuf = ctx.createBuffer(1, 128, state.sampleRate);
@@ -519,8 +553,6 @@ export function createWorkbenchPlayer({
 
   function selectTrack(gameId, trackId, { autoPlay = false } = {}) {
     state.isPlaying = false;
-    state.pendingFadeIn = false;
-    muteMasterGain();
     const game = GAME_FILES.find((g) => g.id === gameId) || GAME_FILES[0];
     const track = game.tracks.find((t) => t.id === trackId) || game.tracks[0];
     state.activeGameId = game.id;
@@ -530,9 +562,9 @@ export function createWorkbenchPlayer({
 
     if (autoPlay) {
       ensureAudio();
-      state.isPlaying = true;
-      state.pendingFadeIn = true;
+      play();
     } else {
+      muteMasterGain();
       // Populate initial C64 screen RAM while paused
       wasm.wasm_render_audio(128);
     }
@@ -544,12 +576,24 @@ export function createWorkbenchPlayer({
   function play() {
     ensureAudio();
     state.isPlaying = true;
-    state.pendingFadeIn = true;
+    if (state.masterGain && state.audioCtx) {
+      try {
+        const now = state.audioCtx.currentTime;
+        if (typeof state.masterGain.gain.cancelScheduledValues === "function") {
+          state.masterGain.gain.cancelScheduledValues(now);
+          state.masterGain.gain.setValueAtTime(state.masterGain.gain.value, now);
+          state.masterGain.gain.linearRampToValueAtTime(1, now + 0.005);
+        } else {
+          state.masterGain.gain.value = 1;
+        }
+      } catch (_) {
+        state.masterGain.gain.value = 1;
+      }
+    }
   }
 
   function pause() {
     state.isPlaying = false;
-    state.pendingFadeIn = false;
     muteMasterGain();
     if (wasm && typeof wasm.wasm_get_audio_l_ptr === "function") {
       const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), bufferSize);
@@ -562,12 +606,14 @@ export function createWorkbenchPlayer({
   function preassembleRemaining({ idle = true } = {}) {
     const queue = Object.keys(sources).filter((id) => !assembledCache[id]);
     queue.sort((a, b) => (a === "gameover.asm" ? -1 : b === "gameover.asm" ? 1 : 0));
+    if (worker) {
+      for (const file of queue) {
+        worker.postMessage({ id: file, gameId: file, sourceText: sources[file] });
+      }
+      return;
+    }
     function step() {
       if (queue.length === 0) return;
-      if (idle && state.isPlaying) {
-        setTimeout(step, 250);
-        return;
-      }
       const file = queue.shift();
       getAssembled(file);
       if (queue.length > 0) {
@@ -627,6 +673,8 @@ export function createWorkbenchPlayer({
     getRawSource: (gameId) => sources[gameId],
     getAssembled,
     getAssembledCache: () => assembledCache,
+    isAssembled,
+    onAssembled,
     getSession: () =>
       state.currentSession || buildSessionDescriptor(getActiveGame(), getActiveTrack()),
     getState: () => ({ ...state }),

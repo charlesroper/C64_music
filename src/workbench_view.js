@@ -561,6 +561,34 @@ export function createWorkbenchView({
         if (item?.classList) {
           item.classList.toggle("active", GAME_FILES[i].id === state.activeGameId);
         }
+        const isAssembled = state.player
+          ? Boolean(state.player.isAssembled?.(GAME_FILES[i].id))
+          : false;
+        const badge = item?.querySelector
+          ? item.querySelector(`[data-asm-game="${GAME_FILES[i].id}"]`)
+          : null;
+        if (badge) {
+          if (badge.classList) {
+            badge.classList.toggle("ready", isAssembled);
+            badge.classList.toggle("pending", !isAssembled);
+          }
+          badge.textContent = isAssembled ? "READY" : "ASM...";
+        } else if (
+          item &&
+          typeof item.innerHTML === "string" &&
+          item.innerHTML.includes("asm-status-badge")
+        ) {
+          item.innerHTML = `
+        <div class="game-item-left">
+          <span class="game-item-title">${GAME_FILES[i].title} (${GAME_FILES[i].year})</span>
+          <span class="game-item-file">${GAME_FILES[i].id}</span>
+        </div>
+        <div class="game-item-badges">
+          <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${GAME_FILES[i].id}">${isAssembled ? "READY" : "ASM..."}</span>
+          <span class="game-item-badge">${GAME_FILES[i].badge}</span>
+        </div>
+      `;
+        }
       }
       return;
     }
@@ -568,6 +596,7 @@ export function createWorkbenchView({
     container.innerHTML = "";
 
     for (const game of GAME_FILES) {
+      const isAssembled = state.player ? Boolean(state.player.isAssembled?.(game.id)) : false;
       const div = doc.createElement("div");
       div.className = `game-item${game.id === state.activeGameId ? " active" : ""}`;
       div.innerHTML = `
@@ -575,7 +604,10 @@ export function createWorkbenchView({
           <span class="game-item-title">${game.title} (${game.year})</span>
           <span class="game-item-file">${game.id}</span>
         </div>
-        <span class="game-item-badge">${game.badge}</span>
+        <div class="game-item-badges">
+          <span class="asm-status-badge ${isAssembled ? "ready" : "pending"}" data-asm-game="${game.id}">${isAssembled ? "READY" : "ASM..."}</span>
+          <span class="game-item-badge">${game.badge}</span>
+        </div>
       `;
       div.addEventListener("click", () => {
         selectGameAndTrack(game.id, game.tracks[0].id, true);
@@ -1288,25 +1320,11 @@ export function createWorkbenchView({
     updateDrmChipState();
   }
 
-  function selectGameAndTrack(gameId, trackId, autoPlay = true, { immediate = false } = {}) {
+  function selectGameAndTrack(gameId, trackId, autoPlay = true) {
     if (!state.player) return;
-    const token = ++state.switchToken;
-    setPlaying(false);
-    const session = state.player.selectTrack(gameId, trackId, { autoPlay: false });
+    const session = state.player.selectTrack(gameId, trackId, { autoPlay });
     renderSession(session);
-    if (autoPlay) {
-      if (immediate || typeof requestAnimationFrame !== "function") {
-        setPlaying(true);
-      } else {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (state.switchToken === token) {
-              setPlaying(true);
-            }
-          });
-        });
-      }
-    }
+    setPlaying(Boolean(autoPlay));
   }
 
   function stepTrack(delta) {
@@ -1317,8 +1335,35 @@ export function createWorkbenchView({
     selectGameAndTrack(game.id, game.tracks[nextIdx].id, true);
   }
 
+  function updateAsmBadges(gameId) {
+    if (!doc) return;
+    const badges = doc.querySelectorAll ? doc.querySelectorAll(`[data-asm-game="${gameId}"]`) : [];
+    badges.forEach((b) => {
+      if (b.classList) {
+        b.classList.remove("pending");
+        b.classList.add("ready");
+      }
+      b.textContent = "READY";
+    });
+  }
+
+  let playerUnsub = null;
+  function setupPlayerAssemblyListener(p) {
+    if (playerUnsub) {
+      playerUnsub();
+      playerUnsub = null;
+    }
+    if (p && typeof p.onAssembled === "function") {
+      playerUnsub = p.onAssembled((gameId) => {
+        updateAsmBadges(gameId);
+      });
+      cleanups.push(playerUnsub);
+    }
+  }
+
   function setPlayer(newPlayer) {
     state.player = newPlayer;
+    setupPlayerAssemblyListener(newPlayer);
     updateDrmChipState();
     renderGameList();
   }
@@ -1778,6 +1823,7 @@ export function createWorkbenchView({
   }
 
   const cleanups = [];
+  setupPlayerAssemblyListener(state.player);
   setupUIHandlers();
   renderKeypadButtons();
   renderSidHexStripSkeleton();
@@ -1901,6 +1947,7 @@ export function createWorkbenchView({
   return {
     state,
     elements: registry,
+    renderGameList,
     renderSession,
     renderTelemetry,
     renderSource,

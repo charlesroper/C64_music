@@ -1009,16 +1009,10 @@ test("idle render loop skips canvas repaints and DOM writes when paused or hidde
   }
 });
 
-test("selectGameAndTrack stops playback before track loading and only resumes after DOM render", () => {
+test("selectGameAndTrack loads track with autoPlay and updates session DOM immediately", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const eventLog = [];
   const fakePlayer = createFakePlayer();
-
-  const origPause = fakePlayer.pause;
-  fakePlayer.pause = () => {
-    eventLog.push({ type: "pause", isPlaying: fakePlayer.getState().isPlaying });
-    origPause.call(fakePlayer);
-  };
 
   const origSelectTrack = fakePlayer.selectTrack;
   fakePlayer.selectTrack = (gameId, trackId, options) => {
@@ -1027,7 +1021,6 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
       gameId,
       trackId,
       autoPlayOption: options?.autoPlay,
-      isPlayingDuringLoad: fakePlayer.getState().isPlaying,
     });
     return origSelectTrack.call(fakePlayer, gameId, trackId, options);
   };
@@ -1059,72 +1052,74 @@ test("selectGameAndTrack stops playback before track loading and only resumes af
     // Switch game/track with autoPlay: true
     view.selectGameAndTrack("arkanoid.asm", "ark-title", true);
 
-    // Immediately after selectGameAndTrack, pause and selectTrack have run, and DOM is rendered,
-    // but play is deferred across two animation frames (post-layout) so audio stays silent during transition
-    assert.deepEqual(
-      eventLog.map((e) => e.type),
-      ["pause", "selectTrack"],
-      "Expected pause and selectTrack before animation frame",
-    );
-
     assert.equal(
-      eventLog[1].autoPlayOption,
-      false,
-      "selectTrack must be invoked with autoPlay: false so audio engine remains silent during load",
+      eventLog[0].type,
+      "selectTrack",
+      "selectTrack must be invoked with autoPlay: true so newly switched tracks start immediately",
     );
-    assert.equal(
-      eventLog[1].isPlayingDuringLoad,
-      false,
-      "Player must not be playing while selectTrack loads the emulator and parses track data",
-    );
+    assert.equal(eventLog[0].autoPlayOption, true, "selectTrack must receive autoPlay: true");
 
-    assert.equal(fakePlayer.getState().isPlaying, false, "Player must remain paused during frame");
-
-    // First rAF pass (pre-paint) must still keep player paused
-    harness.runAllAnimationFrames(undefined, 1);
-    assert.equal(
-      fakePlayer.getState().isPlaying,
-      false,
-      "Player must remain paused after first rAF until layout/paint completes",
-    );
-
-    // Second rAF pass (post-layout/paint) resumes audio
-    harness.runAllAnimationFrames(undefined, 1);
-
-    // Check sequence of events:
-    // 1. Pause was called first
-    // 2. selectTrack was executed while isPlaying is false, with autoPlay: false
-    // 3. Play was only called after renderSession updated the DOM
-    assert.deepEqual(
-      eventLog.map((e) => e.type),
-      ["pause", "selectTrack", "play"],
-      "Expected lifecycle order: pause -> selectTrack -> play",
-    );
-
-    assert.equal(
-      eventLog[1].autoPlayOption,
-      false,
-      "selectTrack must be invoked with autoPlay: false so audio engine remains silent during load",
-    );
-    assert.equal(
-      eventLog[1].isPlayingDuringLoad,
-      false,
-      "Player must not be playing while selectTrack loads the emulator and parses track data",
-    );
-
-    assert.ok(
-      eventLog[2].viewerLines > 0,
-      "Player must resume only after renderSession has generated source viewer DOM lines",
-    );
-    assert.match(
-      eventLog[2].nowPlaying,
-      /Arkanoid/i,
-      "Player must resume only after now-playing pill reflects the new track",
-    );
     assert.equal(
       fakePlayer.getState().isPlaying,
       true,
-      "Player should be playing after autoPlay resumes",
+      "Player must remain active without multi-frame muting delays",
+    );
+
+    assert.ok(
+      (harness.elementsById.get("source-viewer")?.children?.length || 0) > 0,
+      "DOM source viewer lines must be populated",
+    );
+    assert.match(
+      harness.elementsById.get("now-playing-pill")?.textContent || "",
+      /Arkanoid/i,
+      "Now-playing pill must reflect the new track immediately",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("Panel 1 game list displays assembly status badges that update reactively when sources assemble", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const fakePlayer = createFakePlayer();
+  let assembleListener = null;
+  fakePlayer.onAssembled = (fn) => {
+    assembleListener = fn;
+    return () => {};
+  };
+  const assembledStatus = { "wizball.asm": true, "gameover.asm": false };
+  fakePlayer.isAssembled = (id) => Boolean(assembledStatus[id]);
+
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player: fakePlayer,
+  });
+
+  try {
+    view.renderGameList();
+    const gameList = harness.elementsById.get("game-list");
+    assert.ok(gameList, "game-list container must exist");
+    const wizItem = gameList.children.find((c) => c.innerHTML?.includes("wizball.asm"));
+    const goItem = gameList.children.find((c) => c.innerHTML?.includes("gameover.asm"));
+    assert.ok(wizItem, "wizball item must exist");
+    assert.ok(goItem, "gameover item must exist");
+
+    assert.ok(wizItem.innerHTML.includes("READY"), "Assembled wizball must display READY badge");
+    assert.ok(
+      goItem.innerHTML.includes("ASM..."),
+      "Unassembled gameover must display ASM... badge",
+    );
+
+    // Simulate background assembly completion
+    assembledStatus["gameover.asm"] = true;
+    if (assembleListener) assembleListener("gameover.asm");
+
+    view.renderGameList();
+    assert.ok(
+      goItem.innerHTML.includes("READY"),
+      "Game Over badge must update to READY once assembled",
     );
   } finally {
     view.destroy();
