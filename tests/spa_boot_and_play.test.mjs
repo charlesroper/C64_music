@@ -1021,3 +1021,94 @@ test("idle render loop skips canvas repaints and DOM writes when paused or hidde
     harness.restoreGlobals();
   }
 });
+
+test("selectGameAndTrack stops playback before track loading and only resumes after DOM render", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const eventLog = [];
+  const fakePlayer = createFakePlayer();
+
+  const origPause = fakePlayer.pause;
+  fakePlayer.pause = () => {
+    eventLog.push({ type: "pause", isPlaying: fakePlayer.getState().isPlaying });
+    origPause.call(fakePlayer);
+  };
+
+  const origSelectTrack = fakePlayer.selectTrack;
+  fakePlayer.selectTrack = (gameId, trackId, options) => {
+    eventLog.push({
+      type: "selectTrack",
+      gameId,
+      trackId,
+      autoPlayOption: options?.autoPlay,
+      isPlayingDuringLoad: fakePlayer.getState().isPlaying,
+    });
+    return origSelectTrack.call(fakePlayer, gameId, trackId, options);
+  };
+
+  const origPlay = fakePlayer.play;
+  fakePlayer.play = () => {
+    eventLog.push({
+      type: "play",
+      viewerLines: harness.elementsById.get("source-viewer")?.children?.length || 0,
+      nowPlaying: harness.elementsById.get("now-playing-pill")?.textContent || "",
+    });
+    origPlay.call(fakePlayer);
+  };
+
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player: fakePlayer,
+  });
+
+  try {
+    // Start initial playback
+    fakePlayer.play();
+    assert.equal(fakePlayer.getState().isPlaying, true);
+
+    // Reset event log so we only capture the game/track switch sequence
+    eventLog.length = 0;
+
+    // Switch game/track with autoPlay: true
+    view.selectGameAndTrack("arkanoid.asm", "ark-title", true);
+
+    // Check sequence of events:
+    // 1. Pause must be called before track loading
+    // 2. selectTrack must be executed while isPlaying is false, with autoPlay: false
+    // 3. Play must only be called after renderSession has updated the DOM
+    assert.deepEqual(
+      eventLog.map((e) => e.type),
+      ["pause", "selectTrack", "play"],
+      "Expected lifecycle order: pause -> selectTrack -> play",
+    );
+
+    assert.equal(
+      eventLog[1].autoPlayOption,
+      false,
+      "selectTrack must be invoked with autoPlay: false so audio engine remains silent during load",
+    );
+    assert.equal(
+      eventLog[1].isPlayingDuringLoad,
+      false,
+      "Player must not be playing while selectTrack loads the emulator and parses track data",
+    );
+
+    assert.ok(
+      eventLog[2].viewerLines > 0,
+      "Player must resume only after renderSession has generated source viewer DOM lines",
+    );
+    assert.match(
+      eventLog[2].nowPlaying,
+      /Arkanoid/i,
+      "Player must resume only after now-playing pill reflects the new track",
+    );
+    assert.equal(
+      fakePlayer.getState().isPlaying,
+      true,
+      "Player should be playing after autoPlay resumes",
+    );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});

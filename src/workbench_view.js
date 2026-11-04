@@ -1235,9 +1235,12 @@ export function createWorkbenchView({
 
   function selectGameAndTrack(gameId, trackId, autoPlay = true) {
     if (!state.player) return;
-    const session = state.player.selectTrack(gameId, trackId, { autoPlay });
+    setPlaying(false);
+    const session = state.player.selectTrack(gameId, trackId, { autoPlay: false });
     renderSession(session);
-    setPlaying(autoPlay);
+    if (autoPlay) {
+      setPlaying(true);
+    }
   }
 
   function stepTrack(delta) {

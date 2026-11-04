@@ -235,7 +235,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 44 automated checks across five test files:
+`npm test` runs 45 automated checks across five test files:
 
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
@@ -265,6 +265,7 @@ Martin Galway uploaded his original assembly files to GitHub in early 2026. In O
 * **Source gutter address fidelity.** Address gutters hide empty statement sentinels while preserving authentic $0000 locations.
 * **Source search and symbol alignment.** Symbol jumps and text searches scan whichever source file currently renders in the viewer.
 * **Assembler hardening and loader safety.** The assembler rejects missing non-implied operands, enforces multi-pass convergence across all six sources while failing on unstable edits, and guards unkeyed tracks and zero-page pointers.
+* **Game switching silence.** Switching games stops playback and silences the audio engine during compilation and assembly, resuming playback only after DOM rendering completes.
 * **Factual fidelity.** All quotations and technical references match Galway's original source files and equates verbatim.
 
 These checks show that the player behaves consistently. They do not prove it is identical to a real Commodore 64.
@@ -375,3 +376,14 @@ The layered review programme concluded with Wave E, turning review findings into
 [CODING_STANDARDS.md](CODING_STANDARDS.md) was created to establish nine citable rules for architecture, rendering performance, typography, and test-driven development. `scripts/bump_version.mjs` was hardened to refuse CalVer downgrades when machine clocks skew, and `scripts/deploy.mjs` was equipped with preflight guards verifying a clean working tree and the existence of the `fork` remote before executing linter and test gates.
 
 Finally, `tests/repo_rules.test.mjs` introduced eight deterministic regression checks that scan all tracked files for literal em-dash characters, verify SHA-256 cryptographic checksums on all seven historical Ocean assembly files and directives, assert lockstep test counts across `README.md` and `NARRATIVE.md`, and confirm four-file CalVer synchronization. The automated suite expanded from 36 checks across four files to 44 checks across five files, ensuring future agent reviews build on an enforced foundation.
+
+### 4 November 2026: silencing audio during game switches
+
+Testing on mobile devices revealed audible stutter and ring buffer glitches when switching between games during playback ([Issue #30](https://github.com/charlesroper/C64_music/issues/30)). The stutter stemmed from two issues in the playback lifecycle:
+
+1. `selectTrack` in `src/player_engine.js` did not pause audio while reinitializing the WebAssembly emulator core (`wasm_init`), resetting 6502 memory, and compiling source code. If an audio buffer tick occurred during initialization, it read partially configured registers.
+2. `selectGameAndTrack` in `src/workbench_view.js` set `isPlaying = true` before calling `renderSession(session)`. Building hundreds of assembly source elements, token DOM spans, and track metadata on the main thread blocked the event loop and starved the newly started audio buffer.
+
+The solution ensures the audio engine is silent during loading and rendering. `selectGameAndTrack` immediately calls `setPlaying(false)` to pause the engine, passes `{ autoPlay: false }` to `selectTrack`, completes the entire `renderSession` DOM pass, and only resumes playback (`setPlaying(true)`) once layout is finished. In addition, `selectTrack` resets `isPlaying = false` at entry so direct engine calls remain quiet during compilation.
+
+A regression test in `tests/spa_boot_and_play.test.mjs` verifies the complete lifecycle: `pause` -> `selectTrack` (with `autoPlay: false` and `isPlaying: false`) -> DOM render -> `play`. The test suite expanded to 45 checks across five test files.

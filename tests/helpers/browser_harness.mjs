@@ -726,7 +726,8 @@ export function createFakePlayer(options = {}) {
     getState() {
       return { ...state };
     },
-    selectTrack(gameId, trackId, { autoPlay = true } = {}) {
+    selectTrack(gameId, trackId, { autoPlay = false } = {}) {
+      state.isPlaying = false;
       const g = GAME_FILES.find((x) => x.id === gameId) || activeGame;
       const t = g.tracks.find((x) => x.id === trackId) || g.tracks[0];
       activeGame = g;

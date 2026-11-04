@@ -464,6 +464,7 @@ export function createWorkbenchPlayer({
   }
 
   function selectTrack(gameId, trackId, { autoPlay = false } = {}) {
+    state.isPlaying = false;
     const game = GAME_FILES.find((g) => g.id === gameId) || GAME_FILES[0];
     const track = game.tracks.find((t) => t.id === trackId) || game.tracks[0];
     state.activeGameId = game.id;
