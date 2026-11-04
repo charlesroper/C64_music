@@ -59,7 +59,7 @@ test("deploy preflight aborts when fork remote is missing", () => {
   );
 });
 
-test("deploy preflight executes preflight, lint, test, push, and reports pushed SHA", () => {
+test("deploy preflight formats, re-verifies a clean tree, lints, tests, pushes, and reports pushed SHA", () => {
   const executed = [];
   const fakeExec = (cmd) => {
     executed.push(cmd);
@@ -82,6 +82,8 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
   assert.deepEqual(executed, [
     "git status --porcelain",
     "git remote get-url fork",
+    "npm run format",
+    "git status --porcelain",
     "npm run lint",
     "npm test",
     "git push fork main",

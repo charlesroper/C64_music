@@ -90,6 +90,8 @@ Run the test suite from the repository root:
 npm test
 ```
 
+`npm test` first runs `biome check --write .`, applying Biome's formatter and safe lint fixes across the repository, then executes the checks. Formatting drift is corrected on every test run, so the working tree stays consistently rendered without a separate command.
+
 The test runner executes 45 automated checks across five test files:
 * `tests/repo_rules.test.mjs`: Enforces repository integrity rules: blocks CalVer downgrades from clock-skewed machines in version calculation (`scripts/bump_version.mjs`), verifies clean working tree and remote configuration preflight guards in deployment automation (`scripts/deploy.mjs`), guarantees zero literal em-dash characters (Unicode U+2014) across all tracked prose and code, confirms SHA-256 cryptographic authenticity of frozen historical Ocean assembly sources and directives, validates automated test count synchronization across documentation, and asserts four-file CalVer synchronization across `package.json`, `package-lock.json`, `index.html`, and `src/version.js`.
 * `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesized tones match the MOS 6581 datasheet pitch formula across 44.1kHz, 48kHz, PAL and NTSC configurations. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis, pause controls, channel mute masks, catalog metadata integrity, telemetry snapshot encapsulation with pre-allocated buffer reuse, removal of raw WebAssembly exports from the public player interface, named game loader adapter dispatch (`GAME_LOADERS`) with shared 16-bit word and JSR helpers, lazy on-demand source assembly, and structured track session descriptors with drum and Morse capability mapping across all 73 catalogued tracks.
@@ -139,7 +141,7 @@ To run the automated deployment:
 npm run deploy
 ```
 
-The deploy script (`scripts/deploy.mjs`) executes preflight checks (verifying a clean git working tree and the existence of the `fork` remote), runs the lint and format check (`npm run lint`), executes the automated test suite (`npm test`), pushes the release to `fork/main`, and reports the deployed commit hash.
+The deploy script (`scripts/deploy.mjs`) executes preflight checks (verifying a clean git working tree and the existence of the `fork` remote), applies the Biome formatter (`npm run format`) and re-verifies that the tree stayed clean, runs the lint and format check (`npm run lint`), executes the automated test suite (`npm test`), pushes the release to `fork/main`, and reports the deployed commit hash.
 
 ---
 
