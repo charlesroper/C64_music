@@ -83,7 +83,7 @@ function computeStyleForSelector(rules, targetSelectors, viewport) {
     if (selectorSet.has(rule.selector)) {
       for (const [k, v] of Object.entries(rule.decls)) {
         if (k === "overflow") {
-          computed["overflow"] = v;
+          computed.overflow = v;
           computed["overflow-x"] = v;
           computed["overflow-y"] = v;
         } else {
@@ -126,8 +126,8 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   const mobShell = computeStyleForSelector(rules, [".app-shell"], mobile);
-  assert.equal(mobShell["height"], "auto", "Mobile .app-shell must allow vertical growth");
-  assert.equal(mobShell["width"], "100%", "Mobile .app-shell must use 100% width instead of 100vw");
+  assert.equal(mobShell.height, "auto", "Mobile .app-shell must allow vertical growth");
+  assert.equal(mobShell.width, "100%", "Mobile .app-shell must use 100% width instead of 100vw");
 
   // 2. Workbench grid collapses from 3 columns on desktop to 1 column on 375px phone
   const deskGrid = computeStyleForSelector(rules, [".workbench-grid"], desktop);
@@ -174,7 +174,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
 
   const mobSourceViewer = computeStyleForSelector(rules, [".source-viewer"], mobile);
   assert.ok(
-    mobSourceViewer["height"] || mobSourceViewer["max-height"],
+    mobSourceViewer.height || mobSourceViewer["max-height"],
     "Mobile .source-viewer must constrain height so 2,300 .asm lines do not stretch the page",
   );
 
@@ -214,8 +214,8 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
 
   const mobDocsBtn = computeStyleForSelector(rules, ["#btn-directives-modal"], mobile);
   const mobStoryBtn = computeStyleForSelector(rules, ["#btn-narrative-modal"], mobile);
-  assert.equal(mobDocsBtn["width"], "100%", "Mobile docs button must be width: 100%");
-  assert.equal(mobStoryBtn["width"], "100%", "Mobile story button must be width: 100%");
+  assert.equal(mobDocsBtn.width, "100%", "Mobile docs button must be width: 100%");
+  assert.equal(mobStoryBtn.width, "100%", "Mobile story button must be width: 100%");
   assert.ok(
     parseInt(mobDocsBtn["min-height"] || "0", 10) >= 36,
     "Mobile docs button must be >= 36px tall",
@@ -227,7 +227,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
 
   // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)
   const dotV2Style = computeStyleForSelector(rules, [".dot-v2"], mobile);
-  assert.match(dotV2Style["background"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style.background, /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /#ffffff/);
 
@@ -237,7 +237,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     mobile,
   );
   assert.match(v3FollowStyle["border-color"], /var\(--accent-yellow\)/);
-  assert.match(v3FollowStyle["background"], /rgba\(255,\s*170,\s*0/);
+  assert.match(v3FollowStyle.background, /rgba\(255,\s*170,\s*0/);
 });
 
 test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, exposes mobile view tabs, and switches to ASM tab on PC jump", async () => {
@@ -322,9 +322,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
 
     // 6. DRM chip switches to arkadrum.asm and tapping V1/V2/V3 switches back to arkanoid.asm
     const gameList = elementsById.get("game-list");
-    const arkadrumItem = gameList.children.find(
-      (c) => c.innerHTML && c.innerHTML.includes("arkadrum.asm"),
-    );
+    const arkadrumItem = gameList.children.find((c) => c.innerHTML?.includes("arkadrum.asm"));
     assert.ok(arkadrumItem, "Expected arkadrum.asm in game list");
     arkadrumItem.click();
     view.renderTelemetry(player.getTelemetry());

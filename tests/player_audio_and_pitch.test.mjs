@@ -7,9 +7,7 @@ import {
   createWorkbenchPlayer,
   GAME_LOADERS,
   getSessionSourceFile,
-  jsr,
   readWord,
-  setCpuState,
   writeWord,
 } from "../src/player_engine.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
@@ -483,7 +481,7 @@ test("track session descriptor returns complete session for each game and track"
       assert.equal(session.sourceFile, expectedSource);
 
       // Drum availability
-      const pcSyms = (game.architecture && game.architecture.pcSymbols) || [];
+      const pcSyms = game.architecture?.pcSymbols || [];
       const hasDrums = Boolean(
         pcSyms.includes("seqPC") && (track.withDrums || track.drumsSolo || track.drumMode),
       );

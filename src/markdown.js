@@ -98,7 +98,7 @@ export function renderMarkdownToHtml(md) {
 
     // Indented continuation of a list item
     if (lists.length && /^\s+\S/.test(line)) {
-      out.push(" " + formatMarkdownInline(line.trim()));
+      out.push(` ${formatMarkdownInline(line.trim())}`);
       continue;
     }
 

@@ -20,7 +20,7 @@ export function computeNextVersion(currentVersion, date = new Date()) {
       throw new Error(`Refusing to lower version from future date ${currentVersion} to ${today}`);
     }
   }
-  if (!currentVersion || !currentVersion.startsWith(today)) {
+  if (!currentVersion?.startsWith(today)) {
     return today;
   }
   const match = currentVersion.match(
@@ -71,7 +71,7 @@ export function applyVersion(nextVersion) {
   if (fs.existsSync(lockPath)) {
     const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
     lock.version = nextVersion;
-    if (lock.packages && lock.packages[""]) {
+    if (lock.packages?.[""]) {
       lock.packages[""].version = nextVersion;
     }
     fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");

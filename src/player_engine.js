@@ -147,7 +147,7 @@ export const GAME_LOADERS = {
 };
 
 export function buildSessionDescriptor(game, track) {
-  const pcSyms = (game && game.architecture && game.architecture.pcSymbols) || [];
+  const pcSyms = game?.architecture?.pcSymbols || [];
   const hasDrums = Boolean(
     pcSyms.includes("seqPC") && track && (track.withDrums || track.drumsSolo || track.drumMode),
   );
@@ -312,7 +312,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
 
   function updateEffectiveMuteMask() {
     const activeTrack = getActiveTrack();
-    if (activeTrack && activeTrack.drumsSolo && state.soloVoice < 0 && state.muteMask === 0) {
+    if (activeTrack?.drumsSolo && state.soloVoice < 0 && state.muteMask === 0) {
       wasm.wasm_set_voice_mute_mask(0x07);
       return;
     }
@@ -412,7 +412,7 @@ export function createWorkbenchPlayer({ wasm, rawSources, createAudioContext, na
   }
 
   function ensureAudio() {
-    if (navigatorObj && navigatorObj.audioSession) {
+    if (navigatorObj?.audioSession) {
       try {
         navigatorObj.audioSession.type = "playback";
       } catch (_) {

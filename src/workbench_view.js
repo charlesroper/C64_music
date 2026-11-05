@@ -122,7 +122,7 @@ export function scrollToSourceLine(
   const findEl = getEl || ((id) => documentObj?.getElementById(id));
   if (revealMobilePanel) {
     const grid = findEl("workbench-grid");
-    const currentView = grid && grid.dataset ? grid.dataset.mobileView : "all";
+    const currentView = grid?.dataset ? grid.dataset.mobileView : "all";
     if (currentView && currentView !== "all" && currentView !== "asm") {
       if (grid) grid.dataset.mobileView = "asm";
       documentObj?.querySelectorAll?.("[data-mobile-tab]")?.forEach((btn) => {
@@ -732,7 +732,7 @@ export function createWorkbenchView({
       updateLiveSourceHighlights(state.prevHighlightedLines);
     }
 
-    if (state.player && state.player.getState().isPlaying && state.prevHighlightedLines) {
+    if (state.player?.getState().isPlaying && state.prevHighlightedLines) {
       const targetCls = voice === "seq" ? "pc-seq" : `pc-v${voice}`;
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
@@ -745,8 +745,8 @@ export function createWorkbenchView({
   function updateDrmChipState() {
     const drmChip = doc.querySelector ? doc.querySelector('.legend-chip[data-voice="seq"]') : null;
     if (!drmChip) return;
-    const session = state.currentSession || (state.player && state.player.getSession());
-    const hasDrums = Boolean(session && session.drum.available);
+    const session = state.currentSession || state.player?.getSession();
+    const hasDrums = Boolean(session?.drum.available);
 
     drmChip.classList.toggle("disabled", !hasDrums);
     drmChip.title = hasDrums ? "Follow Drum Sequencer (seqPC)" : "No drum sequencer in this song";
@@ -796,7 +796,7 @@ export function createWorkbenchView({
     lastMorseActiveIndex = activeIndex;
 
     const game = GAME_FILES.find((g) => g.id === "rambload.asm");
-    if (!game || !game.morseSecret) return;
+    if (!game?.morseSecret) return;
     const secret = game.morseSecret;
     const container = getEl("morse-stream");
     const readout = getEl("morse-state-readout");
@@ -831,7 +831,7 @@ export function createWorkbenchView({
     });
   }
 
-  function renderSource(gameId, options = {}) {
+  function renderSource(gameId, _options = {}) {
     if (!state.player) return;
     const asm = state.player.getAssembled(gameId);
     if (!asm) return;
@@ -904,7 +904,7 @@ export function createWorkbenchView({
 
   function renderTelemetry(tel) {
     if (!tel) return;
-    const session = state.currentSession || (state.player && state.player.getSession());
+    const session = state.currentSession || state.player?.getSession();
     const ram = tel.ram;
     const currentFile = state.currentSourceFile || (session ? session.sourceFile : null);
     const currentAsm = state.player && currentFile ? state.player.getAssembled(currentFile) : null;
@@ -915,9 +915,7 @@ export function createWorkbenchView({
     }
 
     const isMonitorVisible =
-      !d.grid ||
-      !d.grid.dataset ||
-      !d.grid.dataset.mobileView ||
+      !d.grid?.dataset?.mobileView ||
       d.grid.dataset.mobileView === "all" ||
       d.grid.dataset.mobileView === "monitor";
 
@@ -1014,7 +1012,7 @@ export function createWorkbenchView({
             lastVoiceText[v].pc = pcText;
             vDom.pc.textContent = pcText;
           }
-          if (currentAsm && currentAsm.sourceIndex) {
+          if (currentAsm?.sourceIndex) {
             const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
             if (lineNo) {
               if (vDom.pc && vDom.pc.dataset.line !== String(lineNo)) {
@@ -1081,7 +1079,7 @@ export function createWorkbenchView({
       }
     }
 
-    if (session && session.drum.available && ram) {
+    if (session?.drum.available && ram) {
       const drumAsm = state.player ? state.player.getAssembled(session.drum.sourceFile) : null;
       const drumSym = session.drum.symbol || "seqPC";
       const seqSymAddr =
@@ -1094,7 +1092,7 @@ export function createWorkbenchView({
         lastTelemetryText.seqPc = drumText;
         d.seqPc.textContent = drumText;
       }
-      if (currentAsm && currentAsm.sourceIndex && currentFile === session.drum.sourceFile) {
+      if (currentAsm?.sourceIndex && currentFile === session.drum.sourceFile) {
         const lineNo = currentAsm.sourceIndex.lineForAddress(seqPtr);
         if (lineNo) {
           if (d.seqPc && d.seqPc.dataset.line !== String(lineNo)) {
@@ -1149,12 +1147,7 @@ export function createWorkbenchView({
       state.lastFollowedVoiceCls = followedCls;
     }
 
-    if (
-      state.followPc &&
-      activeLines.length > 0 &&
-      state.player &&
-      state.player.getState().isPlaying
-    ) {
+    if (state.followPc && activeLines.length > 0 && state.player?.getState().isPlaying) {
       const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
       const targetLine = activeLines.find((al) => al.cls === targetCls);
       if (targetLine && targetLine.lineNo !== state.lastFollowedLine) {
@@ -1217,7 +1210,7 @@ export function createWorkbenchView({
 
     const morseBanner = getEl("morse-banner");
     if (morseBanner) {
-      if (session.morse && session.morse.available) {
+      if (session.morse?.available) {
         morseBanner.classList.remove("hidden");
         renderMorseStream(0);
       } else {
@@ -1319,13 +1312,13 @@ export function createWorkbenchView({
     const btnFfwd = getEl("btn-ffwd");
     if (btnFfwd) {
       const startFfwd = (e) => {
-        if (e && e.preventDefault) e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         if (!state.player) return;
         state.player.setHardwareOptions({ isFastForward: true });
         btnFfwd.classList.add("active");
       };
       const stopFfwd = () => {
-        if (!state.player || !state.player.getState().isFastForward) return;
+        if (!state.player?.getState().isFastForward) return;
         state.player.setHardwareOptions({ isFastForward: false });
         btnFfwd.classList.remove("active");
       };
@@ -1448,8 +1441,8 @@ export function createWorkbenchView({
     const chips = doc.querySelectorAll ? doc.querySelectorAll(".legend-chip") : [];
     chips.forEach((chip) => {
       addListener(chip, "click", (e) => {
-        if (e && e.preventDefault) e.preventDefault();
-        if (e && e.stopPropagation) e.stopPropagation();
+        if (e?.preventDefault) e.preventDefault();
+        if (e?.stopPropagation) e.stopPropagation();
         if (chip.classList.contains("disabled")) return;
         const voiceAttr = chip.dataset.voice;
         const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
@@ -1466,12 +1459,7 @@ export function createWorkbenchView({
         if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
           updateLiveSourceHighlights(state.prevHighlightedLines);
         }
-        if (
-          state.followPc &&
-          state.player &&
-          state.player.getState().isPlaying &&
-          state.prevHighlightedLines
-        ) {
+        if (state.followPc && state.player?.getState().isPlaying && state.prevHighlightedLines) {
           const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
           const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
           if (targetLine) {
@@ -1514,7 +1502,7 @@ export function createWorkbenchView({
         if (!symName || !state.player) return;
         const currentFile = state.currentSourceFile || state.activeGameId;
         const asm = state.player.getAssembled(currentFile);
-        if (!asm || !asm.sourceIndex) return;
+        if (!asm?.sourceIndex) return;
         const lineNo = asm.sourceIndex.lineForSymbol(symName);
         if (lineNo > 0) scrollToSourceLine(lineNo, { doc, getEl });
       });
@@ -1527,7 +1515,7 @@ export function createWorkbenchView({
         if (!state.player) return;
         const currentFile = state.currentSourceFile || state.activeGameId;
         const asm = state.player.getAssembled(currentFile);
-        if (!asm || !asm.sourceIndex) return;
+        if (!asm?.sourceIndex) return;
         const searchMatches = doc.querySelectorAll
           ? doc.querySelectorAll(".asm-line.search-match")
           : [];
@@ -1686,7 +1674,7 @@ export function createWorkbenchView({
         const isModalOpen =
           (dirMod && !dirMod.classList.contains("hidden")) ||
           (narMod && !narMod.classList.contains("hidden")) ||
-          Boolean(doc.querySelector && doc.querySelector(".modal-backdrop:not(.hidden)"));
+          Boolean(doc.querySelector?.(".modal-backdrop:not(.hidden)"));
         if (isModalOpen) return;
 
         if (e.code === "Space") {
@@ -1728,7 +1716,7 @@ export function createWorkbenchView({
     }
   }
 
-  if (win && win.innerWidth && win.innerWidth <= 640) {
+  if (win?.innerWidth && win.innerWidth <= 640) {
     const chkHud = getEl("chk-hud-overlay");
     const hudOverlay = getEl("hud-guide-overlay");
     if (chkHud && hudOverlay) {
@@ -1754,7 +1742,7 @@ export function createWorkbenchView({
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
 
-    if (doc && doc.hidden) {
+    if (doc?.hidden) {
       return;
     }
 
