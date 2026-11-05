@@ -217,6 +217,8 @@ export function createWorkbenchPlayer({
   }
 
   let worker = null;
+  let preassembleInFlight = false;
+  const preassembleQueue = [];
   if (typeof createWorker === "function") {
     try {
       worker = createWorker();
@@ -233,8 +235,12 @@ export function createWorkbenchPlayer({
 
   if (worker) {
     worker.onmessage = (event) => {
+      preassembleInFlight = false;
       const payload = event.data;
-      if (!payload || payload.error || !payload.gameId) return;
+      if (!payload || payload.error || !payload.gameId) {
+        pumpPreassembly();
+        return;
+      }
       const { gameId, mem, symbols, symbolLines, entryPoint, addrToLine, lineAddresses, rawLines } =
         payload;
       if (!assembledCache[gameId]) {
@@ -252,6 +258,7 @@ export function createWorkbenchPlayer({
         };
         notifyAssembled(gameId, assembledCache[gameId]);
       }
+      pumpPreassembly();
     };
   }
 
@@ -274,6 +281,17 @@ export function createWorkbenchPlayer({
 
   wasm.wasm_init(state.sampleRate);
   getAssembled(state.activeGameId);
+
+  function pumpPreassembly() {
+    if (!worker || preassembleInFlight || preassembleQueue.length === 0) return;
+    if (state.isPlaying) {
+      setTimeout(pumpPreassembly, 250);
+      return;
+    }
+    const file = preassembleQueue.shift();
+    preassembleInFlight = true;
+    worker.postMessage({ id: file, gameId: file, sourceText: sources[file] });
+  }
 
   let cachedBuffer = null;
   let cachedRam = null;
@@ -618,8 +636,9 @@ export function createWorkbenchPlayer({
     queue.sort((a, b) => (a === "gameover.asm" ? -1 : b === "gameover.asm" ? 1 : 0));
     if (worker) {
       for (const file of queue) {
-        worker.postMessage({ id: file, gameId: file, sourceText: sources[file] });
+        if (!preassembleQueue.includes(file)) preassembleQueue.push(file);
       }
+      pumpPreassembly();
       return;
     }
     function step() {

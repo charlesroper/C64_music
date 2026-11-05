@@ -540,6 +540,49 @@ test("background fallback assembly yields while playback is active", async () =>
   assert.equal(player.isAssembled("gameover.asm"), true, "Pausing must resume fallback assembly");
 });
 
+test("worker preassembly runs one job at a time and yields during playback", async () => {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const posted = [];
+  let workerObj = null;
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    rawSources,
+    createAudioContext: makeFakeAudioContext(48000),
+    createWorker: () => {
+      workerObj = {
+        onmessage: null,
+        postMessage: (message) => posted.push(message),
+      };
+      return workerObj;
+    },
+  });
+
+  player.preassembleRemaining({ idle: false });
+  assert.equal(posted.length, 1, "Only one worker assembly job may be in flight");
+
+  player.play();
+  const first = posted[0];
+  workerObj.onmessage({
+    data: {
+      gameId: first.gameId,
+      mem: new Uint8Array(65536).buffer,
+      symbols: {},
+      symbolLines: {},
+      entryPoint: 0x1000,
+      addrToLine: {},
+      lineAddresses: [],
+      rawLines: [],
+    },
+  });
+
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(posted.length, 1, "Playback must pause the worker preassembly queue");
+
+  player.pause();
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(posted.length, 2, "Pausing must release the next worker assembly job");
+});
+
 test("track session descriptor returns complete session for each game and track", async () => {
   const mod = await WebAssembly.compile(wasmBytes);
   const instance = await WebAssembly.instantiate(mod, {});

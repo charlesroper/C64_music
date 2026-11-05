@@ -16,6 +16,9 @@ export async function bootWorkbench(options = {}) {
   if (!doc) return null;
 
   let preUnlockedAudioCtx = null;
+  // Assigned once the player exists. After that the player owns the audio
+  // context, so the tap handler must not open a second one on every click.
+  let player = null;
 
   const handleFirstInteraction = () => {
     if (typeof navigator !== "undefined" && navigator.audioSession) {
@@ -23,7 +26,7 @@ export async function bootWorkbench(options = {}) {
         navigator.audioSession.type = "playback";
       } catch (_) {}
     }
-    if (!preUnlockedAudioCtx) {
+    if (!preUnlockedAudioCtx && !player) {
       const AudioCtx = win.AudioContext || win.webkitAudioContext;
       if (AudioCtx) {
         try {
@@ -78,7 +81,7 @@ export async function bootWorkbench(options = {}) {
     rawSources[fileNames[i]] = decoder.decode(buf);
   }
 
-  const player = createWorkbenchPlayer({
+  player = createWorkbenchPlayer({
     wasm: instance.exports,
     rawSources,
     createAudioContext: (opts) => {

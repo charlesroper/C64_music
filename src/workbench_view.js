@@ -371,8 +371,39 @@ export function createWorkbenchView({
     lastRenderedFrame = -1;
   }
 
+  let lastScreenRam = null;
+  let lastColorRam = null;
+  let lastBorderRam = null;
+
   function renderC64Monitor(ram, scanlineBorder) {
     if (!ensureC64ScreenCanvas() || !scanlineBorder || !ram) return;
+
+    if (lastScreenRam) {
+      let unchanged = true;
+      for (let i = 0; i < 1000; i++) {
+        if (lastScreenRam[i] !== ram[0x0400 + i] || lastColorRam[i] !== ram[0xd800 + i]) {
+          unchanged = false;
+          break;
+        }
+      }
+      if (unchanged) {
+        for (let i = 0; i < 312; i++) {
+          if (lastBorderRam[i] !== scanlineBorder[i]) {
+            unchanged = false;
+            break;
+          }
+        }
+      }
+      if (unchanged) return;
+    } else {
+      lastScreenRam = new Uint8Array(1000);
+      lastColorRam = new Uint8Array(1000);
+      lastBorderRam = new Uint8Array(312);
+    }
+
+    lastScreenRam.set(ram.subarray(0x0400, 0x0400 + 1000));
+    lastColorRam.set(ram.subarray(0xd800, 0xd800 + 1000));
+    lastBorderRam.set(scanlineBorder.subarray(0, 312));
 
     for (let y = 0; y < 272; y++) {
       const vicLine = y + 20;
@@ -1904,15 +1935,16 @@ export function createWorkbenchView({
   let rafId = null;
   let isDestroyed = false;
   let lastFrameTimestamp = 0;
-  const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
+  // The monitor is an auxiliary display. Keep the audio callback and touch
+  // events responsive by rendering it at a lower cadence on phones.
+  const MIN_FRAME_INTERVAL_MS = win?.innerWidth && win.innerWidth <= 640 ? 1000 / 20 : 1000 / 30;
 
   function isAnyModalOpen() {
     const dirMod = getEl("directives-modal");
     const narMod = getEl("narrative-modal");
     return Boolean(
       (dirMod && !dirMod.classList.contains("hidden")) ||
-        (narMod && !narMod.classList.contains("hidden")) ||
-        doc?.querySelector?.(".modal-backdrop:not(.hidden)"),
+        (narMod && !narMod.classList.contains("hidden")),
     );
   }
 

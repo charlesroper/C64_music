@@ -296,6 +296,7 @@ export function createBrowserHarness({
   const audioState = {
     ctx: null,
     processor: null,
+    createdCount: 0,
     upstreamSourcesStarted: 0,
     upstreamConnectedToProcessor: false,
     processorConnectedToDestination: false,
@@ -311,6 +312,7 @@ export function createBrowserHarness({
       this.state = "suspended";
       this.destination = { isDestination: true };
       audioState.ctx = this;
+      audioState.createdCount += 1;
     }
 
     resume() {

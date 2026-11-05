@@ -77,6 +77,35 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   }
 });
 
+test("repeated PLAY taps reuse the boot AudioContext instead of opening a new one", async () => {
+  const harness = createBrowserHarness({
+    hardwareSampleRate: 48000,
+    rejectSampleRateOption: false,
+  });
+
+  try {
+    await bootWorkbench();
+    harness.stepAnimationFrame();
+
+    const btn = harness.elementsById.get("btn-play");
+    btn.click();
+    assert.equal(harness.audioState.createdCount, 1, "First PLAY tap must create one AudioContext");
+
+    for (let i = 0; i < 4; i++) {
+      btn.click();
+      harness.stepAnimationFrame();
+    }
+
+    assert.equal(
+      harness.audioState.createdCount,
+      1,
+      "Later PLAY taps must reuse the player AudioContext, not leak a new one",
+    );
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlocks AudioContext inside the tap gesture and starts audio when ready", async () => {
   const harness = createBrowserHarness({
     hardwareSampleRate: 48000,
@@ -1003,10 +1032,21 @@ test("idle render loop skips canvas repaints and DOM writes when paused or hidde
 
     // 2. Resume play: playback restarts rendering immediately
     view.setPlaying(true);
+    player.getTelemetry().ram[0x400] ^= 0x01;
     player.getTelemetry().frameCount++;
     harness.stepAnimationFrame();
     assert.ok(putImageDataCount > 0, "Resuming playback must draw C64 monitor canvas");
     assert.ok(scopeDrawCount > 0, "Resuming playback must draw oscilloscopes");
+
+    // Unchanged screen RAM and border must skip the costly monitor repaint.
+    putImageDataCount = 0;
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.equal(
+      putImageDataCount,
+      0,
+      "Unchanged screen memory must skip the C64 monitor canvas repaint",
+    );
 
     // 3. Document hidden: background tab skips canvas and DOM work while rescheduling
     globalThis.document.hidden = true;
@@ -1027,6 +1067,7 @@ test("idle render loop skips canvas repaints and DOM writes when paused or hidde
     globalThis.document.dispatchEvent("visibilitychange");
     putImageDataCount = 0;
     scopeDrawCount = 0;
+    player.getTelemetry().ram[0x400] ^= 0x01;
     player.getTelemetry().frameCount++;
     harness.stepAnimationFrame();
     assert.ok(putImageDataCount > 0, "Restoring visibility must resume C64 monitor canvas draws");
