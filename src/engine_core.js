@@ -198,6 +198,7 @@ export function createEngineCore({
 }) {
   const telemetryEvery = Math.max(1, Math.floor(telemetryInterval));
   let renderCount = 0;
+  let fastForwardSamples = 0;
   const state = {
     isPlaying: false,
     isLoading: false,
@@ -396,7 +397,13 @@ export function createEngineCore({
     }
 
     if (state.isFastForward) {
-      wasm.wasm_fast_forward_frames(3);
+      fastForwardSamples += n;
+      while (fastForwardSamples >= 2048) {
+        wasm.wasm_fast_forward_frames(3);
+        fastForwardSamples -= 2048;
+      }
+    } else {
+      fastForwardSamples = 0;
     }
 
     wasm.wasm_render_audio(n);

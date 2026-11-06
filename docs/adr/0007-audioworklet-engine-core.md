@@ -9,7 +9,7 @@ Mobile browsers starve the main thread for 50 to 200 ms during scrolling and ori
 ## Considered Options
 
 - **`SharedArrayBuffer` ring buffers**: rejected. GitHub Pages cannot send the COOP/COEP headers that cross-origin isolation requires.
-- **Keep a `ScriptProcessorNode` fallback as the primary path**: rejected. Every target browser ships `AudioWorklet`. The fallback survives only for the Node test harness and for browsers without AudioWorklet support. Node tests drive the Engine Core in-thread instead.
+- **Keep a `ScriptProcessorNode` fallback as the primary path**: rejected. Every target browser ships `AudioWorklet`. Browser playback now relies on the worklet alone. Node tests drive the Engine Core in-thread instead.
 - **Run the assembler in the worklet**: rejected. The Workbench View needs the Source Index on the main thread, so the main thread assembles and posts only `{ mem, symbols }`.
 
 ## Decision

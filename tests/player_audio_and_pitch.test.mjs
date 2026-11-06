@@ -37,24 +37,6 @@ function makeFakeAudioContext(sampleRate = 48000) {
       this.state = "running";
       return Promise.resolve();
     },
-    createBuffer: (_ch, len, sr) => ({
-      length: len,
-      sampleRate: sr,
-      getChannelData: () => new Float32Array(len),
-    }),
-    createBufferSource: () => ({
-      buffer: null,
-      loop: false,
-      connect() {},
-      start() {},
-    }),
-    createScriptProcessor: (bufferSize, inCh, outCh) => ({
-      bufferSize,
-      inCh,
-      outCh,
-      onaudioprocess: null,
-      connect() {},
-    }),
   });
 }
 

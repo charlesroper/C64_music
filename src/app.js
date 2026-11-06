@@ -99,6 +99,17 @@ export async function bootWorkbench(options = {}) {
   view.setAssets({ directivesText, narrativeText });
   view.setPlayer(player);
 
+  let audioPrepared = false;
+  const prepareAudio = () => {
+    if (audioPrepared) return;
+    audioPrepared = true;
+    player.prepareAudio();
+    doc.removeEventListener("pointerdown", prepareAudio, true);
+    doc.removeEventListener("keydown", prepareAudio, true);
+  };
+  doc.addEventListener("pointerdown", prepareAudio, true);
+  doc.addEventListener("keydown", prepareAudio, true);
+
   const led = view.elements.get("status-led");
   if (led) led.classList.add("ready");
 

@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createC64ProcessorClass } from "../src/audio_worklet.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
+import { createWorkbenchPlayer } from "../src/player_engine.js";
 import { TELEMETRY_BUFFER_BYTES } from "../src/telemetry_buffer.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
@@ -145,6 +146,78 @@ test("worklet processor throttles telemetry below the audio callback rate", asyn
   const telemetryCount = port.messages.filter((message) => message.type === "telemetry").length;
   assert.ok(telemetryCount >= 1, "Expected telemetry while playing");
   assert.ok(telemetryCount <= 3, `Expected throttled telemetry, got ${telemetryCount} messages`);
+});
+
+test("player queues play until the worklet is ready and then dispatches the active track", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const nodes = [];
+  let resolveModule = null;
+  const moduleReady = new Promise((resolve) => {
+    resolveModule = resolve;
+  });
+
+  const fakeContext = {
+    sampleRate: 48000,
+    state: "suspended",
+    destination: {},
+    audioWorklet: {
+      addModule: () => moduleReady,
+    },
+    resume: () => Promise.resolve(),
+  };
+
+  class FakeAudioWorkletNode {
+    constructor(context, name, options) {
+      this.context = context;
+      this.name = name;
+      this.options = options;
+      this.port = {
+        messages: [],
+        onmessage: null,
+        postMessage: (message) => this.port.messages.push(message),
+      };
+      this.destination = null;
+      nodes.push(this);
+    }
+
+    connect(destination) {
+      this.destination = destination;
+    }
+  }
+
+  const previousNode = globalThis.AudioWorkletNode;
+  globalThis.AudioWorkletNode = FakeAudioWorkletNode;
+  try {
+    const player = createWorkbenchPlayer({
+      wasm: instance.exports,
+      wasmModule,
+      rawSources: { "wizball.asm": fs.readFileSync(path.join(ROOT, "wizball.asm"), "latin1") },
+      createAudioContext: () => fakeContext,
+      workletUrl: "/audio_worklet.js",
+    });
+
+    player.selectTrack("wizball.asm", "wiz-title", { autoPlay: false });
+    player.play();
+    assert.equal(nodes.length, 0, "Worklet node must not exist before addModule resolves");
+    assert.equal(player.getState().isPlaying, true);
+
+    resolveModule();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(nodes.length, 1);
+
+    const node = nodes[0];
+    assert.equal(node.name, "c64-engine");
+    assert.equal(node.options.processorOptions.wasmModule, wasmModule);
+    assert.equal(node.port.messages.length, 0, "Commands wait for the processor ready message");
+
+    node.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
+    const types = node.port.messages.map((message) => message.type);
+    assert.ok(types.includes("loadTrack"), "Active track must be replayed to the worklet");
+    assert.ok(types.includes("play"), "Queued play intent must reach the worklet");
+    assert.equal(player.getState().audioBackend, "worklet");
+  } finally {
+    globalThis.AudioWorkletNode = previousNode;
+  }
 });
 
 test("worklet processor transfers telemetry buffers and recycles them", async () => {

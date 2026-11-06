@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -283,10 +282,6 @@ export function createBrowserHarness({
 
   const audioState = {
     ctx: null,
-    processor: null,
-    upstreamSourcesStarted: 0,
-    upstreamConnectedToProcessor: false,
-    processorConnectedToDestination: false,
     audioSession: { type: "ambient" },
   };
 
@@ -304,51 +299,6 @@ export function createBrowserHarness({
     resume() {
       this.state = "running";
       return Promise.resolve();
-    }
-
-    createBuffer(channels, length, sampleRate) {
-      return {
-        numberOfChannels: channels,
-        length,
-        sampleRate,
-        getChannelData: () => new Float32Array(length),
-      };
-    }
-
-    createBufferSource() {
-      const src = {
-        buffer: null,
-        loop: false,
-        _connectedTargets: [],
-        connect(target) {
-          this._connectedTargets.push(target);
-          if (target === audioState.processor) {
-            audioState.upstreamConnectedToProcessor = true;
-          }
-          return target;
-        },
-        start() {
-          audioState.upstreamSourcesStarted++;
-        },
-      };
-      return src;
-    }
-
-    createScriptProcessor(bufferSize, inCh = 2, outCh = 2) {
-      const proc = {
-        bufferSize,
-        inCh,
-        outCh,
-        onaudioprocess: null,
-        connect(target) {
-          if (target === audioState.ctx.destination) {
-            audioState.processorConnectedToDestination = true;
-          }
-          return target;
-        },
-      };
-      audioState.processor = proc;
-      return proc;
     }
   }
 
@@ -561,54 +511,6 @@ export function createBrowserHarness({
       while (led && !led.classList.contains("ready") && Date.now() < readyDeadline) {
         await new Promise((r) => setTimeout(r, 20));
       }
-    },
-    pullWebKitStrictAudioFrames(blocks = 20) {
-      assert.ok(audioState.ctx, "AudioContext was not created");
-      assert.equal(audioState.ctx.state, "running", "AudioContext was not resumed");
-      assert.ok(audioState.processor, "ScriptProcessorNode was not created");
-      assert.equal(
-        typeof audioState.processor.onaudioprocess,
-        "function",
-        "onaudioprocess missing",
-      );
-      assert.ok(
-        audioState.processor.inCh >= 1 &&
-          audioState.upstreamConnectedToProcessor &&
-          audioState.upstreamSourcesStarted >= 1,
-        "WebKit requires >=1 input channel and a started upstream source connected to ScriptProcessorNode",
-      );
-      assert.ok(
-        audioState.processorConnectedToDestination,
-        "ScriptProcessorNode must be connected to audioCtx.destination",
-      );
-
-      const n = audioState.processor.bufferSize;
-      const outL = new Float32Array(n);
-      const outR = new Float32Array(n);
-      let peakL = 0;
-      let peakR = 0;
-      let sumSq = 0;
-      let nanCount = 0;
-
-      for (let b = 0; b < blocks; b++) {
-        outL.fill(0);
-        outR.fill(0);
-        audioState.processor.onaudioprocess({
-          outputBuffer: {
-            getChannelData: (ch) => (ch === 0 ? outL : outR),
-          },
-        });
-        for (let i = 0; i < n; i++) {
-          if (Number.isNaN(outL[i]) || Number.isNaN(outR[i])) nanCount++;
-          const al = Math.abs(outL[i]);
-          const ar = Math.abs(outR[i]);
-          if (al > peakL) peakL = al;
-          if (ar > peakR) peakR = ar;
-          sumSq += al * al;
-        }
-      }
-      const rms = Math.sqrt(sumSq / (blocks * n));
-      return { peakL, peakR, rms, nanCount };
     },
     restoreGlobals() {
       for (const id of activeIntervals) {

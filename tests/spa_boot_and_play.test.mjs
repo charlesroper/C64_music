@@ -14,6 +14,31 @@ const ROOT = path.resolve(__dirname, "..");
 
 import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
 
+function pullAudioFrames(player, blocks = 20, blockSize = 2048) {
+  const left = new Float32Array(blockSize);
+  const right = new Float32Array(blockSize);
+  let peakL = 0;
+  let peakR = 0;
+  let sumSq = 0;
+  let nanCount = 0;
+
+  for (let block = 0; block < blocks; block++) {
+    left.fill(0);
+    right.fill(0);
+    player.pullAudioBlock(left, right);
+    for (let i = 0; i < blockSize; i++) {
+      if (Number.isNaN(left[i]) || Number.isNaN(right[i])) nanCount++;
+      const amplitudeL = Math.abs(left[i]);
+      const amplitudeR = Math.abs(right[i]);
+      if (amplitudeL > peakL) peakL = amplitudeL;
+      if (amplitudeR > peakR) peakR = amplitudeR;
+      sumSq += amplitudeL * amplitudeL;
+    }
+  }
+
+  return { peakL, peakR, rms: Math.sqrt(sumSq / (blocks * blockSize)), nanCount };
+}
+
 test("unified browser harness enforces strict element IDs and shares environment between UI tests", () => {
   const harness = createBrowserHarness({
     hardwareSampleRate: 48000,
@@ -58,7 +83,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   });
 
   try {
-    await bootWorkbench();
+    const { player } = await bootWorkbench();
     harness.stepAnimationFrame();
 
     // Simulate user tapping PLAY on mobile Safari (44.1 kHz hardware, sampleRate option rejected)
@@ -66,8 +91,9 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
 
     assert.equal(harness.audioState.audioSession.type, "playback");
     assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
+    assert.equal(player.getState().audioBackend, "in-thread");
 
-    const stats = harness.pullWebKitStrictAudioFrames(24);
+    const stats = pullAudioFrames(player, 24);
     assert.equal(stats.nanCount, 0);
     assert.ok(stats.peakL > 0.1, `Expected left channel peak > 0.1, got ${stats.peakL}`);
     assert.ok(stats.peakR > 0.1, `Expected right channel peak > 0.1, got ${stats.peakR}`);
@@ -110,7 +136,7 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
     );
 
     // Wait for fetches + WASM assembly to complete
-    await bootPromise;
+    const { player } = await bootPromise;
     const deadline = Date.now() + 5000;
     while (
       harness.elementsById.get("play-label").textContent === "LOADING..." &&
@@ -120,7 +146,7 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
     }
 
     assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
-    const stats = harness.pullWebKitStrictAudioFrames(16);
+    const stats = pullAudioFrames(player, 16);
     assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
   } finally {
     harness.restoreGlobals();

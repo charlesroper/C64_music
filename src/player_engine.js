@@ -179,8 +179,6 @@ export function createWorkbenchPlayer({
     soloVoice: -1,
     sampleRate: 48000,
     audioCtx: null,
-    scriptNode: null,
-    keepAliveSource: null,
     currentSession: null,
     audioBackend: null,
     workletReady: false,
@@ -205,32 +203,6 @@ export function createWorkbenchPlayer({
   function getRamView() {
     const snapshot = transport.requestTelemetry();
     return snapshot ? snapshot.ram : null;
-  }
-
-  function startScriptProcessor(ctx) {
-    if (state.scriptNode) return;
-    state.audioBackend = "script";
-
-    const bufferSize = 2048;
-    // Use 1 input channel + started looping silent BufferSourceNode so WebKit/iOS Safari
-    // reliably pulls through the ScriptProcessorNode without stalling or GCing it.
-    const scriptNode = ctx.createScriptProcessor(bufferSize, 1, 2);
-    scriptNode.onaudioprocess = (e) => {
-      const outL = e.outputBuffer.getChannelData(0);
-      const outR = e.outputBuffer.getChannelData(1);
-      pullAudioBlock(outL, outR);
-    };
-
-    const silentBuf = ctx.createBuffer(1, 128, state.sampleRate);
-    const keepAlive = ctx.createBufferSource();
-    keepAlive.buffer = silentBuf;
-    keepAlive.loop = true;
-    keepAlive.connect(scriptNode);
-    scriptNode.connect(ctx.destination);
-    keepAlive.start(0);
-
-    state.scriptNode = scriptNode;
-    state.keepAliveSource = keepAlive;
   }
 
   function startWorklet(ctx) {
@@ -261,7 +233,7 @@ export function createWorkbenchPlayer({
         inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
         inThreadTransport.send({ type: state.isPlaying ? "play" : "pause" });
         transport = inThreadTransport;
-        startScriptProcessor(ctx);
+        state.audioBackend = "in-thread";
       },
     });
   }
@@ -289,7 +261,7 @@ export function createWorkbenchPlayer({
       if (workletUrl && wasmModule && ctx.audioWorklet) {
         startWorklet(ctx);
       } else {
-        startScriptProcessor(ctx);
+        state.audioBackend = "in-thread";
       }
     }
 
@@ -340,6 +312,10 @@ export function createWorkbenchPlayer({
     const session = buildSessionDescriptor(game, track);
     state.currentSession = session;
     return session;
+  }
+
+  function prepareAudio() {
+    ensureAudio();
   }
 
   function play() {
@@ -394,6 +370,7 @@ export function createWorkbenchPlayer({
   return {
     getTelemetry,
     selectTrack,
+    prepareAudio,
     play,
     pause,
     togglePlay,

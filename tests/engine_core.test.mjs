@@ -158,6 +158,41 @@ test("track load freezes the clock, starts at frame 0, and never pre-renders aud
   assert.equal(messages.at(-1).snapshot.frameCount, 0, "Silence must not advance the clock");
 });
 
+test("fast-forward applies 3 extra frames per 2048 samples across small and large render blocks", async () => {
+  for (const blockSize of [128, 2048]) {
+    const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+    const wasm = {};
+    for (const [name, value] of Object.entries(instance.exports)) wasm[name] = value;
+    const calls = [];
+    const originalFastForward = wasm.wasm_fast_forward_frames;
+    wasm.wasm_fast_forward_frames = (frames) => {
+      calls.push(frames);
+      return originalFastForward(frames);
+    };
+
+    const core = createEngineCore({ wasm, postMessage: () => {} });
+    loadTrack(core, "wizball.asm", "wiz-title", { autoPlay: true });
+    core.onmessage({ data: { type: "play" } });
+    core.onmessage({ data: { type: "setHardwareOptions", options: { isFastForward: true } } });
+
+    const left = new Float32Array(blockSize);
+    const right = new Float32Array(blockSize);
+    for (let rendered = 0; rendered < 4096; rendered += blockSize) {
+      core.renderAudio(left, right);
+    }
+
+    assert.equal(
+      calls.length,
+      2,
+      `Block size ${blockSize} must fast-forward twice across 4096 samples`,
+    );
+    assert.equal(
+      calls.reduce((total, frames) => total + frames, 0),
+      6,
+    );
+  }
+});
+
 test("commands received during a track load queue and apply in order afterwards", async () => {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const wasm = {};
