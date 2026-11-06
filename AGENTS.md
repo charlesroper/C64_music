@@ -91,6 +91,8 @@ This runs the full test suite (`npm test`) and pushes to `fork/main`.
 
 Issues and specs live as GitHub issues in `charlesroper/C64_music`, driven by the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
+Close an issue only with `npm run issue:close -- <number> --comment "..."`. The guard refuses unchecked DoD or acceptance criteria, and a workflow reopens any completed issue closed with unchecked items. Do not call `gh issue close` directly.
+
 ### Triage labels
 
 The five canonical triage roles map to their own names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.

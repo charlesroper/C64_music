@@ -12,7 +12,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 - **Count open blockers**: `gh api repos/<owner>/<repo>/issues/<n> --jq .issue_dependencies_summary.blocked_by` (open blockers only; 0 means startable). `gh issue view <n> --json blockedBy` also lists closed blockers, so filter it: `--jq '[.blockedBy.nodes[] | select(.state == "OPEN")] | length'`.
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: post the explanation with `gh issue comment <number> --body "..."`, then `gh issue close <number>`. On an already-closed issue, `gh issue close --comment` drops the comment and still exits 0.
+- **Close**: check every DoD and acceptance criteria checkbox first. Close with `npm run issue:close -- <number> --comment "..."`. The script refuses to close while any task item is unchecked, and refuses a body with no checklist unless you pass `--allow-no-checklist`. It posts the comment and closes only after the check passes. A GitHub Action reopens any completed issue that still has unchecked items. Do not call `gh issue close` directly.
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 

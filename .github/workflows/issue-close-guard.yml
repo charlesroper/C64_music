@@ -1,0 +1,36 @@
+name: Issue close guard
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  reopen-unchecked:
+    if: github.event.issue.state_reason == 'completed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || "";
+            const unchecked = [...body.matchAll(/^\s*[-*]\s+\[ \]\s+(.+)$/gm)]
+              .map((match) => match[1].trim());
+            if (unchecked.length === 0) return;
+
+            const list = unchecked.map((item) => `- ${item}`).join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Reopened: acceptance criteria are still unchecked.\n\n${list}\n\nCheck them before closing, then use \`npm run issue:close -- ${context.issue.number} --comment "..."\`.`
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: "open",
+              state_reason: "reopened"
+            });

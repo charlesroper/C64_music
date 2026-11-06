@@ -239,9 +239,10 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 47 automated checks across six test files:
+`npm test` runs 50 automated checks across 7 test files:
 
 * **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers, and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, and that sample-rate negotiation leaves loaded C64 RAM intact.
+* **Issue closure guard.** `npm run issue:close` audits the issue body and refuses to close while any DoD or acceptance criteria task item is unchecked. A GitHub Action reopens any completed issue closed with unchecked items.
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
 * **Idle render throttling.** The presentation loop takes an early return idle path when paused or when `document.hidden` is true, eliminating all C64 monitor canvas draws, oscilloscope strokes, and telemetry DOM writes, throttling refresh rates to 60 Hz, and restoring immediately on visibility.
