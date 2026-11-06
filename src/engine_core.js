@@ -190,7 +190,14 @@ function updateRamboMonitorScreen(ram, symbols) {
   }
 }
 
-export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48000 }) {
+export function createEngineCore({
+  wasm,
+  postMessage = () => {},
+  sampleRate = 48000,
+  telemetryInterval = 1,
+}) {
+  const telemetryEvery = Math.max(1, Math.floor(telemetryInterval));
+  let renderCount = 0;
   const state = {
     isPlaying: false,
     isLoading: false,
@@ -398,7 +405,9 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
     const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
     outL.set(wasmL);
     if (outR) outR.set(wasmR);
-    emitTelemetry();
+
+    renderCount++;
+    if (renderCount % telemetryEvery === 0) emitTelemetry();
   }
 
   function renderAudio(outLOrLength, outR) {

@@ -66,7 +66,8 @@ export async function bootWorkbench(options = {}) {
   ]);
 
   const wasmBytes = await wasmResp.arrayBuffer();
-  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const wasmModule = await WebAssembly.compile(wasmBytes);
+  const instance = await WebAssembly.instantiate(wasmModule, {});
 
   const directivesText = await directivesResp.text();
   const narrativeText = await narrativeResp.text();
@@ -80,6 +81,8 @@ export async function bootWorkbench(options = {}) {
 
   const player = createWorkbenchPlayer({
     wasm: instance.exports,
+    wasmModule,
+    workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
     rawSources,
     createAudioContext: (opts) => {
       if (preUnlockedAudioCtx) {
