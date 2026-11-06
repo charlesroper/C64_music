@@ -22,3 +22,9 @@ Mobile browsers starve the main thread for 50 to 200 ms during scrolling and ori
 ## Consequences
 
 The Telemetry Snapshot (ADR-0001) keeps its shape but may lag the audio by one message. The worklet module loads during the first-interaction audio unlock, and a `play()` issued before it is ready is queued.
+
+## Verification
+
+Headless AudioWorklet module loading is unavailable in the PRoot development sandbox ([Issue #34](https://github.com/charlesroper/C64_music/issues/34)). Chromium 1187 creates a running `AudioContext` and runs plain `Worker`s, but `audioWorklet.addModule()` never settles for HTTP, blob, data or deliberately missing URLs, so the worklet loading thread never responds. Chromium 1254 crashes at startup. No tested flag combination helped, including `--disable-features=AudioWorkletRealtimeThread`, `AudioServiceOutOfProcess`, `AudioServiceSandbox`, `--single-process`, `--mute-audio`, `--disable-audio-output` and `--disable-gpu`.
+
+The verification gate is therefore split. `npm test` drives the Engine Core in-thread and guards the message protocol, the frozen clock and the command queue. A real mobile browser provides the end-to-end check by ear: load a track, start playback, scroll and rotate the phone, and confirm the audio stays clean without dropouts.
