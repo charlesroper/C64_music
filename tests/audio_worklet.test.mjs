@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createC64ProcessorClass } from "../src/audio_worklet.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
+import { TELEMETRY_BUFFER_BYTES } from "../src/telemetry_buffer.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,11 +20,14 @@ const wizballTitle = wizballGame.tracks.find((track) => track.id === "wiz-title"
 
 function createPort() {
   const messages = [];
+  const transfers = [];
   return {
     messages,
+    transfers,
     onmessage: null,
-    postMessage(message) {
+    postMessage(message, transfer) {
       messages.push(message);
+      if (transfer) transfers.push(transfer);
     },
   };
 }
@@ -141,4 +145,42 @@ test("worklet processor throttles telemetry below the audio callback rate", asyn
   const telemetryCount = port.messages.filter((message) => message.type === "telemetry").length;
   assert.ok(telemetryCount >= 1, "Expected telemetry while playing");
   assert.ok(telemetryCount <= 3, `Expected throttled telemetry, got ${telemetryCount} messages`);
+});
+
+test("worklet processor transfers telemetry buffers and recycles them", async () => {
+  const port = createPort();
+  const processor = createProcessor(port);
+  await waitForMessage(port, "ready");
+
+  loadWizball(port);
+
+  // Return the Track Load snapshot so the pool starts full.
+  const loadTelemetry = port.messages.findLast((message) => message.type === "telemetry");
+  port.onmessage({ data: { type: "telemetry-recycle", buffer: loadTelemetry.buffer } });
+  port.messages.length = 0;
+  port.transfers.length = 0;
+
+  const left = new Float32Array(128);
+  const right = new Float32Array(128);
+  for (let block = 0; block < 18; block++) {
+    processor.process([], [[left, right]]);
+  }
+
+  const sent = port.messages.filter((message) => message.type === "telemetry");
+  assert.equal(sent.length, 3, "Expected three telemetry messages to drain the pool");
+  for (const message of sent) {
+    assert.ok(message.buffer instanceof ArrayBuffer);
+    assert.equal(message.buffer.byteLength, TELEMETRY_BUFFER_BYTES);
+    assert.equal(message.header.ram, undefined);
+  }
+  assert.equal(port.transfers.length, 3, "Every telemetry buffer must be transferred");
+
+  const recycled = sent[0].buffer;
+  port.onmessage({ data: { type: "telemetry-recycle", buffer: recycled } });
+  for (let block = 0; block < 6; block++) {
+    processor.process([], [[left, right]]);
+  }
+
+  const next = port.messages.filter((message) => message.type === "telemetry").at(-1);
+  assert.equal(next.buffer, recycled, "Expected the worklet to reuse the recycled buffer");
 });

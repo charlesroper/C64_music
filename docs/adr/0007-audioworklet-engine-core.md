@@ -17,7 +17,7 @@ Mobile browsers starve the main thread for 50 to 200 ms during scrolling and ori
 - The main thread compiles `c64_engine.wasm` once and passes the `WebAssembly.Module` in `processorOptions`.
 - The Player Engine interface stays synchronous. Commands are fire-and-forget and the port preserves their order.
 - A Track Load freezes the emulator clock. `process()` outputs silence and never touches the emulator until the Loader Adapter finishes, so the tune starts at frame 0 however long the load takes. Commands sent during a Track Load queue and apply in order afterwards. The paused pre-render (`wasm_render_audio(2048)`) is removed; the worklet sends one Telemetry Snapshot after each Track Load instead.
-- The worklet pushes Telemetry Snapshots at about 60 Hz while playing. Buffer recycling is tracked in #38. Fast-forward keeps its current rate of 3 extra frames per 2048 output samples.
+- The worklet pushes Telemetry Snapshots at about 60 Hz while playing. Each snapshot is packed into one `ArrayBuffer` from a three-buffer pool and transferred to the main thread, which returns used buffers for reuse. Fast-forward keeps its current rate of 3 extra frames per 2048 output samples.
 
 ## Consequences
 

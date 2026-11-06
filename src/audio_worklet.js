@@ -5,12 +5,18 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
+import {
+  createTelemetryHeader,
+  packTelemetry,
+  TELEMETRY_BUFFER_BYTES,
+} from "./telemetry_buffer.js";
 
 export const WORKLET_PROCESSOR_NAME = "c64-engine";
 
 // The browser calls process() about 375 times per second at 48 kHz.
 // Six callbacks per Telemetry Snapshot is about 62.5 Hz.
 const TELEMETRY_INTERVAL = 6;
+const TELEMETRY_POOL_SIZE = 3;
 
 export function createC64ProcessorClass(BaseProcessor) {
   return class C64WorkletProcessor extends BaseProcessor {
@@ -19,6 +25,11 @@ export function createC64ProcessorClass(BaseProcessor) {
       this.core = null;
       this.ready = false;
       this.pending = [];
+      this.telemetryHeader = createTelemetryHeader();
+      this.telemetryPool = [];
+      for (let i = 0; i < TELEMETRY_POOL_SIZE; i++) {
+        this.telemetryPool.push(new ArrayBuffer(TELEMETRY_BUFFER_BYTES));
+      }
       this.port.onmessage = (event) => this.onMessage(event.data);
 
       const processorOptions = options.processorOptions || {};
@@ -36,7 +47,13 @@ export function createC64ProcessorClass(BaseProcessor) {
             wasm: instance.exports,
             sampleRate,
             telemetryInterval: TELEMETRY_INTERVAL,
-            postMessage: (message) => this.port.postMessage(message),
+            postMessage: (message) => {
+              if (message.type === "telemetry") {
+                this.sendTelemetry(message.snapshot);
+                return;
+              }
+              this.port.postMessage(message);
+            },
           });
           this.ready = true;
           this.port.postMessage({ type: "ready", sampleRate });
@@ -49,11 +66,29 @@ export function createC64ProcessorClass(BaseProcessor) {
 
     onMessage(message) {
       if (!message?.type) return;
+      if (message.type === "telemetry-recycle") {
+        this.recycleTelemetry(message.buffer);
+        return;
+      }
       if (!this.ready || !this.core) {
         this.pending.push(message);
         return;
       }
       this.core.onmessage({ data: message });
+    }
+
+    sendTelemetry(snapshot) {
+      const buffer = this.telemetryPool.pop();
+      if (!buffer) return;
+      const header = packTelemetry(snapshot, buffer, this.telemetryHeader);
+      this.port.postMessage({ type: "telemetry", header, buffer }, [buffer]);
+    }
+
+    recycleTelemetry(buffer) {
+      if (!(buffer instanceof ArrayBuffer)) return;
+      if (this.telemetryPool.length < TELEMETRY_POOL_SIZE) {
+        this.telemetryPool.push(buffer);
+      }
     }
 
     drainPending() {

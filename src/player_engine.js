@@ -7,6 +7,7 @@
 
 import { createEngineCore } from "./engine_core.js";
 import { assembleOceanSource } from "./ocean_assembler.js";
+import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 export {
@@ -57,7 +58,9 @@ function createWorkletTransport({
   onError,
 }) {
   let node = null;
-  let latestTelemetry = null;
+  const latestTelemetry = createTelemetrySnapshot();
+  let latestTelemetryBuffer = null;
+  let hasTelemetry = false;
   const pending = [];
 
   const fail = (error) => {
@@ -77,8 +80,16 @@ function createWorkletTransport({
         const message = event.data;
         if (!message) return;
         if (message.type === "telemetry") {
-          latestTelemetry = message.snapshot;
-          if (onTelemetry) onTelemetry(message.snapshot);
+          const previousBuffer = latestTelemetryBuffer;
+          latestTelemetryBuffer = message.buffer;
+          applyTelemetry(latestTelemetry, message.header, message.buffer);
+          hasTelemetry = true;
+          if (previousBuffer) {
+            node.port.postMessage({ type: "telemetry-recycle", buffer: previousBuffer }, [
+              previousBuffer,
+            ]);
+          }
+          if (onTelemetry) onTelemetry(latestTelemetry);
           return;
         }
         if (message.type === "ready") {
@@ -104,7 +115,7 @@ function createWorkletTransport({
       throw new Error("Audio rendering runs on the worklet thread");
     },
     requestTelemetry() {
-      if (node && !latestTelemetry) node.port.postMessage({ type: "requestTelemetry" });
+      if (node && !hasTelemetry) node.port.postMessage({ type: "requestTelemetry" });
       return latestTelemetry;
     },
   };
