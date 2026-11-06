@@ -124,6 +124,82 @@ test("engine core loads an arkanoid bytecode payload for arkadrum drum tracks", 
   assert.ok(maximum > 0.15, `Expected isolated digi-drums, got peak ${maximum}`);
 });
 
+test("track load freezes the clock, starts at frame 0, and never pre-renders audio", async () => {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const wasm = {};
+  for (const [name, value] of Object.entries(instance.exports)) wasm[name] = value;
+  let renderCalls = 0;
+  const originalRender = wasm.wasm_render_audio;
+  wasm.wasm_render_audio = (samples) => {
+    renderCalls++;
+    originalRender(samples);
+  };
+
+  const messages = [];
+  const core = createEngineCore({
+    wasm,
+    postMessage: (message) => messages.push(message),
+  });
+
+  loadTrack(core, "rambload.asm", "rambo-full", { autoPlay: false });
+
+  assert.equal(renderCalls, 0, "Track load must not call wasm_render_audio");
+  assert.equal(messages.at(-1).snapshot.frameCount, 0, "Track must start at frame 0");
+
+  const left = new Float32Array(2048);
+  const right = new Float32Array(2048);
+  left.fill(1);
+  right.fill(1);
+  core.renderAudio(left, right);
+  assert.equal(peak(left), 0, "Frozen clock must output silence while paused");
+  assert.equal(peak(right), 0, "Frozen clock must output silence while paused");
+
+  core.onmessage({ data: { type: "requestTelemetry" } });
+  assert.equal(messages.at(-1).snapshot.frameCount, 0, "Silence must not advance the clock");
+});
+
+test("commands received during a track load queue and apply in order afterwards", async () => {
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+  const wasm = {};
+  for (const [name, value] of Object.entries(instance.exports)) wasm[name] = value;
+
+  const muteCalls = [];
+  const keyCalls = [];
+  const originalMute = wasm.wasm_set_voice_mute_mask;
+  const originalKey = wasm.wasm_inject_key;
+  wasm.wasm_set_voice_mute_mask = (mask) => {
+    muteCalls.push(mask);
+    originalMute(mask);
+  };
+  wasm.wasm_inject_key = (charCode) => {
+    keyCalls.push(charCode);
+    originalKey(charCode);
+  };
+
+  const core = createEngineCore({ wasm, postMessage: () => {} });
+  const originalLoader = GAME_LOADERS["gameover.asm"];
+  GAME_LOADERS["gameover.asm"] = (args) => {
+    core.onmessage({ data: { type: "setHardwareOptions", options: { muteMask: 0x01 } } });
+    core.onmessage({ data: { type: "injectKey", charCode: 0x41 } });
+    core.onmessage({ data: { type: "setHardwareOptions", options: { muteMask: 0x02 } } });
+    core.onmessage({ data: { type: "injectKey", charCode: 0x42 } });
+    originalLoader(args);
+  };
+
+  try {
+    loadTrack(core, "gameover.asm", "go-title-full", { autoPlay: false });
+  } finally {
+    GAME_LOADERS["gameover.asm"] = originalLoader;
+  }
+
+  assert.deepEqual(
+    muteCalls,
+    [0, 0, 1, 2],
+    "Queued hardware options must apply after load in exact order",
+  );
+  assert.deepEqual(keyCalls, [0x41, 0x42], "Queued key injections must apply in exact order");
+});
+
 test("engine core applies hardware options, injects keys, and keeps loaded RAM through init", async () => {
   const { core, messages } = await createTestCore();
 

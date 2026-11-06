@@ -193,6 +193,7 @@ function updateRamboMonitorScreen(ram, symbols) {
 export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48000 }) {
   const state = {
     isPlaying: false,
+    isLoading: false,
     isFastForward: false,
     activeGameId: null,
     activeTrackId: null,
@@ -207,6 +208,8 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
   };
 
   wasm.wasm_init(state.sampleRate);
+
+  const pendingMessages = [];
 
   let cachedBuffer = null;
   let cachedRam = null;
@@ -334,26 +337,34 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
     state.activeTrackId = track ? track.id : null;
     state.activeTrack = track || null;
     state.activeSymbols = symbols || null;
+    state.isLoading = true;
+    state.isPlaying = false;
 
-    wasm.wasm_init(state.sampleRate);
-    applyHardwareSettings();
+    try {
+      wasm.wasm_init(state.sampleRate);
+      applyHardwareSettings();
 
-    const loader = GAME_LOADERS[gameId];
-    if (loader) {
-      const arkanoidAsm =
-        arkanoidMem && arkanoidSymbols ? { mem: arkanoidMem, symbols: arkanoidSymbols } : null;
-      loader({
-        wasm,
-        ram: getRamView(),
-        track: track || {},
-        asm: { mem, symbols },
-        arkanoidAsm,
-        initMonitorScreen: initRamboloadMonitorScreen,
-      });
+      const loader = GAME_LOADERS[gameId];
+      if (loader) {
+        const arkanoidAsm =
+          arkanoidMem && arkanoidSymbols ? { mem: arkanoidMem, symbols: arkanoidSymbols } : null;
+        loader({
+          wasm,
+          ram: getRamView(),
+          track: track || {},
+          asm: { mem, symbols },
+          arkanoidAsm,
+          initMonitorScreen: initRamboloadMonitorScreen,
+        });
+      }
+      updateEffectiveMuteMask();
+    } finally {
+      state.isLoading = false;
     }
-    updateEffectiveMuteMask();
+
     state.isPlaying = Boolean(autoPlay);
     emitTelemetry();
+    drainPendingMessages();
   }
 
   function setHardwareOptions(options = {}) {
@@ -371,7 +382,7 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
 
   function renderInto(outL, outR) {
     const n = outL.length;
-    if (!state.isPlaying) {
+    if (state.isLoading || !state.isPlaying) {
       outL.fill(0);
       if (outR) outR.fill(0);
       return;
@@ -401,10 +412,13 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
     return { left: outLOrLength, right: outR };
   }
 
-  function onmessage(event) {
-    const message = event && event.data !== undefined ? event.data : event;
-    if (!message?.type) return;
+  function drainPendingMessages() {
+    while (pendingMessages.length > 0) {
+      dispatchMessage(pendingMessages.shift());
+    }
+  }
 
+  function dispatchMessage(message) {
     switch (message.type) {
       case "init":
         state.sampleRate = Number(message.sampleRate) || state.sampleRate;
@@ -431,6 +445,16 @@ export function createEngineCore({ wasm, postMessage = () => {}, sampleRate = 48
       default:
         break;
     }
+  }
+
+  function onmessage(event) {
+    const message = event && event.data !== undefined ? event.data : event;
+    if (!message?.type) return;
+    if (state.isLoading) {
+      pendingMessages.push(message);
+      return;
+    }
+    dispatchMessage(message);
   }
 
   return {
