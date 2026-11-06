@@ -5,8 +5,16 @@ Commodore 64 6502-SID music workbench and live assembly player for Martin Galway
 ## Core Concepts
 
 **Player Engine**:
-The audio and emulation module that assembles Galway's 6502 routines, manages Commodore 64 memory layout, executes WebAssembly emulation cycles, and renders audio blocks into Web Audio.
+The main-thread module that assembles Galway's 6502 routines, holds playback and hardware state, and sends commands to the Engine Core.
 _Avoid_: Audio service, emulator backend
+
+**Engine Core**:
+The module that owns the WebAssembly emulator, runs Loader Adapters, renders audio, and fills Telemetry Snapshots, either on the real-time audio thread or in-thread for tests.
+_Avoid_: Worklet engine, audio backend, processor
+
+**Track Load**:
+The act of resetting the emulator and running a Loader Adapter for a new track, during which the emulator clock is frozen and the tune starts at frame 0 once it completes.
+_Avoid_: Track switch, game change, reload
 
 **Telemetry Snapshot**:
 A reusable, pre-allocated snapshot of Commodore 64 engine state refreshed on each frame, containing cycle counts, program counter locations, SID registers, voice channels, filter state, oscilloscope buffers, and screen RAM.

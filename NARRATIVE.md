@@ -185,9 +185,13 @@ The emulator is written in C and compiled to WebAssembly, a compact binary forma
 
 The filter is a 2x-oversampled Chamberlin state-variable design. The output stage has a high-pass at about 15Hz, modelled on the capacitor that blocks direct current on a real machine's audio output, and a soft saturation curve (`soft_saturate`) in place of hard clipping.
 
+### Engine core (`src/engine_core.js`)
+
+The Engine Core owns the WebAssembly emulator, the loader adapters, audio rendering and the telemetry snapshot. The main thread sends it ordered messages to initialize the sample rate, load a track from assembled bytecode, play, pause, change hardware options, inject a key or request telemetry. The core renders stereo blocks into caller-supplied buffers and emits a telemetry snapshot after each track load and audio frame. The same interface runs in-thread for tests and inside the AudioWorklet for live audio.
+
 ### Browser audio (`src/player_engine.js`)
 
-The player picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tells the emulator. On phones, it unlocks audio inside the first tap, because browsers block sound otherwise. It also keeps the Web Audio processing node fed with a silent looping buffer, which some WebKit browsers need to keep running. Hardware telemetry, SID registers, voice states and screen RAM are packaged into a reusable telemetry snapshot, so the rendering loop never touches emulator internals directly.
+The player keeps the assembler and Source Index on the main thread. It sends only assembled bytecode and symbols to the Engine Core through an in-thread transport adapter. It picks up the audio hardware's sample rate (44.1kHz or 48kHz) and tells the core without resetting loaded C64 RAM. On phones, it unlocks audio inside the first tap, because browsers block sound otherwise. It also keeps the Web Audio processing node fed with a silent looping buffer, which some WebKit browsers need to keep running. Hardware telemetry, SID registers, voice states and screen RAM return in a reusable telemetry snapshot, so the rendering loop never touches emulator internals directly.
 
 ### Interface
 
@@ -235,8 +239,9 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely, and corrections are welcome.
 
-`npm test` runs 44 automated checks across five test files:
+`npm test` runs 47 automated checks across six test files:
 
+* **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers, and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, and that sample-rate negotiation leaves loaded C64 RAM intact.
 * **Repository rules and integrity guards.** Automated suite checks enforce zero em-dash characters (Unicode U+2014) across all tracked files, cryptographic SHA-256 integrity of frozen historical assembly sources and directives, documentation test count synchronization across both README.md and NARRATIVE.md, and four-file CalVer alignment.
 * **Deployment and bump preflights.** Version bump calculations (`scripts/bump_version.mjs`) refuse to downgrade versions on clock-skewed machines, and deployment automation (`scripts/deploy.mjs`) aborts if working trees are dirty or the fork remote is absent, distinguishing push failure from success.
 * **Idle render throttling.** The presentation loop takes an early return idle path when paused or when `document.hidden` is true, eliminating all C64 monitor canvas draws, oscilloscope strokes, and telemetry DOM writes, throttling refresh rates to 60 Hz, and restoring immediately on visibility.
@@ -375,3 +380,9 @@ The layered review programme concluded with Wave E, turning review findings into
 [CODING_STANDARDS.md](CODING_STANDARDS.md) was created to establish nine citable rules for architecture, rendering performance, typography, and test-driven development. `scripts/bump_version.mjs` was hardened to refuse CalVer downgrades when machine clocks skew, and `scripts/deploy.mjs` was equipped with preflight guards verifying a clean working tree and the existence of the `fork` remote before executing linter and test gates.
 
 Finally, `tests/repo_rules.test.mjs` introduced eight deterministic regression checks that scan all tracked files for literal em-dash characters, verify SHA-256 cryptographic checksums on all seven historical Ocean assembly files and directives, assert lockstep test counts across `README.md` and `NARRATIVE.md`, and confirm four-file CalVer synchronization. The automated suite expanded from 36 checks across four files to 44 checks across five files, ensuring future agent reviews build on an enforced foundation.
+
+### 6 November 2026: the engine core moves behind a message seam
+
+Mobile browsers can starve the main thread for 50 to 200 ms during scrolling, which makes the `ScriptProcessorNode` audio path stutter. The fix is to move emulation and audio rendering onto the AudioWorklet thread, but that needs a seam before it needs a worklet. Issue #35 extracted the WebAssembly emulator, the six Loader Adapters, audio rendering and Telemetry Snapshot extraction into `src/engine_core.js`, behind a message protocol ([Issue #35](https://github.com/charlesroper/C64_music/issues/35); [ADR 0007](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0007-audioworklet-engine-core.md)).
+
+`createEngineCore({ wasm, postMessage })` accepts ordered messages for `init`, `loadTrack`, `play`, `pause`, `setHardwareOptions`, `injectKey` and `requestTelemetry`. `loadTrack` takes only raw assembled bytecode and symbols, so the assembler and Source Index stay on the main thread. `src/player_engine.js` now drives the core through a thin in-thread transport adapter and keeps its public interface unchanged, re-exporting `GAME_LOADERS`, `jsr`, `setCpuState`, `readWord` and `writeWord`. Tests in `tests/engine_core.test.mjs` verify that the track load resets the CPU to the expected entry point, that arkadrum receives its arkanoid payload, that telemetry arrives on load and on every rendered block, and that sample-rate negotiation does not wipe loaded RAM. The full suite rose from 44 to 47 checks with the existing player tests still green.
