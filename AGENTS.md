@@ -100,3 +100,7 @@ The five canonical triage roles map to their own names: `needs-triage`, `needs-i
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Browser verification
+
+Read `docs/agents/browser-verification.md` before running headless browser checks. Use WebKit or Chromium 153 for worklet verification, and Firefox for UI checks only.

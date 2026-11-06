@@ -99,9 +99,11 @@ The test runner executes 52 automated checks across 7 test files:
 * `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700), and mobile (375x812) viewports. Verifies vertical scrolling, touch target dimensions (>= 36px), single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artifacts, startup toggle synchronization (HUD Row Guide, Follow Voice), interactive voice tracking chips (V1, V2, V3, DRM), responsive $D400-$D418 hardware register group stacking with active sound lights, jitter-free Section 4 telemetry rendering with tabular numbers, and adaptive requestAnimationFrame smooth scrolling for code tracking with leap pre-positioning and user touch cancellation.
 * `tests/narrative.test.mjs`: Validates the custom markdown renderer, confirms that all quotations in [NARRATIVE.md](NARRATIVE.md) match Galway's sources verbatim, and checks cited line numbers and equates against the original assembly files.
 
-### AudioWorklet verification gate
+### Headless browser verification
 
-Headless Chromium cannot load an AudioWorklet module in the PRoot development sandbox. Chromium 1187 creates a running `AudioContext` and runs plain `Worker`s, but `audioWorklet.addModule()` never settles for HTTP, blob, data or deliberately missing URLs, which shows the worklet loading thread never responds. Chromium 1254 crashes at startup. Tested flags included `--disable-features=AudioWorkletRealtimeThread`, `AudioServiceOutOfProcess`, `AudioServiceSandbox`, `--single-process`, `--mute-audio`, `--disable-audio-output` and `--disable-gpu`; none helped. Local verification therefore stops at the in-thread Engine Core tests in `npm test`. End-to-end audio verification is a manual listen in a real browser on the target phone.
+Headless worklet verification works in this PRoot sandbox with WebKit 27.2 or Chromium 153. Both load AudioWorklet modules, run `process()` ticks, and keep the `AudioContext` running. Chromium 156 and later crash at startup with SIGTRAP. Firefox 159 boots the app and loads worklet modules, but its audio context stays suspended, so use it for UI checks only.
+
+See [docs/agents/browser-verification.md](docs/agents/browser-verification.md) for the engine matrix, install commands, the pinned Chromium path, and the verification contract. Audible output still needs a real phone because this sandbox has no audio device.
 
 ---
 
