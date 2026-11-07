@@ -11,7 +11,7 @@
       <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
       <header class="top-bar">
         <div class="brand-block">
-          <div class="brand-led" id="status-led" title="WASM 6510 + SID Engine Ready"></div>
+          <div class="brand-led" id="status-led" title="WASM 6510 and SID engine ready"></div>
           <div>
             <div class="brand-title">
               <!-- biome-ignore lint/a11y/useSemanticElements: the brand mark is a decorative wordmark, not a control surface; a real button element would fight the layout styling -->
@@ -20,7 +20,7 @@
                 role="button"
                 tabindex="0"
                 aria-label="Galway 2664"
-                title="Galway 2664 (Click for retro C64 sparkle)"
+                title="Galway 2664 (click for retro C64 sparkle)"
               >
                 <svg
                   class="c64-logo-svg"
@@ -89,27 +89,27 @@
               <span class="brand-version" id="app-version">v2026.11.07.2</span>
             </div>
             <div class="brand-subtitle">
-              Cycle-Accurate WebAssembly MOS 6510 + 6581/8580 SID Emulator &amp; Live 1987 Ocean
-              Cross-Assembler
+              Cycle-accurate WebAssembly MOS 6510 and 6581/8580 SID emulator and live 1985-87 Ocean
+              cross-assembler
             </div>
           </div>
         </div>
 
         <div class="transport-bar">
-          <button type="button" id="btn-prev" class="btn-icon" title="Previous Track ([)">
+          <button type="button" id="btn-prev" class="btn-icon" title="Previous track ([)">
             <span>&#9664;&#9664;</span>
           </button>
-          <button type="button" id="btn-play" class="btn-primary" title="Play / Pause (Space)">
+          <button type="button" id="btn-play" class="btn-primary" title="Play / pause (Space)">
             <span id="play-icon">&#9654;</span> <span id="play-label">PLAY</span>
           </button>
-          <button type="button" id="btn-restart" class="btn-icon" title="Restart Current Track (R)">
+          <button type="button" id="btn-restart" class="btn-icon" title="Restart current track">
             <span>&#8634;</span>
             RESTART
           </button>
-          <button type="button" id="btn-next" class="btn-icon" title="Next Track (])">
+          <button type="button" id="btn-next" class="btn-icon" title="Next track (])">
             <span>&#9654;&#9654;</span>
           </button>
-          <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to Fast-Forward 4x (F)">
+          <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to fast-forward 4x">
             <span>&#9654;&#9654;|</span>
             4x FFWD
           </button>
@@ -119,16 +119,16 @@
           <div class="hw-group">
             <label class="hw-label" for="select-sid-model">SID CHIP</label>
             <select id="select-sid-model" class="hw-select">
-              <option value="6581" selected>MOS 6581 (1982 Analog + Digi)</option>
-              <option value="8580">MOS 8580 (1987 C64C Clean)</option>
+              <option value="6581" selected>MOS 6581 (1982 analogue)</option>
+              <option value="8580">MOS 8580 (1987 C64C linear)</option>
             </select>
           </div>
 
           <div class="hw-group">
             <label class="hw-label" for="select-video-std">CLOCK / VIC</label>
             <select id="select-video-std" class="hw-select">
-              <option value="pal" selected>PAL 50Hz (985.2 kHz)</option>
-              <option value="ntsc">NTSC 60Hz (1.023 MHz)</option>
+              <option value="pal" selected>PAL 50Hz (985.2kHz)</option>
+              <option value="ntsc">NTSC 60Hz (1.023MHz)</option>
             </select>
           </div>
 
@@ -151,7 +151,7 @@
             type="button"
             id="btn-directives-modal"
             class="btn-secondary"
-            title="Ocean 1987 Assembler Manual &amp; Architecture"
+            title="Ocean assembler manual and architecture"
           >
             OCEAN ASM DOCS
           </button>
@@ -160,7 +160,7 @@
             type="button"
             id="btn-narrative-modal"
             class="btn-secondary"
-            title="The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets"
+            title="Galway 2664: history, architecture and source code"
           >
             THE STORY
           </button>
@@ -182,14 +182,14 @@
         <!-- LEFT PANEL: GAME CARTRIDGES & TRACK/SFX BROWSER -->
         <section class="panel panel-left">
           <div class="panel-header">
-            <span class="panel-title">1. SOURCE FILES (.ASM)</span>
+            <span class="panel-title">1. Source files (.asm)</span>
             <span class="panel-badge" id="asm-compile-badge">ASSEMBLED OK</span>
           </div>
 
           <div class="game-list" id="game-list"></div>
 
           <div class="panel-header panel-subheader">
-            <span class="panel-title" id="tracks-panel-title">2. TUNES &amp; ARCADE SFX</span>
+            <span class="panel-title" id="tracks-panel-title">2. Tunes and arcade SFX</span>
             <div class="filter-pills">
               <button type="button" class="pill active" data-filter="all">ALL</button>
               <button type="button" class="pill" data-filter="music">MUSIC</button>
@@ -202,12 +202,12 @@
           <div class="game-meta-card" id="game-meta-card"></div>
         </section>
 
-        <!-- CENTER PANEL: LIVE C64 RASTER MONITOR + SID OSCILLOSCOPES & FILTER -->
+        <!-- CENTER PANEL: LIVE C64 RASTER MONITOR AND SID OSCILLOSCOPES AND FILTER -->
         <section class="panel panel-center">
           <div class="panel-header">
             <div class="header-left-group">
               <span class="panel-title"
-                >3. LIVE C64 MONITOR ($0400 + VIC-II $D020 RASTER BARS)</span
+                >3. Live C64 monitor ($0400 and VIC-II $D020 raster bars)</span
               >
               <span class="now-playing-pill" id="now-playing-pill">READY</span>
             </div>
@@ -238,7 +238,7 @@
             <div class="morse-banner hidden" id="morse-banner">
               <div class="morse-header">
                 <span class="morse-badge"
-                  >SECRET MORSE TRANSMITTER ACTIVE (STARTMC / $D400=$224B)</span
+                  >SECRET MORSE TRANSMITTER ACTIVE (STARTMC / $D400-$D401)</span
                 >
                 <span class="morse-state" id="morse-state-readout">CHAR #0</span>
               </div>
@@ -257,9 +257,9 @@
             </div>
           </div>
 
-          <!-- 4-Channel Oscilloscopes & SID Voice Telemetry -->
+          <!-- Four-channel oscilloscopes & SID Voice Telemetry -->
           <div class="panel-header panel-subheader">
-            <span class="panel-title">4. MOS 6581/8580 OSCILLOSCOPES &amp; VOICE TELEMETRY</span>
+            <span class="panel-title">4. MOS 6581/8580 oscilloscopes and voice telemetry</span>
             <div class="telemetry-summary" id="telemetry-summary">
               <span class="tel-item tel-item-frame"
                 ><span class="tel-lbl">FRAME:</span> <strong id="tel-frame">0</strong></span
@@ -391,21 +391,21 @@
               <div class="voice-card-header">
                 <div class="voice-title-group">
                   <span class="voice-dot v-green"></span>
-                  <span class="voice-name">FILTER &amp; $D418 DAC</span>
+                  <span class="voice-name">FILTER AND $D418 DAC</span>
                   <span class="voice-note" id="filter-mode-tag">LP</span>
                 </div>
                 <div class="voice-controls">
                   <span
                     class="voice-pc-tag"
                     id="seq-pc"
-                    title="Click to jump to Drum Sequencer pointer (seqPC) in source"
+                    title="Click to jump to drum sequencer pointer (seqPC) in source"
                     >DRUM: ----</span
                   >
                   <button
                     type="button"
                     class="btn-mini"
                     data-mute="3"
-                    title="Mute $D418 Digi-Drums (Digit 4)"
+                    title="Mute $D418 digi-drums (Digit 4)"
                   >
                     DIGI M
                   </button>
@@ -422,11 +422,11 @@
           </div>
         </section>
 
-        <!-- RIGHT PANEL: LIVE OCEAN 1987 .ASM SOURCE CODE & IN-BROWSER ASSEMBLER -->
+        <!-- RIGHT PANEL: LIVE OCEAN .ASM SOURCE CODE AND IN-BROWSER ASSEMBLER -->
         <section class="panel panel-right">
           <div class="panel-header">
             <div class="header-left-group">
-              <span class="panel-title" id="source-file-title">5. OCEAN 1987 .ASM SOURCE</span>
+              <span class="panel-title" id="source-file-title">5. OCEAN .ASM SOURCE</span>
               <span class="source-stats" id="source-stats">0 lines</span>
             </div>
             <div class="header-right-group">
@@ -451,7 +451,7 @@
                 class="btn-mini-action btn-accent hidden"
                 title="Assemble modified source and hot-reload into C64 RAM"
               >
-                ASSEMBLE &amp; RUN
+                ASSEMBLE AND RUN
               </button>
             </div>
           </div>
@@ -491,7 +491,7 @@
                 type="button"
                 class="legend-chip"
                 data-voice="seq"
-                title="Follow Drum Sequencer (seqPC)"
+                title="Follow drum sequencer (seqPC)"
               >
                 <i class="dot-seq"></i>DRM
               </button>
@@ -517,7 +517,7 @@
     <div class="modal-backdrop hidden" id="directives-modal">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>Ocean Software 1987 6502 Assembler &amp; Galway Engine Reference</h2>
+          <h2>Ocean 1985-87 6502 assembler and Galway engine reference</h2>
           <button type="button" id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
         </div>
         <div class="modal-body">
@@ -527,62 +527,69 @@
               <pre class="directives-pre" id="directives-pre"></pre>
             </div>
             <div>
-              <h3>Reverse-Engineered Engine Architecture</h3>
+              <h3>Reverse-engineered engine architecture</h3>
               <div class="arch-notes">
                 <p>
                   <strong
                     >1. Multi-Speed Fractional Raster Clock (<code>Refsp</code>
                     / <code>CREFSP</code>):</strong
                   >
-                  In <code>wizball.asm</code> and <code>gameover.asm</code> (lines 32, 110, 188, and
-                  266) as well as
-                  <code>arkanoid.asm</code>
-                  (lines 57, 117, 172, and 237), <code>DREFRESH</code> waits for 4 PAL raster lines
-                  per frame (200 Hz). At each raster point, 16-bit <code>Refsp</code> is added to
-                  <code>CREFSP</code>. Whenever the high byte <code>CREFSP+1</code> changes,
+                  In <code>wizball.asm</code> and <code>gameover.asm</code>, <code>DREFRESH</code>
+                  waits for raster lines 32, 110, 188 and 266. <code>arkanoid.asm</code> uses 57,
+                  117, 172 and 237. Those lines stay below 263, so Arkanoid's waits work on both PAL
+                  and NTSC frames. At each raster point, the 16-bit <code>Refsp</code> value is
+                  added to <code>CREFSP</code>. When the high byte <code>CREFSP+1</code> changes,
                   <code>REFRESH</code>
-                  executes. Thus:
-                  <code>$0100</code>
-                  = 200 Hz, <code>$0080</code> = 100 Hz, and <code>$0040</code> = 50 Hz.
+                  runs. Thus <code>$0100</code> gives 200Hz,
+                  <code>$0080</code>
+                  gives 100Hz and <code>$0040</code> gives 50Hz.
                 </p>
                 <p>
-                  <strong>2. Bytecode Virtual Machine (<code>vt0..vt2</code>):</strong>
-                  Each SID channel has a 16-bit sequence pointer (<code>PC0..PC2</code>
-                  at <code>$10..$15</code>). Bytes <code>&lt; $C0</code> are note numbers (with bit
-                  <code>$60</code>
-                  selecting an immediate duration byte vs. datablock duration lookup), while bytes
+                  <strong>2. Bytecode virtual machine (<code>vt0..vt2</code>):</strong>
+                  Each SID channel has a 16-bit sequence pointer. <code>arkanoid.asm</code> and
+                  <code>gameover.asm</code>
+                  place <code>PC0..PC2</code> at <code>$10..$15</code>.
+                  <code>wizball.asm</code>
+                  uses <code>$04..$09</code>, <code>greenberet.asm</code>
+                  uses <code>A0..A2</code> at <code>$16..$1B</code> and <code>rambload.asm</code>
+                  uses <code>Z0..Z5</code> at <code>$10..$15</code>. Bytes below
+                  <code>$C0</code>
+                  are note numbers. Values <code>$60</code> and above select an immediate duration
+                  byte rather than a datablock lookup. Bytes
                   <code>&gt;= $C0</code>
                   (<code>COM</code>) dispatch through
                   <code>vt0..vt2</code>
                   for loops (<code>For</code>/<code>Next</code>), subroutine calls (<code>Call</code
                   >/<code>Ret</code>/<code>CT</code>), instrument loads (<code>FLoad</code>/<code
                     >Vlm</code
-                  >/<code>Freq</code>), filter sweeps (<code>Filter</code>/<code>Master</code>), and
+                  >/<code>Freq</code>), filter sweeps (<code>Filter</code>/<code>Master</code>) and
                   inline 6502 machine code hooks (<code>Code</code>).
                 </p>
                 <p>
                   <strong
-                    >3. Real-Time <code>$D418</code> Digi-Drums (<code>arkadrum.asm</code>
-                    &amp; <code>gameover.asm</code>):</strong
+                    >3. Real-time <code>$D418</code> digi-drums (<code>arkadrum.asm</code>
+                    and <code>gameover.asm</code>):</strong
                   >
-                  While a 50 Hz VIC-II raster interrupt runs the 3 SID channels and the drum pattern
-                  sequencer (<code>DRUMS</code>), the foreground <code>MAIN</code> loop continuously
-                  calls <code>PLEY</code>, streaming either real-time algorithmic 4-bit waveforms (<code
-                    >arkadrum.asm</code
-                  >) or packed 4-bit PCM rock drum samples (<code>ROCKBASS</code>,
-                  <code>ROCKSNARE</code>, <code>ROCKCOWBELL</code> in <code>gameover.asm</code>) to
-                  the 6581 master volume DAC at <code>$D418</code>.
+                  While a 50Hz VIC-II raster interrupt runs the three SID channels and the drum
+                  pattern sequencer (<code>DRUMS</code>), the foreground <code>MAIN</code> loop
+                  continuously calls <code>PLEY</code>. It streams either real-time algorithmic
+                  4-bit waveforms (<code>arkadrum.asm</code>) or packed 4-bit PCM rock drum samples
+                  (<code>ROCKBASS</code>, <code>ROCKSNARE</code> and <code>ROCKCOWBELL</code> in
+                  <code>gameover.asm</code>) to the 6581 master volume DAC at <code>$D418</code>.
                 </p>
                 <p>
-                  <strong>4. Rambo II Secret Morse Code (<code>rambload.asm</code>):</strong>
-                  One second into the loader music, Channel 0 executes
-                  <code>DFB Code: DFW STARTMC</code>, patching
-                  <code>MUS+1</code>
-                  to <code>MCREFR</code>. Voice 1 transmits the hidden string at <code>Secret</code>
-                  (<code>BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID</code>)
-                  in 516 Hz (PAL) / 535 Hz (NTSC) Morse code using the bit-packed lookup table
-                  <code>CodeTab</code>
-                  before restoring <code>REFRESH</code>.
+                  <strong>4. Rambo II secret Morse code (<code>rambload.asm</code>):</strong>
+                  One second into the loader music, the score runs
+                  <code>DFB Code: DFW STARTMC</code>
+                  and patches <code>MUS+1</code> to
+                  <code>MCREFR</code>. Voice 1 transmits the hidden string at <code>Secret</code>,
+                  stored without spaces, in Morse code through the bit-packed lookup table
+                  <code>CodeTab</code>. The carrier starts at <code>$224B</code> (516Hz PAL, 535Hz
+                  NTSC). <code>MCFC1</code> and <code>MCFC2</code> step it down to
+                  <code>$1B38</code>
+                  (409Hz PAL, 425Hz NTSC) and <code>$19B1</code> (386Hz PAL, 401Hz NTSC) before
+                  <code>REFRESH</code>
+                  is restored.
                 </p>
               </div>
             </div>
@@ -595,7 +602,7 @@
     <div class="modal-backdrop hidden" id="narrative-modal">
       <div class="modal-card modal-card-narrative">
         <div class="modal-header">
-          <h2>The Galway Story: How This Was Built &amp; 1980s Ocean SID Secrets</h2>
+          <h2>Galway 2664: history, architecture and source code</h2>
           <button type="button" id="btn-close-narrative-modal" class="btn-icon">
             &times; CLOSE
           </button>

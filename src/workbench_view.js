@@ -671,7 +671,7 @@ export function createWorkbenchView({
       "Flt Cut Lo",
       "Flt Cut Hi",
       "Flt Res/Route",
-      "Mode / Vol",
+      "Mode and volume",
     ];
 
     for (const g of groups) {
@@ -756,6 +756,46 @@ export function createWorkbenchView({
     }
   }
 
+  function hudRowsForGame(gameId) {
+    const commonTimer = { row: 1, text: "ROW 1: TIMER (MM-SS-CC)" };
+    if (gameId === "greenberet.asm") {
+      return [
+        { row: 0, text: "ROW 0: A0..SZ Zero Page" },
+        { row: 2, text: "ROW 2: D0 (Voice 1 Datablock)" },
+        { row: 5, text: "ROW 5: D1 (Voice 2 Datablock)" },
+        { row: 8, text: "ROW 8: D2 (Voice 3 Datablock)" },
+        { row: 10, text: "ROW 10: IDR (Instrument Data)" },
+        { row: 11, text: "ROW 11: S0 (Voice 1 Soundblock)" },
+        { row: 13, text: "ROW 13: S1 (Voice 2 Soundblock)" },
+        { row: 15, text: "ROW 15: S2 (Voice 3 Soundblock)" },
+      ];
+    }
+    if (gameId === "rambload.asm") {
+      return [
+        { row: 4, text: "ROW 4: Z0-ZF Zero Page" },
+        { row: 7, text: "ROW 7: MORSE (Secret Message)" },
+        { row: 12, text: "ROW 12: SB0-SB2 Soundblocks" },
+      ];
+    }
+    const arkanoidFamily =
+      gameId === "arkanoid.asm" || gameId === "arkadrum.asm" || gameId === "gameover.asm";
+    const zeroPage = arkanoidFamily ? "ZER0 ($10-$2E)" : "ZERO0 ($04-$1C)";
+    return [
+      { row: 0, text: `ROW 0: ${zeroPage} PC0..2, CLOCK0..2` },
+      { row: 0, text: "SPEED (Refsp) & CH (YYY)", right: true },
+      commonTimer,
+      { row: 3, text: "ROW 3: D0 (Voice 1 Datablock)" },
+      { row: 6, text: "ROW 6: D1 (Voice 2 Datablock)" },
+      { row: 9, text: "ROW 9: D2 (Voice 3 Datablock)" },
+      { row: 12, text: "ROW 12: CUTST (Filter Preset)" },
+      { row: 15, text: "ROW 15: S0 (Voice 1 Soundblock)" },
+      { row: 17, text: "ROW 17: S1 (Voice 2 Soundblock)" },
+      { row: 19, text: "ROW 19: S2 (Voice 3 Soundblock)" },
+      { row: 21, text: "ROW 21: CUT (Active Cutoff)" },
+      { row: 24, text: "ROW 24: IDRT & MFL0..2 Flags" },
+    ];
+  }
+
   function renderHudGuideOverlay() {
     const overlay = getEl("hud-guide-overlay");
     if (!overlay) return;
@@ -763,20 +803,7 @@ export function createWorkbenchView({
     if (chkHud) {
       overlay.classList.toggle("hidden", !chkHud.checked);
     }
-    const rows = [
-      { row: 0, text: "ROW 0: ZER0 ($10-$2F) PC0..2, CLOCK0..2" },
-      { row: 0, text: "SPEED (Refsp) & CH (YYY)", right: true },
-      { row: 1, text: "ROW 1: TIMER (MM-SS-FF)" },
-      { row: 3, text: "ROW 3: D0 (Voice 1 Datablock)" },
-      { row: 6, text: "ROW 6: D1 (Voice 2 Datablock)" },
-      { row: 9, text: "ROW 9: D2 (Voice 3 Datablock)" },
-      { row: 12, text: "ROW 12: CUTST (Filter State)" },
-      { row: 15, text: "ROW 15: S0 (Voice 1 Soundblock)" },
-      { row: 17, text: "ROW 17: S1 (Voice 2 Soundblock)" },
-      { row: 19, text: "ROW 19: S2 (Voice 3 Soundblock)" },
-      { row: 21, text: "ROW 21: CUT (Filter Envelope)" },
-      { row: 24, text: "ROW 24: IDRT & MFL0..2 Flags" },
-    ];
+    const rows = hudRowsForGame(state.activeGameId);
 
     overlay.innerHTML = "";
     for (const r of rows) {
@@ -840,7 +867,7 @@ export function createWorkbenchView({
 
     const titleEl = getEl("source-file-title");
     if (titleEl) {
-      titleEl.textContent = `5. OCEAN 1987 SOURCE: ${gameId.toUpperCase()}`;
+      titleEl.textContent = `5. OCEAN .ASM SOURCE: ${gameId.toUpperCase()}`;
     }
     const statsEl = getEl("source-stats");
     if (statsEl) {
@@ -1230,6 +1257,7 @@ export function createWorkbenchView({
     if (!state.player) return;
     const session = state.player.selectTrack(gameId, trackId, { autoPlay });
     renderSession(session);
+    renderHudGuideOverlay();
     setPlaying(autoPlay);
   }
 

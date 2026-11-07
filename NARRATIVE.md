@@ -35,7 +35,7 @@ Galway's sources show him working around those limits:
 * **Header, logo and version.** The banner shows the white Galway 2664 logo, drawn with glyphs from the Commodore 64 PETSCII character ROM, which sparkles through VIC-II colours. It also shows the WebAssembly engine status light and the CalVer release pill.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
-* **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load.
+* **Monitor.** A copy of the text display that Galway's program draws into screen memory, rendered with authentic C64 character glyphs and a border that shows processor load. The HUD Row Guide follows the active game's memory layout, so Wizball, Arkanoid, Green Beret and Rambo each label the correct rows.
 * **Source viewer.** Galway's assembly source, with markers that follow each voice through the score. Scrolling keeps pace with fast 16th notes and eases large leaps. Chips (V1, V2, V3 or DRM) select which voice to follow and the Follow Voice toggle turns following on. In hybrid pieces such as Arkanoid Digi-Drums, DRM tracks the drum sequencer in `arkadrum.asm` and the voice chips switch to `arkanoid.asm`. A SID register strip (`$D400` to `$D418`) at the bottom shows live hex values in four colour-coded voice and filter groups that light up when voices sound. You can also edit the source and rerun it.
 * **Track filters and voice controls.** Category pills narrow the tune list to ALL, MUSIC or SFX / DRUMS. Per-voice Mute (`M`), Solo (`S`) and `DIGI M` buttons isolate or silence individual voices.
 * **Header toggles and keyboard injection.** HUD Row Guide and CRT Scanlines switch the on-screen guides and scanline effect. The `C64 KEY INJECT` PETSCII bar sends keystrokes to the running routine.
@@ -463,3 +463,11 @@ The final listening test passed on Android at `2026.11.07.1` ([Issue #40](https:
 The debug overlay reported zero missed quanta, a p99 near 1ms against the 2.67ms budget and about 184ms output latency in playback mode. The remaining occasional pop is outside the app: Android volume ducking or the device audio path. No render-ahead buffer was needed.
 
 This closes the AudioWorklet refactor ([Issue #29](https://github.com/charlesroper/C64_music/issues/29)). Browser playback now has one path: the worklet owns emulation, audio rendering, command handling and telemetry transfer. The ScriptProcessorNode path is gone, the in-thread adapter remains for tests and the default latency hint favours stability over the last 180ms of responsiveness.
+
+### 7 November 2026: the in-app reference matches the machines
+
+Issue #14 corrected the live workbench copy against the emulator and the assembly sources ([Issue #14](https://github.com/charlesroper/C64_music/issues/14)). The restart and fast-forward buttons no longer advertise `R` and `F` shortcuts that never existed. The SID dropdown describes the 6581 as a 1982 analogue chip and the 8580 as a 1987 C64C linear chip, matching the modelled filter behaviour. The headers now say `Ocean .asm source` and cover the 1985-87 corpus rather than 1987 alone.
+
+The Morse banner names the frequency register pair (`$D400` to `$D401`), and the assembler reference explains the Arkanoid raster lines, the per-game zero-page maps, the `$60` duration threshold and the stepped Morse carrier. The HUD Row Guide is now game-aware: Wizball uses `ZERO0` at `$04-$1C`, Arkanoid and Game Over use `ZER0` at `$10-$2E`, Green Beret uses its own `A0..SZ` layout, and Rambo uses its loader rows. The guide re-renders when the active game changes.
+
+The copy edits remove ghost shortcuts, Americanisms, Oxford commas and Title Case tooltips. `npm test` passes with 64 checks.
