@@ -85,6 +85,16 @@ This runs the full test suite (`npm test`) and pushes to `fork/main`.
 4. **Deploy**: Run `npm run deploy` (or `git push fork main`).
 5. **Verification**: Confirm the build at `gh api repos/charlesroper/C64_music/pages/builds/latest` or curl `https://charlesroper.github.io/C64_music/`. Report the live URL, CalVer version, and commit hash.
 
+## 7. Search Tooling
+
+Use the built-in `grep` and `glob` tools for routine content search and file discovery. The built-in `grep` already uses ripgrep.
+
+Use shell `rg` only when the built-in `grep` lacks a needed flag, such as `--type`, `-uu`, or multiline search.
+
+Use shell `fd` only when the built-in `glob` lacks a needed filter, such as `--type`, `--changed-within`, `--exclude`, or `--exec`.
+
+Do not run shell `grep` or `find` merely to get RTK compression. RTK wraps shell commands, not the built-in tools.
+
 ## Agent skills
 
 ### Issue tracker
