@@ -275,8 +275,6 @@ export function createBrowserHarness({
 
     if (id) {
       if (id === "slider-digi-boost" && !el.value) el.value = "1.3";
-      if (id === "select-sid-model" && !el.value) el.value = "6581";
-      if (id === "select-video-std" && !el.value) el.value = "pal";
     }
   }
 
@@ -378,8 +376,11 @@ export function createBrowserHarness({
     writable: true,
   });
 
+  const pageBody = new MockElement("body");
+
   globalThis.document = {
     hidden: false,
+    body: pageBody,
     activeElement: { tagName: "BODY" },
     getElementById: (id) => {
       const el = elementsById.get(id);
@@ -614,6 +615,7 @@ export function createFakePlayer(options = {}) {
     sidModel8580: false,
     videoNtsc: false,
     digiBoost: 1.3,
+    latencyHint: "playback",
     muteMask: 0,
     soloVoice: -1,
   };
@@ -670,6 +672,11 @@ export function createFakePlayer(options = {}) {
     },
     setHardwareOptions(opts) {
       Object.assign(state, opts);
+    },
+    setLatencyMode(mode) {
+      state.latencyHint = mode === "interactive" ? "interactive" : "playback";
+      options.onLatencyMode?.(state.latencyHint);
+      return Promise.resolve(state.latencyHint);
     },
     injectKey(code) {
       options.onInjectKey?.(code);

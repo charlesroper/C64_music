@@ -19,6 +19,7 @@ export async function bootWorkbench(options = {}) {
   const params = new URLSearchParams(win?.location?.search || "");
   const latencyHint = params.get("latency") === "interactive" ? "interactive" : "playback";
   let preUnlockedAudioCtx = null;
+  let preUnlockedLatencyHint = null;
 
   const handleFirstInteraction = () => {
     if (typeof navigator !== "undefined" && navigator.audioSession) {
@@ -31,8 +32,10 @@ export async function bootWorkbench(options = {}) {
       if (AudioCtx) {
         try {
           preUnlockedAudioCtx = new AudioCtx({ sampleRate: 48000, latencyHint });
+          preUnlockedLatencyHint = latencyHint;
         } catch (_) {
           preUnlockedAudioCtx = new AudioCtx();
+          preUnlockedLatencyHint = null;
         }
         if (preUnlockedAudioCtx.state !== "running") {
           preUnlockedAudioCtx.resume();
@@ -58,6 +61,7 @@ export async function bootWorkbench(options = {}) {
     root: options.root,
     elements: options.elements,
     player: null,
+    latencyHint,
     onFirstInteraction: handleFirstInteraction,
   });
 
@@ -89,10 +93,20 @@ export async function bootWorkbench(options = {}) {
     latencyHint,
     rawSources,
     createAudioContext: (opts) => {
-      if (preUnlockedAudioCtx) {
+      if (preUnlockedAudioCtx && (!opts || opts.latencyHint === preUnlockedLatencyHint)) {
         const ctx = preUnlockedAudioCtx;
         preUnlockedAudioCtx = null;
+        preUnlockedLatencyHint = null;
         return ctx;
+      }
+      if (preUnlockedAudioCtx) {
+        const stale = preUnlockedAudioCtx;
+        preUnlockedAudioCtx = null;
+        preUnlockedLatencyHint = null;
+        if (typeof stale.close === "function") {
+          const closing = stale.close();
+          if (closing && typeof closing.catch === "function") closing.catch(() => {});
+        }
       }
       const AudioCtx = win.AudioContext || win.webkitAudioContext;
       return opts ? new AudioCtx(opts) : new AudioCtx();
@@ -108,6 +122,7 @@ export async function bootWorkbench(options = {}) {
     player,
     window: win,
   });
+  view.setDiagnostics(diagnostics);
 
   let audioPrepared = false;
   const prepareAudio = () => {

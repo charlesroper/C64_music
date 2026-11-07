@@ -58,6 +58,7 @@ function createWorkletTransport({
   onError,
 }) {
   let node = null;
+  let closed = false;
   const latestTelemetry = createTelemetrySnapshot();
   let latestTelemetryBuffer = null;
   let latestDiagnostics = null;
@@ -65,12 +66,13 @@ function createWorkletTransport({
   const pending = [];
 
   const fail = (error) => {
-    if (onError) onError(error);
+    if (!closed && onError) onError(error);
   };
 
   audioCtx.audioWorklet
     .addModule(workletUrl)
     .then(() => {
+      if (closed) return;
       node = new AudioWorkletNode(audioCtx, "c64-engine", {
         numberOfInputs: 0,
         numberOfOutputs: 1,
@@ -113,6 +115,7 @@ function createWorkletTransport({
   return {
     kind: "worklet",
     send(message) {
+      if (closed) return;
       if (node) node.port.postMessage(message);
       else pending.push(message);
     },
@@ -120,11 +123,21 @@ function createWorkletTransport({
       throw new Error("Audio rendering runs on the worklet thread");
     },
     requestTelemetry() {
-      if (node && !hasTelemetry) node.port.postMessage({ type: "requestTelemetry" });
+      if (!closed && node && !hasTelemetry) {
+        node.port.postMessage({ type: "requestTelemetry" });
+      }
       return latestTelemetry;
     },
     getDiagnostics() {
       return latestDiagnostics;
+    },
+    close() {
+      closed = true;
+      pending.length = 0;
+      if (!node) return;
+      if (node.port) node.port.onmessage = null;
+      if (typeof node.disconnect === "function") node.disconnect();
+      node = null;
     },
   };
 }
@@ -187,6 +200,7 @@ export function createWorkbenchPlayer({
     muteMask: 0,
     soloVoice: -1,
     sampleRate: 48000,
+    latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
     audioCtx: null,
     currentSession: null,
     audioBackend: null,
@@ -200,6 +214,7 @@ export function createWorkbenchPlayer({
   let lastLoadMessage = null;
   let lastHardwareOptions = {};
   let workletAttempted = false;
+  let restartQueue = Promise.resolve();
   const contextEvents = [];
 
   getAssembled(state.activeGameId);
@@ -222,7 +237,7 @@ export function createWorkbenchPlayer({
       backend: state.audioBackend,
       contextState: ctx ? ctx.state : "none",
       sampleRate: state.sampleRate,
-      latencyHint,
+      latencyHint: state.latencyHint,
       baseLatency: ctx?.baseLatency ?? null,
       outputLatency: ctx?.outputLatency ?? null,
       contextEvents: contextEvents.slice(),
@@ -285,7 +300,7 @@ export function createWorkbenchPlayer({
     if (!state.audioCtx && createAudioContext) {
       let ctx;
       try {
-        ctx = createAudioContext({ sampleRate: 48000, latencyHint });
+        ctx = createAudioContext({ sampleRate: 48000, latencyHint: state.latencyHint });
       } catch (_) {
         ctx = createAudioContext();
       }
@@ -306,6 +321,54 @@ export function createWorkbenchPlayer({
     if (state.audioCtx && state.audioCtx.state !== "running") {
       state.audioCtx.resume();
     }
+  }
+
+  function closeAudioContext() {
+    const ctx = state.audioCtx;
+    if (transport && typeof transport.close === "function") transport.close();
+    transport = inThreadTransport;
+    state.audioCtx = null;
+    state.audioBackend = null;
+    state.workletReady = false;
+    state.workletError = null;
+    workletAttempted = false;
+
+    if (!ctx || typeof ctx.close !== "function") return Promise.resolve();
+    try {
+      const result = ctx.close();
+      return result && typeof result.then === "function"
+        ? result.catch(() => {})
+        : Promise.resolve();
+    } catch (_) {
+      return Promise.resolve();
+    }
+  }
+
+  async function restartAudio() {
+    const wasPlaying = state.isPlaying;
+    await closeAudioContext();
+
+    inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
+    if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
+    inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
+    inThreadTransport.send({ type: wasPlaying ? "play" : "pause" });
+    ensureAudio();
+  }
+
+  function setLatencyMode(mode) {
+    const next = mode === "interactive" ? "interactive" : "playback";
+    if (next === state.latencyHint) return Promise.resolve(next);
+    state.latencyHint = next;
+
+    restartQueue = restartQueue.then(async () => {
+      if (!state.audioCtx) return;
+      try {
+        await restartAudio();
+      } catch (error) {
+        state.workletError = String(error?.message || error);
+      }
+    });
+    return restartQueue.then(() => state.latencyHint);
   }
 
   function getActiveGame() {
@@ -416,6 +479,7 @@ export function createWorkbenchPlayer({
     pullAudioBlock,
     injectKey,
     setHardwareOptions,
+    setLatencyMode,
     updateSource,
     getRamView,
     getRawSource: (gameId) => sources[gameId],

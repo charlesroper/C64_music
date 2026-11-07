@@ -195,7 +195,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`,
   );
 
-  for (const inputSel of [".hw-select", ".symbol-select", ".source-search", ".source-editor"]) {
+  for (const inputSel of [".symbol-select", ".source-search", ".source-editor"]) {
     const st = computeStyleForSelector(rules, [inputSel], mobile);
     assert.equal(
       st["font-size"],
@@ -212,10 +212,18 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
   );
 
+  const mobHwToggle = computeStyleForSelector(rules, [".hw-toggle"], mobile);
+  assert.ok(
+    parseInt(mobHwToggle["min-height"] || "0", 10) >= 36,
+    "Mobile hardware toggles must be >= 36px tall",
+  );
+
   const mobDocsBtn = computeStyleForSelector(rules, ["#btn-directives-modal"], mobile);
   const mobStoryBtn = computeStyleForSelector(rules, ["#btn-narrative-modal"], mobile);
+  const mobStatsBtn = computeStyleForSelector(rules, ["#btn-stats-nerds"], mobile);
   assert.equal(mobDocsBtn.width, "100%", "Mobile docs button must be width: 100%");
   assert.equal(mobStoryBtn.width, "100%", "Mobile story button must be width: 100%");
+  assert.equal(mobStatsBtn.width, "100%", "Mobile stats button must be width: 100%");
   assert.ok(
     parseInt(mobDocsBtn["min-height"] || "0", 10) >= 36,
     "Mobile docs button must be >= 36px tall",
@@ -223,6 +231,10 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.ok(
     parseInt(mobStoryBtn["min-height"] || "0", 10) >= 36,
     "Mobile story button must be >= 36px tall",
+  );
+  assert.ok(
+    parseInt(mobStatsBtn["min-height"] || "0", 10) >= 36,
+    "Mobile stats button must be >= 36px tall",
   );
 
   // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)

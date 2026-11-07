@@ -1,7 +1,7 @@
 // ============================================================================
-// Audio Diagnostics Overlay
-// Opt-in with ?audioDebug=1. Shows process timing, missed audio quanta,
-// context state changes, and output latency on the phone.
+// Stats for Nerds overlay
+// Toggled by the header button or ?audioDebug=1. Shows process timing, missed
+// audio quanta, context state changes, and output latency on the phone.
 // ============================================================================
 
 function formatMs(microseconds) {
@@ -23,9 +23,9 @@ function formatEvents(events) {
 }
 
 function formatDiagnostics(diagnostics) {
-  if (!diagnostics) return "AUDIO DEBUG\nwaiting for player";
+  if (!diagnostics) return "STATS FOR NERDS\nwaiting for player";
   const lines = [
-    "AUDIO DEBUG",
+    "STATS FOR NERDS",
     `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}`,
     `latency: ${diagnostics.latencyHint || "-"}   base: ${formatLatency(diagnostics.baseLatency)}   out: ${formatLatency(diagnostics.outputLatency)}`,
   ];
@@ -48,23 +48,62 @@ function formatDiagnostics(diagnostics) {
 export function createAudioDiagnosticsOverlay({ document: doc, player, window: win }) {
   if (!doc || !player) return null;
   const params = new URLSearchParams(win?.location?.search || "");
-  if (params.get("audioDebug") !== "1") return null;
+  let visible = params.get("audioDebug") === "1";
 
   const element = doc.createElement("pre");
   element.id = "audio-diagnostics";
   element.className = "audio-diagnostics";
-  element.textContent = "AUDIO DEBUG\nwaiting for player";
+  element.textContent = formatDiagnostics(player.getAudioDiagnostics());
+  element.classList.toggle("hidden", !visible);
   doc.body.appendChild(element);
 
-  const timer = setInterval(() => {
+  let timer = null;
+
+  function refresh() {
     element.textContent = formatDiagnostics(player.getAudioDiagnostics());
-  }, 500);
+  }
+
+  function stopTimer() {
+    if (timer === null) return;
+    clearInterval(timer);
+    timer = null;
+  }
+
+  function startTimer() {
+    if (timer !== null) return;
+    refresh();
+    timer = setInterval(refresh, 500);
+  }
+
+  function show() {
+    visible = true;
+    element.classList.remove("hidden");
+    startTimer();
+    return true;
+  }
+
+  function hide() {
+    visible = false;
+    element.classList.add("hidden");
+    stopTimer();
+    return false;
+  }
+
+  function toggle() {
+    return visible ? hide() : show();
+  }
+
+  if (visible) startTimer();
 
   return {
     element,
+    show,
+    hide,
+    toggle,
+    isVisible: () => visible,
     stop() {
-      clearInterval(timer);
-      element.remove();
+      stopTimer();
+      if (typeof element.remove === "function") element.remove();
     },
   };
 }

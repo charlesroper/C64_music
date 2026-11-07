@@ -182,6 +182,69 @@ test("player defaults to the playback latency hint", async () => {
   assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
 });
 
+test("player soft-restarts the audio context when latency mode changes", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const contexts = [];
+  const createAudioContext = (options) => {
+    const ctx = {
+      sampleRate: 48000,
+      state: "running",
+      destination: {},
+      latencyHint: options?.latencyHint,
+      closed: false,
+      resume() {
+        this.state = "running";
+        return Promise.resolve();
+      },
+      close() {
+        this.closed = true;
+        return Promise.resolve();
+      },
+    };
+    contexts.push(ctx);
+    return ctx;
+  };
+
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    createAudioContext,
+  });
+
+  player.selectTrack("wizball.asm", "wiz-title", { autoPlay: true });
+  const left = new Float32Array(2048);
+  const right = new Float32Array(2048);
+  player.pullAudioBlock(left, right);
+
+  assert.equal(contexts.length, 1);
+  assert.equal(contexts[0].latencyHint, "playback");
+
+  await player.setLatencyMode("interactive");
+  assert.equal(contexts.length, 2);
+  assert.equal(contexts[0].closed, true, "Old AudioContext must close");
+  assert.equal(contexts[1].latencyHint, "interactive");
+  assert.equal(player.getState().latencyHint, "interactive");
+  assert.equal(player.getState().isPlaying, true);
+  assert.equal(player.getAudioDiagnostics().latencyHint, "interactive");
+
+  left.fill(0);
+  right.fill(0);
+  player.pullAudioBlock(left, right);
+  player.pullAudioBlock(left, right);
+  let peak = 0;
+  for (let i = 0; i < left.length; i++) {
+    peak = Math.max(peak, Math.abs(left[i]));
+  }
+  assert.ok(peak > 0.01, `Restarted track must still produce audio, got peak=${peak}`);
+
+  await player.setLatencyMode("playback");
+  assert.equal(contexts.length, 3);
+  assert.equal(contexts[1].closed, true);
+  assert.equal(contexts[2].latencyHint, "playback");
+  assert.equal(player.getState().latencyHint, "playback");
+});
+
 test("player queues play until the worklet is ready and then dispatches the active track", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const nodes = [];

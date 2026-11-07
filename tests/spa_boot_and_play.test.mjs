@@ -103,6 +103,78 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   }
 });
 
+test("hardware and audio mode switches replace dropdowns and apply options", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  try {
+    const player = createFakePlayer();
+    const view = createWorkbenchView({
+      document: globalThis.document,
+      elements: harness.elementsById,
+      player,
+    });
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+
+    assert.equal(
+      harness.elementsById.get("select-sid-model"),
+      undefined,
+      "SID chip must no longer use a dropdown",
+    );
+    assert.equal(
+      harness.elementsById.get("select-video-std"),
+      undefined,
+      "Video standard must no longer use a dropdown",
+    );
+
+    const sidToggle = harness.elementsById.get("chk-sid-8580");
+    sidToggle.checked = true;
+    sidToggle.dispatchEvent("change");
+    assert.equal(player.getState().sidModel8580, true);
+    assert.equal(harness.elementsById.get("sid-model-value").textContent, "8580");
+
+    const videoToggle = harness.elementsById.get("chk-video-ntsc");
+    videoToggle.checked = true;
+    videoToggle.dispatchEvent("change");
+    assert.equal(player.getState().videoNtsc, true);
+    assert.equal(harness.elementsById.get("video-std-value").textContent, "NTSC 60Hz");
+
+    const latencyToggle = harness.elementsById.get("chk-latency-interactive");
+    latencyToggle.checked = true;
+    latencyToggle.dispatchEvent("change");
+    assert.equal(player.getState().latencyHint, "interactive");
+    assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats for Nerds button toggles the audio diagnostics overlay", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  let diagnostics = null;
+  try {
+    const booted = await bootWorkbench();
+    diagnostics = booted.diagnostics;
+    const btnStats = harness.elementsById.get("btn-stats-nerds");
+
+    assert.ok(diagnostics, "Audio diagnostics overlay must exist");
+    assert.ok(
+      diagnostics.element.classList.contains("hidden"),
+      "Overlay must start hidden without ?audioDebug=1",
+    );
+    assert.ok(!btnStats.classList.contains("active"), "Stats button must start inactive");
+
+    btnStats.click();
+    assert.ok(!diagnostics.element.classList.contains("hidden"));
+    assert.ok(btnStats.classList.contains("active"));
+
+    btnStats.click();
+    assert.ok(diagnostics.element.classList.contains("hidden"));
+    assert.ok(!btnStats.classList.contains("active"));
+  } finally {
+    diagnostics?.stop();
+    harness.restoreGlobals();
+  }
+});
+
 test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlocks AudioContext inside the tap gesture and starts audio when ready", async () => {
   const harness = createBrowserHarness({
     hardwareSampleRate: 48000,

@@ -317,10 +317,16 @@ button.active {
   color: var(--accent-cyan);
 }
 
+.btn-secondary.active {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
 .hardware-controls {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
 }
 
 .hw-group {
@@ -336,19 +342,73 @@ button.active {
   letter-spacing: 0.5px;
 }
 
-.hw-select {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  background: #0c1018;
-  color: var(--text-main);
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-  padding: 4px 7px;
-  outline: none;
+.hw-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  cursor: pointer;
 }
 
-.hw-select:focus {
+.hw-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.hw-toggle-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: #0c1018;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.hw-toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.hw-toggle input:checked + .hw-toggle-switch {
   border-color: var(--accent-cyan);
+  background: rgba(56, 226, 255, 0.16);
+}
+
+.hw-toggle input:checked + .hw-toggle-switch::after {
+  transform: translateX(16px);
+  background: var(--accent-cyan);
+}
+
+.hw-toggle input:focus-visible + .hw-toggle-switch {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.hw-toggle-value {
+  min-width: 60px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-main);
+}
+
+#latency-mode-value {
+  min-width: 76px;
 }
 
 .hw-slider {
@@ -1681,6 +1741,18 @@ button.active {
 }
 
 /* ==================== LAPTOP & MEDIUM SCREEN LAYOUT (821px - 1200px) ==================== */
+@media (max-width: 1600px) and (min-width: 821px) {
+  .top-bar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .hardware-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 1200px) and (min-width: 821px) {
   html,
   body {
@@ -1919,23 +1991,25 @@ button.active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     align-items: end;
+    margin-left: 0;
   }
 
   .hw-group {
     min-width: 0;
   }
 
-  #hw-group-digi {
+  #hw-group-digi,
+  #hw-group-latency {
     grid-column: 1 / -1;
     width: 100%;
   }
 
-  .hw-select {
-    width: 100%;
-    min-width: 0;
+  .hw-toggle {
     min-height: 36px;
-    font-size: 16px;
-    padding: 4px 6px;
+  }
+
+  .hw-toggle-value {
+    font-size: 12px;
   }
 
   .hw-slider {
@@ -1944,11 +2018,16 @@ button.active {
   }
 
   #btn-directives-modal,
-  #btn-narrative-modal {
+  #btn-narrative-modal,
+  #btn-stats-nerds {
     width: 100%;
     min-height: 36px;
     justify-content: center;
     touch-action: manipulation;
+  }
+
+  #btn-stats-nerds {
+    grid-column: 1 / -1;
   }
 
   .mobile-view-tabs {

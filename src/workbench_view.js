@@ -179,6 +179,7 @@ export function createWorkbenchView({
   player = null,
   assets = null,
   elements = null,
+  latencyHint = "playback",
   onFirstInteraction = null,
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
@@ -200,6 +201,8 @@ export function createWorkbenchView({
     sidModel8580: false,
     videoNtsc: false,
     digiBoost: 1.3,
+    latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
+    diagnostics: null,
 
     muteMask: 0,
     soloVoice: -1,
@@ -1275,6 +1278,20 @@ export function createWorkbenchView({
     renderGameList();
   }
 
+  function setDiagnostics(diagnostics) {
+    state.diagnostics = diagnostics || null;
+    const btnStats = getEl("btn-stats-nerds");
+    if (btnStats) btnStats.classList.toggle("active", Boolean(diagnostics?.isVisible()));
+  }
+
+  function syncLatencyMode() {
+    const interactive = state.latencyHint === "interactive";
+    const chkLatency = getEl("chk-latency-interactive");
+    if (chkLatency) chkLatency.checked = interactive;
+    const valueEl = getEl("latency-mode-value");
+    if (valueEl) valueEl.textContent = interactive ? "INTERACTIVE" : "PLAYBACK";
+  }
+
   function setAssets(newAssets) {
     if (newAssets.directivesText) {
       state.directivesText = newAssets.directivesText;
@@ -1360,19 +1377,35 @@ export function createWorkbenchView({
       }
     }
 
-    const selectSid = getEl("select-sid-model");
-    if (selectSid) {
-      addListener(selectSid, "change", (e) => {
-        state.sidModel8580 = e.target.value === "8580";
+    const chkSid = getEl("chk-sid-8580");
+    if (chkSid) {
+      addListener(chkSid, "change", (e) => {
+        state.sidModel8580 = Boolean(e.target.checked);
+        const valueEl = getEl("sid-model-value");
+        if (valueEl) valueEl.textContent = state.sidModel8580 ? "8580" : "6581";
         if (state.player) state.player.setHardwareOptions({ sidModel8580: state.sidModel8580 });
       });
     }
 
-    const selectVideo = getEl("select-video-std");
-    if (selectVideo) {
-      addListener(selectVideo, "change", (e) => {
-        state.videoNtsc = e.target.value === "ntsc";
+    const chkVideo = getEl("chk-video-ntsc");
+    if (chkVideo) {
+      addListener(chkVideo, "change", (e) => {
+        state.videoNtsc = Boolean(e.target.checked);
+        const valueEl = getEl("video-std-value");
+        if (valueEl) valueEl.textContent = state.videoNtsc ? "NTSC 60Hz" : "PAL 50Hz";
         if (state.player) state.player.setHardwareOptions({ videoNtsc: state.videoNtsc });
+      });
+    }
+
+    const chkLatency = getEl("chk-latency-interactive");
+    if (chkLatency) {
+      addListener(chkLatency, "change", (e) => {
+        state.latencyHint = e.target.checked ? "interactive" : "playback";
+        const valueEl = getEl("latency-mode-value");
+        if (valueEl) {
+          valueEl.textContent = state.latencyHint === "interactive" ? "INTERACTIVE" : "PLAYBACK";
+        }
+        if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
       });
     }
 
@@ -1638,6 +1671,15 @@ export function createWorkbenchView({
       });
     }
 
+    const btnStats = getEl("btn-stats-nerds");
+    if (btnStats) {
+      addListener(btnStats, "click", () => {
+        if (!state.diagnostics) return;
+        const visible = state.diagnostics.toggle();
+        btnStats.classList.toggle("active", visible);
+      });
+    }
+
     const narrativeModal = getEl("narrative-modal");
     const btnNarrative = getEl("btn-narrative-modal");
     const btnCloseNarrative = getEl("btn-close-narrative-modal");
@@ -1728,6 +1770,7 @@ export function createWorkbenchView({
 
   const cleanups = [];
   setupUIHandlers();
+  syncLatencyMode();
   renderKeypadButtons();
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
@@ -1856,6 +1899,7 @@ export function createWorkbenchView({
     renderSidHexStripSkeleton,
     setPlaying,
     setPlayer,
+    setDiagnostics,
     setAssets,
     selectGameAndTrack,
     stepTrack,
