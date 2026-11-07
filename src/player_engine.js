@@ -164,7 +164,7 @@ export function createWorkbenchPlayer({
   createAudioContext,
   navigatorObj,
   workletUrl,
-  latencyHint = "interactive",
+  latencyHint = "playback",
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};

@@ -90,9 +90,9 @@ Run the test suite from the repository root:
 npm test
 ```
 
-The test runner executes 63 automated checks across 9 test files:
+The test runner executes 64 automated checks across 9 test files:
 * `tests/engine_core.test.mjs`: Drives the Engine Core message protocol directly: loads raw assembled bytecode (`mem` and `symbols`) for single-file games, passes an extra arkanoid bytecode payload for arkadrum drum tracks, renders stereo audio blocks into caller buffers, and verifies pause, play, hardware options, key injection, telemetry emission, and sample-rate negotiation without wiping loaded C64 RAM. Also verifies that a Track Load freezes the clock at frame 0, emits silence without a pre-render, queues commands received during the load so they apply in exact order afterwards, and scales fast-forward to 3 extra frames per 2048 samples across both 128-frame and 2048-frame render blocks.
-* `tests/audio_worklet.test.mjs`: Instantiates the real `AudioWorkletProcessor` class with a compiled `WebAssembly.Module`, renders 128-frame stereo quanta, verifies audio output, queues commands that arrive before the Engine Core is ready, returns silence before instantiation completes, throttles telemetry below the audio callback rate, transfers and recycles telemetry buffers, reports process timing and audio budget diagnostics, and verifies that the Player Engine queues play until the worklet is ready then replays the active track.
+* `tests/audio_worklet.test.mjs`: Instantiates the real `AudioWorkletProcessor` class with a compiled `WebAssembly.Module`, renders 128-frame stereo quanta, verifies audio output, queues commands that arrive before the Engine Core is ready, returns silence before instantiation completes, throttles telemetry below the audio callback rate, transfers and recycles telemetry buffers, reports process timing and audio budget diagnostics, verifies that the Player Engine queues play until the worklet is ready then replays the active track, and confirms playback latency is the default hint.
 * `tests/telemetry_buffer.test.mjs`: Verifies that Telemetry Snapshots pack screen RAM, oscilloscope samples, SID registers, scanline border data, voice channels, and filter values into one transferable `ArrayBuffer`, then unpack with the exact shape `player.getTelemetry()` exposes. Confirms buffer reuse overwrites every field without stale data.
 * `tests/issue_close_guard.test.mjs`: Checks the issue closure gate. `npm run issue:close` refuses to close an issue while any DoD or acceptance criteria task item is unchecked, and reports an empty checklist so contributors can add criteria before closing.
 * `tests/repo_rules.test.mjs`: Enforces repository integrity rules: blocks CalVer downgrades from clock-skewed machines in version calculation (`scripts/bump_version.mjs`), verifies clean working tree and remote configuration preflight guards in deployment automation (`scripts/deploy.mjs`), guarantees zero literal em-dash characters (Unicode U+2014) across all tracked prose and code, confirms SHA-256 cryptographic authenticity of frozen historical Ocean assembly sources and directives, validates automated test count synchronization across documentation, keeps the `AGENTS.md` search guidance harness-agnostic, and asserts four-file CalVer synchronization across `package.json`, `package-lock.json`, `index.html`, and `src/version.js`.
@@ -107,7 +107,7 @@ Headless worklet verification works in this PRoot sandbox with WebKit 27.2 or Ch
 
 See [docs/agents/browser-verification.md](docs/agents/browser-verification.md) for the engine matrix, install commands, the pinned Chromium path, and the verification contract. Audible output still needs a real phone because this sandbox has no audio device.
 
-Add `?audioDebug=1` to show the audio diagnostics overlay. Add `?latency=playback` to compare the playback latency hint against the default interactive hint.
+Add `?audioDebug=1` to show the audio diagnostics overlay. Playback latency is the default. Add `?latency=interactive` to compare the lower-latency hint.
 
 ---
 

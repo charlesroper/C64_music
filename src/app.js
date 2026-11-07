@@ -17,7 +17,7 @@ export async function bootWorkbench(options = {}) {
   if (!doc) return null;
 
   const params = new URLSearchParams(win?.location?.search || "");
-  const latencyHint = params.get("latency") === "playback" ? "playback" : "interactive";
+  const latencyHint = params.get("latency") === "interactive" ? "interactive" : "playback";
   let preUnlockedAudioCtx = null;
 
   const handleFirstInteraction = () => {

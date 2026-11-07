@@ -15,7 +15,8 @@ const ROOT = path.resolve(__dirname, "..");
 const wasmModule = await WebAssembly.compile(
   fs.readFileSync(path.join(ROOT, "wasm/c64_engine.wasm")),
 );
-const wizball = assembleOceanSource(fs.readFileSync(path.join(ROOT, "wizball.asm"), "latin1"));
+const wizballSource = fs.readFileSync(path.join(ROOT, "wizball.asm"), "latin1");
+const wizball = assembleOceanSource(wizballSource);
 const wizballGame = GAME_FILES.find((game) => game.id === "wizball.asm");
 const wizballTitle = wizballGame.tracks.find((track) => track.id === "wiz-title");
 
@@ -170,6 +171,17 @@ test("worklet processor reports process timing and audio budget diagnostics", as
   assert.ok(report.diagnostics.gain > 0, "Play should ramp the output gain up");
 });
 
+test("player defaults to the playback latency hint", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+  });
+
+  assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
+});
+
 test("player queues play until the worklet is ready and then dispatches the active track", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const nodes = [];
@@ -213,7 +225,7 @@ test("player queues play until the worklet is ready and then dispatches the acti
     const player = createWorkbenchPlayer({
       wasm: instance.exports,
       wasmModule,
-      rawSources: { "wizball.asm": fs.readFileSync(path.join(ROOT, "wizball.asm"), "latin1") },
+      rawSources: { "wizball.asm": wizballSource },
       createAudioContext: () => fakeContext,
       workletUrl: "/audio_worklet.js",
     });
