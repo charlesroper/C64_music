@@ -1,0 +1,10 @@
+[project]
+name = "guardian-style-guide"
+version = "0.1.0"
+description = "Download and maintain the Guardian and Observer style guide in Markdown."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+guardian-style-guide = "guardian_style_guide:main"

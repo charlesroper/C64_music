@@ -67,6 +67,12 @@
       "skillPath": "skills/productivity/grilling/SKILL.md",
       "computedHash": "e40cc1d348f6d935e28f1e24474302d7368f0a400429271a43b35fe154891dc5"
     },
+    "guardian-style-guide": {
+      "source": "charlesroper/skills",
+      "sourceType": "github",
+      "skillPath": "guardian-style-guide/SKILL.md",
+      "computedHash": "cfe3110b0a57f2faa15276e3bcc183056aa114c316cf63021bd2b6e95bb2db36"
+    },
     "handoff": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -102,6 +108,12 @@
       "sourceType": "github",
       "skillPath": "skills/misc/migrate-to-shoehorn/SKILL.md",
       "computedHash": "6397731ced114f3657aa88b55ed13d1344a56d77ca449c568e3200c21740fa99"
+    },
+    "on-writing-well": {
+      "source": "charlesroper/skills",
+      "sourceType": "github",
+      "skillPath": "on-writing-well/SKILL.md",
+      "computedHash": "bedc1a3123bb34eb12958876d34e585d8b83571f10c094a0e1769cfec3b228ed"
     },
     "pr": {
       "source": "mattpocock/skills",

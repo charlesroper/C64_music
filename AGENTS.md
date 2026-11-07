@@ -46,6 +46,7 @@ Apply Guardian British English and Zinsser clarity:
 - Use commas, colons, parentheses or full stops for pauses. Never use em-dashes (U+2014) or en-dashes (U+2013).
 - Use backticks around code identifiers and registers such as `$D400` and `requestAnimationFrame`. Use `->` rather than arrow glyphs.
 - Keep active voice, concrete verbs and one controlling idea per sentence. Remove brochure adjectives and AI tropes.
+- Prioritise scannability in technical documentation (`README.md`, developer guides and reference lists). Use bold lead-in tags on reference items, numbered steps with action verbs and fenced syntax blocks for before and after code. These visual scannability conventions override general essay anti-bullet-bolding rules.
 
 `NARRATIVE.md` powers the in-app THE STORY modal. Keep its eight-section progressive layout:
 - Sections 1 to 3 orient non-technical listeners with no assumed 6502 knowledge.

@@ -104,7 +104,7 @@ test("no em-dash (U+2014) characters exist in repository prose, markdown, or cod
   const trackedFiles = execSync("git ls-files", { encoding: "utf8" })
     .split("\n")
     .map((f) => f.trim())
-    .filter((f) => f.length > 0 && !f.endsWith(".wasm"));
+    .filter((f) => f.length > 0 && !f.endsWith(".wasm") && !f.startsWith(".agents/"));
 
   const emDashChar = "\u2014";
   const violations = [];

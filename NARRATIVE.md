@@ -10,7 +10,7 @@ Galway 2664 is a web workbench for Martin Galway's Commodore 64 game music. The 
 
 The player does not play recordings. Galway wrote his music as a program for the Commodore 64's processor. This player turns that program into machine code in your browser, then runs it on a software copy of the computer's processor and sound chip. What you hear is the browser mimicking a 1980s machine's silicon chips, computing the sound live from Galway's raw code and playing it through your computer's audio hardware.
 
-The initial source files were uploaded by Galway in April and May 2026. In October 2026, Charles Roper forked the repository to build this player, working with Gemini (Argon and Flash) in Google's Antigravity. The files include the music and sound effects for Wizball, Arkanoid, Rambo: First Blood Part II, Green Beret and Game Over, plus Galway's notes on the assembler Ocean used.
+The initial source files were uploaded by Galway in April and May 2026. In October 2026, Charles Roper forked the repository to build this player, working with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode. The files include the music and sound effects for Wizball, Arkanoid, Rambo: First Blood Part II, Green Beret and Game Over, plus Galway's notes on the assembler Ocean used.
 
 The first sections need no technical background. The later ones go into the code.
 
@@ -240,7 +240,7 @@ The header of `gameover.asm` reads:
 
 ## 7. How it was made and tested
 
-Martin Galway uploaded his original assembly files to GitHub in early 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini (Argon and Flash) in Google's Antigravity, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
+Martin Galway uploaded his original assembly files to GitHub in April and May 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
 
 `npm test` runs 64 automated checks across 9 test files:
 
@@ -426,7 +426,7 @@ Four new tests in `tests/audio_worklet.test.mjs` cover module instantiation, 128
 
 ### 6 November 2026: telemetry moves without stopping the audio thread
 
-The first AudioWorklet build played music on the phone, but it popped under load and sounded slightly worse than the old `ScriptProcessorNode` path. A render benchmark found the cause. Emulation of a 128-frame quantum took about 47 microseconds at the median. Attaching a full Telemetry Snapshot raised the 99th percentile to about 1 millisecond and produced multi-millisecond spikes, because the worklet structured-cloned screen RAM, oscilloscope samples, SID registers and border data on the audio thread every six quanta. Screen RAM alone is 64 KB.
+The first AudioWorklet build played music on the phone, but it popped under load and sounded slightly worse than the old `ScriptProcessorNode` path. A render benchmark found the cause. Emulation of a 128-frame quantum took about 47 microseconds at the median. Attaching a full Telemetry Snapshot raised the 99th percentile to about 1 millisecond and produced multi-millisecond spikes, because the worklet structured-cloned C64 RAM, oscilloscope samples, SID registers and border data on the audio thread every six quanta. C64 RAM alone is 64KB.
 
 Issue #38 replaced the clone with a transferred `ArrayBuffer` ([Issue #38](https://github.com/charlesroper/C64_music/issues/38)). The audio thread packs one snapshot into a buffer from a three-buffer pool and transfers ownership to the main thread. The main thread rebuilds the familiar snapshot views, then returns the previous buffer to the pool. If the pool runs dry, the worklet drops that telemetry frame rather than miss an audio deadline. Packing keeps the 99th percentile near 200 microseconds in the same benchmark, against about 1 millisecond for the clone.
 

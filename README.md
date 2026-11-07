@@ -2,23 +2,17 @@
 
 [Live web player](https://charlesroper.github.io/C64_music/) | [The story: history, architecture and assembly](NARRATIVE.md) | [Martin Galway's original repository](https://github.com/MartinGalway/C64_music)
 
-Galway 2664 is a WebAssembly audio workbench and live in-browser cross-assembler for Martin Galway's Commodore 64 game music from Ocean Software (1985-87). Galway released his original music on GitHub in 2026. The name echoes the four-digit chip numbers he used, such as the MOS 6502 processor and 6581 SID. Charles Roper forked the repository in October 2026 and built it with Gemini (Argon and Flash) in Google's Antigravity. The workbench compiles Galway's raw 6502 assembly source in the browser and runs it clock by clock inside a custom WebAssembly emulation core. You can listen to all 73 catalogued tracks and sound effects, inspect hardware telemetry and oscilloscopes, trace the program counter through the score in real time, and edit and reassemble the original code.
+Galway 2664 is a browser-based Commodore 64 audio workbench and 6502 cross-assembler for Martin Galway's Ocean Software game music (1985-87).
 
-For the full story of Galway's technical innovations, the historical context, the architecture behind the emulation and the chronological development blog, read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the web interface.
+It compiles Galway's original assembly source code in the browser and runs it clock by clock inside a WebAssembly 6510 and SID emulator. Play all 73 tracks and sound effects without a desktop emulator. Edit and reassemble the code while it plays.
 
-## Key capabilities
+The workbench recreates Galway's live debugging screen. In his original sound drivers, Galway wrote internal music engine diagnostics directly into Commodore 64 text screen RAM at `$0400`. The CRT canvas monitor decodes this 1,000-character telemetry block with authentic C64 character ROM glyphs.
 
-* Assembles Galway's raw source code on the fly. A zero-dependency JavaScript cross-assembler parses Ocean Software's 1980s directives (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `DSP`, `DFC`, `EQU`, `ADD`, `SUB`) in the browser.
-* Runs a standalone WebAssembly 6510 and SID engine. A freestanding C core executes the assembled code clock by clock, with a 200Hz polled raster clock, Chamberlin filter modelling and 15Hz AC coupling. The only VIC-II IRQ use is the 50Hz drum harness in `arkadrum.asm` and `gameover.asm`.
-* Supports the complete catalogue. Plays all six original assembly sources and all 73 tracks and sound effects without disk images or emulator installations.
-* Visualises developer telemetry. Recreates Galway's `$0400` memory displays. Most screens use light grey; `greenberet.asm` mixes medium grey, light grey and white, and `rambload.asm` uses a custom colour workbench HUD. The view renders authentic 256-glyph C64 character ROM text and a `$D020` border raster profiler alongside four-channel hardware oscilloscopes.
-* Enables live in-browser editing and hot-reloading. Follow Galway's program counter with adaptive smooth scrolling that tracks fast 16th notes without lag. Adjust note values, instruments or filter settings in the source viewer, assemble the changes and hear them in running C64 memory in real time.
+Galway published his original source files on GitHub in April and May 2026. The repository was forked in October 2026 and built using Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode.
 
----
+Read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the player for the historical context, hardware architecture and build log.
 
-## Martin Galway's original release note
-
-The following text is Martin Galway's original release note from April 2026, preserved verbatim for reference:
+## Martin Galway's release note (14 April 2026)
 
 > Music source files from 1980's Commodore 64 games
 >
@@ -26,69 +20,90 @@ The following text is Martin Galway's original release note from April 2026, pre
 >
 > -Martin Galway April 14th 2026
 
----
+## Original assembly sources
 
-## Included source files
+* `wizball.asm` (composed 10 February to 23 April 1987): The peak implementation of Galway's first-generation sound driver (an architecture he evolved at Ocean from 1984 to mid-1987), featuring a 200Hz fractional raster clock, fast arpeggios and a live `$0400` telemetry monitor.
+* `arkanoid.asm` (composed 23 January to 6 February 1987): Arcade conversion soundtrack (composed with Taito) containing the opening jingle and in-game sound effects. The arcade original had no in-game background music.
+* `arkadrum.asm` (completed 5 February 1987): Real-time algorithmic drum synthesis through the SID master volume register (`$D418`). Written as a companion overlay to run alongside `arkanoid.asm` in memory.
+* `gameover.asm` (composed 10 February to 9 July 1987): Title theme, Game Over tune and sound effects, featuring rock drum accompaniment streamed from embedded 4-bit digitised PCM samples via a 50Hz raster interrupt.
+* `greenberet.asm` (completed 5 April 1986): Arcade conversion soundtrack (composed with Konami) containing the title march, siren cues, high-score and completion themes, a five-part victory suite and eight sound effects. It contains game audio only and no loader music.
+* `rambload.asm` (completed 12 November 1985): Ocean loader music for Rambo (First Blood Part II), featuring Galway's secret Morse code transmitter. It contains cassette and disk loading music only, not the in-game soundtrack.
+* `ocean_assembler_directives.txt`: Galway's 2026 notes on the syntax and directives of Ocean Software's in-house 6502 cross-assembler (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `DSP`, `DFC`, `EQU`, `ADD`, `SUB`).
 
-The repository includes six complete assembly sources and Galway's notes on Ocean's in-house cross-assembler:
+## How the workbench works
 
-* `wizball.asm` (April 1987): Galway's first-generation sound driver, with his 200Hz fractional raster clock, rapid 30ms arpeggios and `$0400` telemetry monitor.
-* `arkanoid.asm` (February 1987): Opening sequence and in-game sound effects.
-* `arkadrum.asm` (February 1987): Real-time algorithmic drum synthesis through the SID master volume register (`$D418`).
-* `gameover.asm` (July 1987): Rock drum accompaniment streamed from 4-bit digitised PCM samples.
-* `greenberet.asm` (April 1986): Title march, in-game siren cues, high-score and completion themes, a five-part victory suite and eight in-game sound effects. It contains no loader music.
-* `rambload.asm` (November 1985): Loader music with Galway's secret Morse code transmitter broadcasting the development team's names.
-* `ocean_assembler_directives.txt`: Galway's notes on the syntax and directives used by Ocean's in-house 6502 cross-assembler (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `DSP`, `DFC`, `EQU`, `ADD`, `SUB`).
+* **Cross-assembler and source index** (`src/ocean_assembler.js`, `src/source_index.js`): Parses Galway's source text and Ocean's directives in the browser with no external dependencies. It resolves symbols in three passes, outputs a 64KB memory image with line-to-address maps and indexes symbols and lines for search and navigation.
+* **WebAssembly 6510 and SID core** (`src/wasm/c64_engine.c`): Emulates the MOS 6510 CPU, the VIC-II raster timer (63 cycles per line on PAL, 65 on NTSC) and the MOS 6581/8580 SID synthesiser in freestanding C. It runs Galway's 200Hz polled raster loop alongside a 50Hz VIC-II interrupt harness for the drum drivers in `arkadrum.asm` and `gameover.asm`. The audio path uses a 2x-oversampled Chamberlin state-variable filter, a 15Hz high-pass filter modelled on the C64 motherboard output capacitor and a cubic soft saturation curve (`soft_saturate`).
+* **Engine Core** (`src/engine_core.js`): Wraps the WebAssembly instance, the six game loader adapters (`GAME_LOADERS`), audio rendering and telemetry collection behind an ordered message interface (`init`, `loadTrack`, `play`, `pause`, `setHardwareOptions`, `injectKey`, `requestTelemetry`). The same core runs inside the browser `AudioWorkletProcessor` (`src/audio_worklet.js`) and in-thread for Node.js tests.
+* **Player Engine and telemetry pool** (`src/player_engine.js`, `src/audio_worklet.js`, `src/telemetry_buffer.js`): Keeps the assembler and source index on the main thread, sends compiled bytecode to the worklet over a `MessagePort` and recycles a pool of three transferable `ArrayBuffer` snapshots so telemetry crosses threads without allocation pauses.
+* **C64 character ROM** (`src/c64_charset.js`): Decodes 8x8 bitmap glyphs for all 256 C64 character ROM codes and renders Galway's `$0400` screen memory onto the CRT canvas. Most sources display light grey text; `greenberet.asm` mixes medium grey, light grey and white, and `rambload.asm` uses a custom colour HUD.
+* **Workbench UI and catalogue** (`src/workbench_view.js`, `src/app.js`, `src/main.js`, `src/tracks_catalog.js`, `src/markdown.js`): Mounts the UI behind `createWorkbenchView`, including the `$D020` border raster profiler, four-channel oscilloscopes, live assembly tracking that follows each voice's program counter (`PC0` to `PC2`, `seqPC`), in-browser code editing with live hot-reload, metadata for all 73 tracks and the story modal.
 
----
+## Run the player locally
 
-## Running the player locally
+Browsers block WebAssembly modules and `.asm` source fetches over `file://` URLs. Serve the repository over HTTP using Node.js 18+ or Python 3.6+. No package installation or build step is required to run the player.
 
-Modern web browsers prevent WebAssembly modules and source text from loading over `file://` URLs for security reasons, so the player must be served over HTTP.
+1. Clone the repository and enter the directory:
 
-### 1. Prerequisites
+   ```bash
+   git clone https://github.com/charlesroper/C64_music.git
+   cd C64_music
+   ```
 
-You need either:
+2. Start a static HTTP server from the repository root with Node.js:
 
-* Node.js version 18 or later, which includes `npx`.
-* Python 3 version 3.6 or later.
+   ```bash
+   npx serve .
+   ```
 
-No package installation or build step is required to run the player.
+   Or start one with Python:
 
-### 2. Clone the repository
+   ```bash
+   python3 -m http.server 8080
+   ```
 
-```bash
-git clone https://github.com/charlesroper/C64_music.git
-cd C64_music
-```
+3. Open `http://localhost:8080` (or the port printed by your server) in your browser and click **PLAY**.
 
-### 3. Start a local web server
+### Audio diagnostics query flags
 
-Start a static web server from the repository root using either Node.js or Python.
+* Append `?audioDebug=1` to the URL to open the live audio budget and callback timing overlay.
+* Append `?latency=interactive` to compare the browser's low-latency hint against the default `playback` buffer size.
 
-Using Node.js:
+## Edit and reassemble music live
 
-```bash
-npx serve .
-```
+You can modify any track's assembly code in the browser and hear the changes immediately in running Commodore 64 memory.
 
-Using Python:
+### Quick example: customise the Wizball title theme
 
-```bash
-python3 -m http.server 8080
-```
+To test a live code modification, use the default startup track (`wizball.asm`, **Title Screen (1987)**):
 
-### 4. Open the workbench
+1. Click **EDIT .ASM** above the source viewer (or in the **LIVE .ASM** tab on mobile) to switch from the read-only source view to an editable text area.
+2. Make a sample edit in `wizball.asm`:
 
-Open `http://localhost:8080` or the address printed by your server in any modern browser. Click **PLAY** to start audio output.
+   * **Opening pitch (line 3520):** Find label `TITLE0` and change `DFL 58,32` on line 3525 to `DFL 70,32` (an octave up) or `DFL 34,32` (deep sub-bass):
 
----
+     ```asm
+     TITLE0         DFL FLoad,VRC
+                    DFW TD00
+                    DFL Master
+                    DFL Filter
+                    DFW TC00
+                    DFL 70,32 ; was 58,32
+     ```
 
-## Running the automated test suite
+   * **Pitch bend and vibrato (line 3448):** Find label `TD00` and exaggerate the bend offsets (or set them to `+0,+0,+0,+0` to flatten the bend completely):
 
-The test suite validates pitch accuracy, audio waveform stability, drum synthesis, mobile and laptop responsive layouts, C64 character ROM decoding and narrative factual fidelity. It runs on Node.js with its built-in test runner (`node:test`) and requires no external dependencies.
+     ```asm
+     TD00           DFW +600,-600,+600,+600 ; was +25,-25,+25,+10
+     ```
 
-Run the test suite from the repository root:
+3. Click **RE-ASSEMBLE**.
+
+The in-browser cross-assembler parses the Ocean directives, resolves symbols in three passes and sends the updated 64KB memory image to the running sound core. The status badge confirms `HOT-RELOADED OK` and the active track restarts with your changes. If your edits contain syntax errors, the badge displays the error message and preserves your unsaved text.
+
+## Run the test suite
+
+The test suite uses the built-in Node.js test runner (`node:test`) with zero external dependencies:
 
 ```bash
 npm test
@@ -96,125 +111,92 @@ npm test
 
 The test runner executes 64 automated checks across 9 test files:
 
-* `tests/engine_core.test.mjs`: Drives the Engine Core message protocol directly. It loads raw assembled bytecode (`mem` and `symbols`) for single-file games, passes an extra arkanoid bytecode payload for arkadrum drum tracks, renders stereo audio blocks into caller buffers, and verifies pause, play, hardware options, key injection, telemetry emission and sample-rate negotiation without wiping loaded C64 RAM. It also verifies that a Track Load freezes the clock at frame 0, emits silence without a pre-render, queues commands received during the load so they apply in exact order afterwards, and scales fast-forward to three extra frames per 2048 samples across both 128-frame and 2048-frame render blocks.
-* `tests/audio_worklet.test.mjs`: Instantiates the real `AudioWorkletProcessor` class with a compiled `WebAssembly.Module`, renders 128-frame stereo quanta, verifies audio output, queues commands that arrive before the Engine Core is ready, returns silence before instantiation completes, throttles telemetry below the audio callback rate, transfers and recycles telemetry buffers, reports process timing and audio budget diagnostics, verifies that the Player Engine queues play until the worklet is ready then replays the active track, and confirms playback latency is the default hint.
-* `tests/telemetry_buffer.test.mjs`: Verifies that Telemetry Snapshots pack screen RAM, oscilloscope samples, SID registers, scanline border data, voice channels and filter values into one transferable `ArrayBuffer`, then unpack with the exact shape `player.getTelemetry()` exposes. Confirms buffer reuse overwrites every field without stale data.
-* `tests/issue_close_guard.test.mjs`: Checks the issue closure gate. `npm run issue:close` refuses to close an issue while any DoD or acceptance criteria task item is unchecked, and reports an empty checklist so contributors can add criteria before closing.
-* `tests/repo_rules.test.mjs`: Enforces repository integrity rules. It blocks CalVer downgrades from clock-skewed machines in version calculation (`scripts/bump_version.mjs`), verifies clean working tree and remote configuration preflight guards in deployment automation (`scripts/deploy.mjs`), guarantees zero literal em-dash characters (Unicode U+2014) across all tracked prose and code, confirms SHA-256 cryptographic authenticity of frozen historical Ocean assembly sources and directives, validates automated test count synchronisation across documentation, keeps the `AGENTS.md` search guidance harness-agnostic, and asserts CalVer synchronisation across `package.json`, `package-lock.json`, `index.html` and `src/version.js`.
-* `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to confirm that synthesised tones match the MOS 6581 datasheet pitch formula in three configurations: 44.1kHz PAL, 48kHz PAL and 48kHz NTSC. Verifies that all 73 catalogued tracks and sound effects produce valid alternating current (AC) output without clipping or DC lock. Tests `$D418` algorithmic and sampled drum synthesis, pause controls, channel mute masks, catalogue metadata integrity, telemetry snapshot encapsulation with pre-allocated buffer reuse, removal of raw WebAssembly exports from the public player interface, named game loader adapter dispatch (`GAME_LOADERS`) with shared 16-bit word and JSR helpers, lazy on-demand source assembly, and structured track session descriptors with drum and Morse capability mapping across all 73 catalogued tracks. The isolated `$D418` test runs `arkadrum.asm`; `gameover.asm` PCM drums are covered by the 73-track AC oscillation sweep.
-* `tests/spa_boot_and_play.test.mjs`: Enforces strict element identifier lookups through a unified browser harness (`tests/helpers/browser_harness.mjs`), tests AudioContext gesture unlocks, verifies that audio starts cleanly even when playback begins before WebAssembly and assembly assets finish downloading, validates CalVer versioning, surfaces assembly errors in the status badge while preserving editor text, protects unsaved edits across track changes, isolates global keyboard shortcuts from modal dialogs and focused interactive buttons, verifies track-aware DRM chip activation and drum PC symbol resolution, hides sentinel -1 values from source viewer address gutters while displaying valid `$0000` addresses, directs symbol jumps and text searches to the active on-screen file rather than the game identifier, confirms assembler hardening against missing operands, multi-pass convergence and guarded loader track key and pointer reads, reuses cached source viewer HTML across game switches to prevent redundant formatting passes, verifies assembler-owned source index address resolution, O(1) symbol definition jumps and substring line search, validates that the workbench view mounts behind a focused interface (`src/workbench_view.js`) with zero module import side effects while automated UI tests drive the view with mock player adapters and unified element registries, confirms that telemetry change guards eliminate redundant text writes and Morse re-renders on identical frames, and validates that the idle render loop skips canvas monitor and oscilloscope repaints while paused or hidden, resuming drawing on visibility.
-* `tests/mobile_ui_layout.test.mjs`: Evaluates the CSS media-query cascade across desktop, laptop (1024x768, 1100x700) and mobile (375x812) viewports. Verifies vertical scrolling, touch targets of at least 36px on transport and modal buttons and at least 34px on key buttons, single-column layout tab switches, authentic 256-glyph C64 character ROM decoding without arithmetic noise artefacts, startup toggle synchronisation (HUD Row Guide, Follow Voice), interactive voice tracking chips (V1, V2, V3, DRM), responsive `$D400` to `$D418` hardware register group stacking, jitter-free Section 4 telemetry rendering with tabular numbers, and adaptive `requestAnimationFrame` smooth scrolling for code tracking with leap pre-positioning and user touch cancellation. Register-strip assertions check responsive `#sid-group-*` DOM grouping rather than active sound lights.
-* `tests/narrative.test.mjs`: Validates the custom markdown renderer, confirms that all quotations in [NARRATIVE.md](NARRATIVE.md) match Galway's sources verbatim, and checks cited line numbers and equates against the original assembly files.
+* `tests/engine_core.test.mjs`: Tests the Engine Core message protocol. It loads assembled bytecode (`mem` and `symbols`), passes the extra `arkanoid.asm` payload for `arkadrum.asm` tracks, renders stereo blocks and checks playback controls, hardware options, key injection, telemetry and sample-rate updates. It also checks that track loads freeze the clock at frame 0 without pre-rendering audio, apply queued commands in order after loading and scale fast-forward to three extra frames per 2048 samples across 128-frame and 2048-frame blocks.
+* `tests/audio_worklet.test.mjs`: Runs `AudioWorkletProcessor` with a compiled `WebAssembly.Module` across 128-frame stereo quanta. It checks command queueing before readiness, silence before instantiation, telemetry throttling, transferable buffer recycling, process timing diagnostics, queued playback startup and the default `playback` latency hint.
+* `tests/telemetry_buffer.test.mjs`: Checks that telemetry snapshots pack screen RAM, oscilloscope samples, SID registers, scanline border colours, voice states and filter values into one transferable `ArrayBuffer` and unpack cleanly without stale data on reuse.
+* `tests/issue_close_guard.test.mjs`: Checks that `npm run issue:close` blocks issue closure when any definition-of-done or acceptance-criteria checkbox is unchecked or missing.
+* `tests/repo_rules.test.mjs`: Checks CalVer monotonicity in `scripts/bump_version.mjs`, clean-tree and remote preflight guards in `scripts/deploy.mjs`, zero literal em-dashes (U+2014), SHA-256 checksums for all seven historical files, test-count synchronisation between `README.md` and `NARRATIVE.md`, harness-agnostic search rules in `AGENTS.md` and version synchronisation across all seven release locations.
+* `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to check that MOS 6581 oscillator pitches match the hardware datasheet formula at 44.1kHz PAL, 48kHz PAL and 48kHz NTSC. It sweeps all 73 tracks and sound effects for alternating-current (AC) oscillation without clipping or DC lock. It also tests `$D418` drum synthesis in `arkadrum.asm`, pause and mute controls, catalogue metadata, game loader adapters (`GAME_LOADERS`), on-demand assembly and track session descriptors.
+* `tests/spa_boot_and_play.test.mjs`: Boots the single-page application in a shared browser harness (`tests/helpers/browser_harness.mjs`). It tests `AudioContext` gesture unlock, playback queued during asset downloads, live assembly error handling, unsaved edit protection on track switch, keyboard shortcut isolation when modals are open, drum program-counter tracking, `$0000` gutter rendering, symbol jump and source search, cached source HTML reuse and idle render-loop suspension when paused or hidden.
+* `tests/mobile_ui_layout.test.mjs`: Tests CSS breakpoints across desktop, laptop (1024x768, 1100x700) and mobile (375x812) viewports. It checks vertical scrolling, minimum touch targets (36px on transport and modal buttons, 34px on key buttons), mobile tab switching, 256-glyph C64 character ROM decoding, startup toggle state, voice follow chips, responsive `#sid-group-*` register stacking, `tabular-nums` telemetry widths and smooth source scrolling.
+* `tests/narrative.test.mjs`: Tests `src/markdown.js`, checks that every quotation in [NARRATIVE.md](NARRATIVE.md) matches Galway's source files verbatim and verifies cited line numbers and equates against the assembly sources.
 
-### Headless browser verification
+### Verify AudioWorklet in a headless browser
 
-Headless worklet verification works in this PRoot sandbox with WebKit 27.2 or Chromium 153. Both load AudioWorklet modules, run `process()` ticks and keep the `AudioContext` running. Chromium 156 and later crash at startup with SIGTRAP. Firefox 159 boots the app and loads worklet modules, but its audio context stays suspended, so use it for UI checks only.
+WebKit 27.2 and Chromium 153 load `AudioWorklet` modules, run `process()` callbacks and keep `AudioContext` running inside the PRoot Linux sandbox. Chromium 156 and later exit at startup with `SIGTRAP` under PRoot. Firefox 159 loads worklet modules for UI checks, but its `AudioContext` stays suspended without a hardware audio device. See [docs/agents/browser-verification.md](docs/agents/browser-verification.md) for the browser paths and verification scripts.
 
-See [docs/agents/browser-verification.md](docs/agents/browser-verification.md) for the engine matrix, install commands, the pinned Chromium path and the verification contract. Audible output still needs a real phone because this sandbox has no audio device.
+## Lint and format the code
 
-Add `?audioDebug=1` to show the audio diagnostics overlay. Playback latency is the default. Add `?latency=interactive` to compare the lower-latency hint.
+[Biome](https://biomejs.dev/) lints and formats JavaScript, JSON, CSS and HTML. It ignores Markdown, the historical `.asm` files, the C sound core and machine-local directories (`node_modules`, `.agents`, `.codegraph`, `.projectmem`).
 
----
-
-## Calendar versioning (CalVer)
-
-The project tracks deployments with calendar versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`), displayed next to the app title in the header banner.
-
-To bump the version before a release:
-
-```bash
-npm run bump
-```
-
-The script (`scripts/bump_version.mjs`) updates `package.json`, `package-lock.json`, `src/version.js` and four places in `index.html`: the document title, the header badge, the `styles.css?v=` query string and the `main.js?v=` query string. If deployed multiple times on the same date, it increments the `.MICRO` segment (`.1`, `.2` and so on). On a new date it resets to `YYYY.MM.DD`.
-
----
-
-## Linting and formatting
-
-Code style is enforced by [Biome](https://biomejs.dev/), the project's only linter and formatter. It covers JavaScript, JSON, CSS and HTML with Biome's experimental HTML support. Markdown, the historical assembly sources and the C sound core are not formatted by it.
-
-Check the tree without changing it:
+Check the working tree without modifying files:
 
 ```bash
 npm run lint
 ```
 
-Apply formatting and safe fixes:
+Format files and apply safe fixes:
 
 ```bash
 npm run format
 ```
 
-Biome skips `node_modules`, `.agents`, `.codegraph` and `.projectmem`. The first formatting pass was committed on its own and recorded in `.git-blame-ignore-revs`, so `git blame` skips it.
+## Bump the version and deploy to GitHub Pages
 
----
+Releases use calendar versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`) and deploy to GitHub Pages at [https://charlesroper.github.io/C64_music/](https://charlesroper.github.io/C64_music/).
 
-## Deploying to GitHub Pages
+1. Update the version across `package.json`, `package-lock.json`, `src/version.js` and the four version references in `index.html`:
 
-The application deploys as a static site on GitHub Pages at [https://charlesroper.github.io/C64_music/](https://charlesroper.github.io/C64_music/).
+   ```bash
+   npm run bump
+   ```
 
-To run the automated deployment:
+   Running `npm run bump` again on the same UTC date increments the `.MICRO` suffix (`.1`, `.2`).
 
-```bash
-npm run deploy
-```
+2. Run the test suite and commit the release:
 
-The deploy script (`scripts/deploy.mjs`) runs preflight checks for a clean git working tree and the `fork` remote, runs the lint and format check (`npm run lint`), executes the automated test suite (`npm test`), pushes the release to `fork/main` and reports the deployed commit hash.
+   ```bash
+   npm test
+   git commit -am "Release vYYYY.MM.DD"
+   ```
 
----
+3. Push the release to `fork/main`:
 
-## Rebuilding the WebAssembly sound core (optional)
+   ```bash
+   npm run deploy
+   ```
 
-The pre-compiled WebAssembly binary is at `wasm/c64_engine.wasm` (about 25KB) and is committed to the repository. You only need to rebuild it if you modify the C emulator source in `src/wasm/c64_engine.c`.
+   `scripts/deploy.mjs` checks that the working tree is clean and the `fork` remote exists, runs `npm run lint` and `npm test`, pushes `HEAD` to `fork/main` and prints the deployed commit SHA.
 
-### Prerequisites
+## Rebuild the WebAssembly sound core
 
-Rebuilding requires the LLVM toolchain:
+`wasm/c64_engine.wasm` (about 25KB) is pre-compiled and committed to the repository. Rebuild it only when you edit `src/wasm/c64_engine.c`.
 
-* Clang with WebAssembly target support (`wasm32`).
-* The LLD linker (`wasm-ld`).
+1. Install Clang with `wasm32` target support and the `wasm-ld` linker.
 
-On Debian or Ubuntu, install the toolchain with:
+   On Debian or Ubuntu:
 
-```bash
-sudo apt update && sudo apt install clang lld
-```
+   ```bash
+   sudo apt update && sudo apt install clang lld
+   ```
 
-On macOS using Homebrew:
+   On macOS with Homebrew:
 
-```bash
-brew install llvm
-```
+   ```bash
+   brew install llvm
+   ```
 
-### Compilation
+2. Compile `src/wasm/c64_engine.c` into `wasm/c64_engine.wasm`:
 
-Compile `src/wasm/c64_engine.c` into a freestanding WebAssembly module:
+   ```bash
+   clang --target=wasm32 -O3 -nostdlib -c src/wasm/c64_engine.c -o wasm/c64_engine.o
+   wasm-ld --no-entry --export-dynamic -O3 wasm/c64_engine.o -o wasm/c64_engine.wasm
+   rm wasm/c64_engine.o
+   ```
 
-```bash
-clang --target=wasm32 -O3 -nostdlib -c src/wasm/c64_engine.c -o wasm/c64_engine.o
-wasm-ld --no-entry --export-dynamic -O3 wasm/c64_engine.o -o wasm/c64_engine.wasm
-rm wasm/c64_engine.o
-```
-
-Note: on Android environments such as Termux, pass the `-fintegrated-cc1` flag to `clang`.
-
----
-
-## Architecture overview
-
-The application is split across focused modules:
-
-* The in-browser cross-assembler (`src/ocean_assembler.js`) parses Galway's raw source text, handles Ocean's custom directives (`ORG`, `ENT`, `DFS`, `DFB`, `DFW`, `DFM`, `DFH`, `DFL`, `DSP`, `DFC`, `EQU`, `ADD`, `SUB`), performs three-pass symbol resolution and generates a binary memory image with line-to-address source maps.
-* The cycle-accurate emulation core (`src/wasm/c64_engine.c`) is a freestanding C core compiled to WebAssembly. It emulates the MOS 6510 CPU, the VIC-II raster timer (63 cycles per line on PAL, 65 on NTSC) and the MOS 6581/8580 SID synthesiser. It includes a 2x-oversampled Chamberlin state-variable filter, a 15Hz high-pass AC-coupling filter matching the C64 motherboard output capacitor, and a cubic soft saturation curve (`soft_saturate`) to prevent harsh clipping.
-* The Engine Core (`src/engine_core.js`) owns the WebAssembly instance, the six Loader Adapters (`GAME_LOADERS`), audio rendering and the Telemetry Snapshot. It accepts ordered messages for `init`, `loadTrack`, `play`, `pause`, `setHardwareOptions`, `injectKey` and `requestTelemetry`, so the same core runs in-thread for Node tests and on the AudioWorklet thread in the browser.
-* The Player Engine (`src/player_engine.js`) keeps the assembler and Source Index on the main thread, holds playback and hardware state, sends assembled bytecode to the Engine Core through the AudioWorklet `MessagePort`, negotiates the audio sample rate (44.1kHz or 48kHz), loads the worklet during the first interaction and manages mobile autoplay unlocks. Tests use the in-thread transport adapter.
-* The C64 character ROM and logo module (`src/c64_charset.js`) decodes authentic 8x8 bitmap glyphs for all 256 C64 PETSCII character codes, including lowercase letters, uppercase graphics and punctuation. It provides the palette constants and the `getGalway2664LogoSvg()` helper. `index.html` inlines the `<svg>` logo paths. The module renders the `$0400` telemetry monitor directly to the CRT canvas.
-* The studio workbench interface and track catalogue (`src/workbench_view.js`, `src/app.js`, `src/main.js`, `src/tracks_catalog.js`, `src/styles.css`, `src/markdown.js` and `index.html`) mount the presentation layer behind `createWorkbenchView` with a focused interface (`renderSession`, `renderTelemetry`, `renderSource`, `setPlaying`), a unified element registry and zero module import side effects. It provides the CRT memory display (`$0400`), border profiler raster bars (`$D020`), four-channel oscilloscopes, live code disassembly tracking voice program counters (`PC0` to `PC2`, `seqPC`) with adaptive smooth scrolling, metadata and registers for all 73 tracks, responsive breakpoints for mobile and laptop screens, and the in-app narrative modal overlay rendered by `src/markdown.js`.
-
----
+   On Android or Termux, pass `-fintegrated-cc1` to `clang`.
 
 ## Licence and credits
 
-* Original music and 6502 assembly code: Copyright (C) Martin Galway. Preserved and published under the GNU General Public License v3.0 (GPL-3.0).
-* Web emulator, assembler and workbench interface: GNU General Public License v3.0 (GPL-3.0). See [LICENSE](LICENSE) for details.
+* Original music and 6502 assembly code: Copyright (C) Martin Galway, published under the GNU General Public License v3.0 (GPL-3.0).
+* WebAssembly emulator, cross-assembler and workbench interface: GNU General Public License v3.0 (GPL-3.0). See [LICENSE](LICENSE).
