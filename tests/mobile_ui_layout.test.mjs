@@ -391,7 +391,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.equal(hexCells.children.length, 4, "Must render 4 register groups");
     assert.deepEqual(
       hexCells.children.map((group) => group.children[0].textContent),
-      ["VOICE 1 (V1)", "VOICE 2 (V2)", "VOICE 3 (V3)", "FILTER + DRUMS (FLT)"],
+      ["V1", "V2", "V3", "FILTER + DRUMS (FLT)"],
     );
     assert.ok(elementsById.get("sid-group-v0"), "Must render #sid-group-v0");
     assert.ok(elementsById.get("sid-group-v1"), "Must render #sid-group-v1");
@@ -512,7 +512,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   const desktop = { width: 1440, height: 900 };
   const mobile = { width: 375, height: 812 };
 
-  // Desktop styles: full-width strip, flex items inline with gap
+  // Desktop styles: full-width strip, four balanced register groups
   const stripDesktop = computeStyleForSelector(rules, [".sid-hex-strip"], desktop);
   assert.equal(
     stripDesktop["grid-column"],
@@ -520,8 +520,12 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     ".sid-hex-strip must span the full workbench width on wide screens",
   );
   const cellsDesktop = computeStyleForSelector(rules, [".sid-hex-cells"], desktop);
-  assert.equal(cellsDesktop.display, "flex", ".sid-hex-cells must be flex on desktop");
-  assert.equal(cellsDesktop["flex-wrap"], "wrap", ".sid-hex-cells must allow flex-wrap");
+  assert.equal(cellsDesktop.display, "grid", ".sid-hex-cells must be a grid on desktop");
+  assert.equal(
+    cellsDesktop["grid-template-columns"],
+    "repeat(4, minmax(0, 1fr))",
+    ".sid-hex-cells must place four balanced groups on wide screens",
+  );
   assert.equal(
     cellsDesktop.flex,
     "1 1 auto",
@@ -529,11 +533,28 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   );
 
   const groupDesktop = computeStyleForSelector(rules, [".sid-hex-group"], desktop);
-  assert.equal(groupDesktop.flex, "1 1 auto", ".sid-hex-group must grow to fill each row");
   assert.equal(
     groupDesktop["justify-content"],
     "space-between",
     ".sid-hex-group must spread its label and registers across the row",
+  );
+
+  const groupCells = computeStyleForSelector(rules, [".sid-group-cells"], desktop);
+  assert.equal(groupCells.display, "grid", ".sid-group-cells must be a grid");
+  assert.equal(groupCells["grid-auto-flow"], "column", "Register cells must run left to right");
+  assert.equal(
+    groupCells["grid-auto-columns"],
+    "minmax(18px, 34px)",
+    "Register cells must stretch between 18px and 34px",
+  );
+  assert.equal(groupCells.flex, "1 1 auto", "Register cells must fill the group's spare width");
+
+  const tablet = { width: 1000, height: 812 };
+  const cellsTablet = computeStyleForSelector(rules, [".sid-hex-cells"], tablet);
+  assert.equal(
+    cellsTablet["grid-template-columns"],
+    "repeat(2, minmax(0, 1fr))",
+    ".sid-hex-cells must use two balanced groups per row when four would crowd",
   );
 
   // Mobile styles: column strip with stacked voice groups and no horizontal overflow
@@ -551,9 +572,9 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
 
   const cellsMobile = computeStyleForSelector(rules, [".sid-hex-cells"], mobile);
   assert.equal(
-    cellsMobile["flex-direction"],
-    "column",
-    ".sid-hex-cells must stack sections vertically on mobile",
+    cellsMobile["grid-template-columns"],
+    "1fr",
+    ".sid-hex-cells must stack one full-width group per row on mobile",
   );
 
   for (const tab of ["monitor", "tunes"]) {

@@ -646,7 +646,7 @@ export function createWorkbenchView({
     const groups = [
       {
         id: "v0",
-        label: "VOICE 1 (V1)",
+        label: "V1",
         title: "Voice 1 registers $D400-$D406 (V1)",
         start: 0,
         count: 7,
@@ -654,7 +654,7 @@ export function createWorkbenchView({
       },
       {
         id: "v1",
-        label: "VOICE 2 (V2)",
+        label: "V2",
         title: "Voice 2 registers $D407-$D40D (V2)",
         start: 7,
         count: 7,
@@ -662,7 +662,7 @@ export function createWorkbenchView({
       },
       {
         id: "v2",
-        label: "VOICE 3 (V3)",
+        label: "V3",
         title: "Voice 3 registers $D40E-$D414 (V3)",
         start: 14,
         count: 7,
