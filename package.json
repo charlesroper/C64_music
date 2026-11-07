@@ -4,7 +4,7 @@
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
-  "description": "Galway 2664: WebAssembly MOS 6510 + 6581/8580 SID emulator and live 1987 Ocean Software 6502 cross-assembler",
+  "description": "Galway 2664: WebAssembly MOS 6510 and 6581/8580 SID emulator and live 1985-87 Ocean Software 6502 cross-assembler",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "lint": "biome check .",
