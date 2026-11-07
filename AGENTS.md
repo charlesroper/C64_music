@@ -87,13 +87,13 @@ This runs the full test suite (`npm test`) and pushes to `fork/main`.
 
 ## 7. Search Tooling
 
-Use the built-in `grep` and `glob` tools for routine content search and file discovery. The built-in `grep` already uses ripgrep.
+Use the agent harness's built-in content search and file discovery tools when they exist. They are permission-aware and usually return structured results. Many harnesses already back content search with ripgrep. If the harness has no built-in search tools, use shell `rg` and `fd`.
 
-Use shell `rg` only when the built-in `grep` lacks a needed flag, such as `--type`, `-uu`, or multiline search.
+Use shell `rg` only when the built-in search lacks a needed flag, such as `--type`, `-uu`, or multiline search.
 
-Use shell `fd` only when the built-in `glob` lacks a needed filter, such as `--type`, `--changed-within`, `--exclude`, or `--exec`.
+Use shell `fd` only when the built-in file discovery lacks a needed filter, such as `--type`, `--changed-within`, `--exclude`, or `--exec`. On Debian, `fd` may be installed as `fdfind`.
 
-Do not run shell `grep` or `find` merely to get RTK compression. RTK wraps shell commands, not the built-in tools.
+Do not run shell `grep` or `find` merely to get output compression. Where RTK is wired, it rewrites shell commands, not built-in tools.
 
 ## Agent skills
 
