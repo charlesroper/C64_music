@@ -2264,3 +2264,22 @@ button.active {
     text-overflow: ellipsis;
   }
 }
+
+/* Opt-in audio diagnostics overlay (?audioDebug=1). */
+.audio-diagnostics {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  z-index: 10000;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #35ff6d;
+  background: rgba(0, 0, 0, 0.88);
+  color: #b9ffcc;
+  font-family: monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  pointer-events: none;
+}

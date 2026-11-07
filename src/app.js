@@ -2,6 +2,7 @@
 // Galway 2664 // Ocean 6502-SID Workbench Application Bootstrap
 // ============================================================================
 
+import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import {
   cancelViewerSmoothScroll,
@@ -15,6 +16,8 @@ export async function bootWorkbench(options = {}) {
   const win = options.window || (typeof window !== "undefined" ? window : globalThis);
   if (!doc) return null;
 
+  const params = new URLSearchParams(win?.location?.search || "");
+  const latencyHint = params.get("latency") === "playback" ? "playback" : "interactive";
   let preUnlockedAudioCtx = null;
 
   const handleFirstInteraction = () => {
@@ -27,7 +30,7 @@ export async function bootWorkbench(options = {}) {
       const AudioCtx = win.AudioContext || win.webkitAudioContext;
       if (AudioCtx) {
         try {
-          preUnlockedAudioCtx = new AudioCtx({ sampleRate: 48000 });
+          preUnlockedAudioCtx = new AudioCtx({ sampleRate: 48000, latencyHint });
         } catch (_) {
           preUnlockedAudioCtx = new AudioCtx();
         }
@@ -83,6 +86,7 @@ export async function bootWorkbench(options = {}) {
     wasm: instance.exports,
     wasmModule,
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
+    latencyHint,
     rawSources,
     createAudioContext: (opts) => {
       if (preUnlockedAudioCtx) {
@@ -98,6 +102,12 @@ export async function bootWorkbench(options = {}) {
 
   view.setAssets({ directivesText, narrativeText });
   view.setPlayer(player);
+
+  const diagnostics = createAudioDiagnosticsOverlay({
+    document: doc,
+    player,
+    window: win,
+  });
 
   let audioPrepared = false;
   const prepareAudio = () => {
@@ -116,7 +126,7 @@ export async function bootWorkbench(options = {}) {
   const autoPlay = view.isPendingPlayOnBoot();
   view.selectGameAndTrack("wizball.asm", "wiz-title", autoPlay);
 
-  return { player, view };
+  return { player, view, diagnostics };
 }
 
 export {

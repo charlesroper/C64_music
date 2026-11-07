@@ -60,6 +60,7 @@ function createWorkletTransport({
   let node = null;
   const latestTelemetry = createTelemetrySnapshot();
   let latestTelemetryBuffer = null;
+  let latestDiagnostics = null;
   let hasTelemetry = false;
   const pending = [];
 
@@ -82,7 +83,7 @@ function createWorkletTransport({
         if (message.type === "telemetry") {
           const previousBuffer = latestTelemetryBuffer;
           latestTelemetryBuffer = message.buffer;
-          applyTelemetry(latestTelemetry, message.header, message.buffer);
+          applyTelemetry(latestTelemetry, message.buffer);
           hasTelemetry = true;
           if (previousBuffer) {
             node.port.postMessage({ type: "telemetry-recycle", buffer: previousBuffer }, [
@@ -90,6 +91,10 @@ function createWorkletTransport({
             ]);
           }
           if (onTelemetry) onTelemetry(latestTelemetry);
+          return;
+        }
+        if (message.type === "audio-diagnostics") {
+          latestDiagnostics = message.diagnostics;
           return;
         }
         if (message.type === "ready") {
@@ -117,6 +122,9 @@ function createWorkletTransport({
     requestTelemetry() {
       if (node && !hasTelemetry) node.port.postMessage({ type: "requestTelemetry" });
       return latestTelemetry;
+    },
+    getDiagnostics() {
+      return latestDiagnostics;
     },
   };
 }
@@ -156,6 +164,7 @@ export function createWorkbenchPlayer({
   createAudioContext,
   navigatorObj,
   workletUrl,
+  latencyHint = "interactive",
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
@@ -191,6 +200,7 @@ export function createWorkbenchPlayer({
   let lastLoadMessage = null;
   let lastHardwareOptions = {};
   let workletAttempted = false;
+  const contextEvents = [];
 
   getAssembled(state.activeGameId);
 
@@ -203,6 +213,21 @@ export function createWorkbenchPlayer({
   function getRamView() {
     const snapshot = transport.requestTelemetry();
     return snapshot ? snapshot.ram : null;
+  }
+
+  function getAudioDiagnostics() {
+    const ctx = state.audioCtx;
+    const workletDiagnostics = transport.getDiagnostics ? transport.getDiagnostics() : null;
+    return {
+      backend: state.audioBackend,
+      contextState: ctx ? ctx.state : "none",
+      sampleRate: state.sampleRate,
+      latencyHint,
+      baseLatency: ctx?.baseLatency ?? null,
+      outputLatency: ctx?.outputLatency ?? null,
+      contextEvents: contextEvents.slice(),
+      ...(workletDiagnostics || {}),
+    };
   }
 
   function startWorklet(ctx) {
@@ -238,6 +263,16 @@ export function createWorkbenchPlayer({
     });
   }
 
+  function handleContextState() {
+    const ctx = state.audioCtx;
+    if (!ctx) return;
+    contextEvents.push({ state: ctx.state, at: Date.now() });
+    if (contextEvents.length > 20) contextEvents.shift();
+    if (transport.kind === "worklet") {
+      transport.send({ type: "audio-interruption", active: ctx.state !== "running" });
+    }
+  }
+
   function ensureAudio() {
     if (navigatorObj?.audioSession) {
       try {
@@ -250,12 +285,15 @@ export function createWorkbenchPlayer({
     if (!state.audioCtx && createAudioContext) {
       let ctx;
       try {
-        ctx = createAudioContext({ sampleRate: 48000 });
+        ctx = createAudioContext({ sampleRate: 48000, latencyHint });
       } catch (_) {
         ctx = createAudioContext();
       }
       state.audioCtx = ctx;
       state.sampleRate = ctx.sampleRate || 48000;
+      if (typeof ctx.addEventListener === "function") {
+        ctx.addEventListener("statechange", handleContextState);
+      }
       transport.send({ type: "init", sampleRate: state.sampleRate });
 
       if (workletUrl && wasmModule && ctx.audioWorklet) {
@@ -369,6 +407,7 @@ export function createWorkbenchPlayer({
 
   return {
     getTelemetry,
+    getAudioDiagnostics,
     selectTrack,
     prepareAudio,
     play,

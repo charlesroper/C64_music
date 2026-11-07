@@ -33,14 +33,16 @@ function createPort() {
   };
 }
 
-function createProcessor(port) {
+function createProcessor(port, options = {}) {
   class FakeAudioWorkletProcessor {
     constructor() {
       this.port = port;
     }
   }
   const Processor = createC64ProcessorClass(FakeAudioWorkletProcessor);
-  return new Processor({ processorOptions: { wasmModule, sampleRate: 48000 } });
+  return new Processor({
+    processorOptions: { wasmModule, sampleRate: 48000, ...options },
+  });
 }
 
 function loadWizball(port) {
@@ -148,6 +150,26 @@ test("worklet processor throttles telemetry below the audio callback rate", asyn
   assert.ok(telemetryCount <= 3, `Expected throttled telemetry, got ${telemetryCount} messages`);
 });
 
+test("worklet processor reports process timing and audio budget diagnostics", async () => {
+  const port = createPort();
+  const processor = createProcessor(port, { diagnosticsInterval: 4 });
+  await waitForMessage(port, "ready");
+
+  loadWizball(port);
+  const left = new Float32Array(128);
+  const right = new Float32Array(128);
+  for (let block = 0; block < 4; block++) {
+    processor.process([], [[left, right]]);
+  }
+
+  const report = await waitForMessage(port, "audio-diagnostics");
+  assert.equal(report.diagnostics.processCalls, 4);
+  assert.ok(report.diagnostics.p50Us >= 0);
+  assert.ok(report.diagnostics.maxUs >= report.diagnostics.p50Us);
+  assert.ok(Math.abs(report.diagnostics.budgetUs - 2666.67) < 1);
+  assert.ok(report.diagnostics.gain > 0, "Play should ramp the output gain up");
+});
+
 test("player queues play until the worklet is ready and then dispatches the active track", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const nodes = [];
@@ -244,7 +266,6 @@ test("worklet processor transfers telemetry buffers and recycles them", async ()
   for (const message of sent) {
     assert.ok(message.buffer instanceof ArrayBuffer);
     assert.equal(message.buffer.byteLength, TELEMETRY_BUFFER_BYTES);
-    assert.equal(message.header.ram, undefined);
   }
   assert.equal(port.transfers.length, 3, "Every telemetry buffer must be transferred");
 

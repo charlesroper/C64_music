@@ -35,14 +35,12 @@ function makeSnapshot(seed) {
 test("telemetry buffer round-trips screen RAM, scope, SID registers, voices, and filter", () => {
   const source = makeSnapshot(11);
   const buffer = new ArrayBuffer(TELEMETRY_BUFFER_BYTES);
-  const header = packTelemetry(source, buffer);
+  packTelemetry(source, buffer);
 
   assert.equal(buffer.byteLength, TELEMETRY_BUFFER_BYTES);
-  assert.equal(header.ram, undefined);
-  assert.equal(header.frameCount, 1011);
 
   const restored = createTelemetrySnapshot();
-  applyTelemetry(restored, header, buffer);
+  applyTelemetry(restored, buffer);
 
   assert.equal(restored.frameCount, 1011);
   assert.equal(restored.cpuPc, 0x123f);
@@ -63,14 +61,14 @@ test("telemetry buffer reuse overwrites every field without stale data", () => {
   const second = makeSnapshot(200);
   const buffer = new ArrayBuffer(TELEMETRY_BUFFER_BYTES);
 
-  const firstHeader = packTelemetry(first, buffer);
+  packTelemetry(first, buffer);
   const restored = createTelemetrySnapshot();
-  applyTelemetry(restored, firstHeader, buffer);
+  applyTelemetry(restored, buffer);
   assert.equal(restored.ram[10], 11);
   assert.equal(restored.frameCount, 1001);
 
-  const secondHeader = packTelemetry(second, buffer);
-  applyTelemetry(restored, secondHeader, buffer);
+  packTelemetry(second, buffer);
+  applyTelemetry(restored, buffer);
   assert.equal(restored.ram[10], 210);
   assert.equal(restored.frameCount, 1200);
   assert.equal(restored.voices[0].freq, 300);

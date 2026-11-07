@@ -5,11 +5,7 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
-import {
-  createTelemetryHeader,
-  packTelemetry,
-  TELEMETRY_BUFFER_BYTES,
-} from "./telemetry_buffer.js";
+import { packTelemetry, TELEMETRY_BUFFER_BYTES } from "./telemetry_buffer.js";
 
 export const WORKLET_PROCESSOR_NAME = "c64-engine";
 
@@ -17,6 +13,14 @@ export const WORKLET_PROCESSOR_NAME = "c64-engine";
 // Six callbacks per Telemetry Snapshot is about 62.5 Hz.
 const TELEMETRY_INTERVAL = 6;
 const TELEMETRY_POOL_SIZE = 3;
+const QUANTUM_FRAMES = 128;
+const GAIN_RAMP_SECONDS = 0.005;
+const DIAGNOSTICS_INTERVAL = 375;
+const HISTOGRAM_BUCKET_US = 50;
+const HISTOGRAM_BUCKETS = 200;
+
+const now = () =>
+  typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
 
 export function createC64ProcessorClass(BaseProcessor) {
   return class C64WorkletProcessor extends BaseProcessor {
@@ -25,7 +29,6 @@ export function createC64ProcessorClass(BaseProcessor) {
       this.core = null;
       this.ready = false;
       this.pending = [];
-      this.telemetryHeader = createTelemetryHeader();
       this.telemetryPool = [];
       for (let i = 0; i < TELEMETRY_POOL_SIZE; i++) {
         this.telemetryPool.push(new ArrayBuffer(TELEMETRY_BUFFER_BYTES));
@@ -35,6 +38,23 @@ export function createC64ProcessorClass(BaseProcessor) {
       const processorOptions = options.processorOptions || {};
       const wasmModule = processorOptions.wasmModule;
       const sampleRate = Number(processorOptions.sampleRate) || 48000;
+      this.sampleRate = sampleRate;
+      this.gain = 0;
+      this.targetGain = 0;
+      this.gainStep = 1 / (sampleRate * GAIN_RAMP_SECONDS);
+      this.playRequested = false;
+      this.pendingPause = false;
+      this.lastFrame = null;
+      this.diagnosticsInterval =
+        Number(processorOptions.diagnosticsInterval) || DIAGNOSTICS_INTERVAL;
+      this.budgetUs = (QUANTUM_FRAMES / sampleRate) * 1e6;
+      this.diagnostics = {
+        windowCalls: 0,
+        maxUs: 0,
+        histogram: new Uint32Array(HISTOGRAM_BUCKETS + 1),
+        missedQuanta: 0,
+        telemetryDrops: 0,
+      };
 
       if (!wasmModule) {
         this.port.postMessage({ type: "error", message: "Missing wasmModule" });
@@ -70,6 +90,35 @@ export function createC64ProcessorClass(BaseProcessor) {
         this.recycleTelemetry(message.buffer);
         return;
       }
+      if (message.type === "audio-interruption") {
+        if (message.active) {
+          this.gain = 0;
+          this.targetGain = 0;
+        } else {
+          this.targetGain = this.playRequested ? 1 : 0;
+        }
+        return;
+      }
+      if (message.type === "play") {
+        this.playRequested = true;
+        this.targetGain = 1;
+        this.pendingPause = false;
+      } else if (message.type === "pause") {
+        this.playRequested = false;
+        this.targetGain = 0;
+        if (this.gain > 0) {
+          this.pendingPause = true;
+          return;
+        }
+      } else if (message.type === "loadTrack") {
+        this.playRequested = Boolean(message.autoPlay);
+        this.targetGain = this.playRequested ? 1 : 0;
+        this.pendingPause = false;
+      }
+      this.forward(message);
+    }
+
+    forward(message) {
       if (!this.ready || !this.core) {
         this.pending.push(message);
         return;
@@ -79,9 +128,12 @@ export function createC64ProcessorClass(BaseProcessor) {
 
     sendTelemetry(snapshot) {
       const buffer = this.telemetryPool.pop();
-      if (!buffer) return;
-      const header = packTelemetry(snapshot, buffer, this.telemetryHeader);
-      this.port.postMessage({ type: "telemetry", header, buffer }, [buffer]);
+      if (!buffer) {
+        this.diagnostics.telemetryDrops++;
+        return;
+      }
+      packTelemetry(snapshot, buffer);
+      this.port.postMessage({ type: "telemetry", buffer }, [buffer]);
     }
 
     recycleTelemetry(buffer) {
@@ -97,6 +149,74 @@ export function createC64ProcessorClass(BaseProcessor) {
       }
     }
 
+    applyGain(left, right) {
+      if (this.gain === this.targetGain) {
+        if (this.gain === 1) return;
+      }
+
+      let gain = this.gain;
+      const target = this.targetGain;
+      const step = this.gainStep;
+      if (gain < target) {
+        for (let i = 0; i < left.length; i++) {
+          if (gain < target) gain = Math.min(target, gain + step);
+          left[i] *= gain;
+          right[i] *= gain;
+        }
+      } else if (gain > target) {
+        for (let i = 0; i < left.length; i++) {
+          if (gain > target) gain = Math.max(target, gain - step);
+          left[i] *= gain;
+          right[i] *= gain;
+        }
+      }
+      this.gain = gain;
+    }
+
+    recordProcess(elapsedUs) {
+      const diagnostics = this.diagnostics;
+      diagnostics.windowCalls++;
+      if (elapsedUs > diagnostics.maxUs) diagnostics.maxUs = elapsedUs;
+      const bucket = Math.min(HISTOGRAM_BUCKETS, Math.floor(elapsedUs / HISTOGRAM_BUCKET_US));
+      diagnostics.histogram[bucket]++;
+    }
+
+    percentile(fraction) {
+      const diagnostics = this.diagnostics;
+      if (diagnostics.windowCalls === 0) return 0;
+      const target = Math.ceil(diagnostics.windowCalls * fraction);
+      let count = 0;
+      for (let i = 0; i < diagnostics.histogram.length; i++) {
+        count += diagnostics.histogram[i];
+        if (count >= target) {
+          if (i === HISTOGRAM_BUCKETS) return HISTOGRAM_BUCKETS * HISTOGRAM_BUCKET_US;
+          return i * HISTOGRAM_BUCKET_US + HISTOGRAM_BUCKET_US / 2;
+        }
+      }
+      return diagnostics.maxUs;
+    }
+
+    reportDiagnostics() {
+      const diagnostics = this.diagnostics;
+      const report = {
+        processCalls: diagnostics.windowCalls,
+        p50Us: this.percentile(0.5),
+        p95Us: this.percentile(0.95),
+        p99Us: this.percentile(0.99),
+        maxUs: diagnostics.maxUs,
+        budgetUs: this.budgetUs,
+        missedQuanta: diagnostics.missedQuanta,
+        telemetryDrops: diagnostics.telemetryDrops,
+        gain: this.gain,
+        playing: this.playRequested,
+      };
+      this.port.postMessage({ type: "audio-diagnostics", diagnostics: report });
+
+      diagnostics.windowCalls = 0;
+      diagnostics.maxUs = 0;
+      diagnostics.histogram.fill(0);
+    }
+
     process(_inputs, outputs) {
       const output = outputs[0];
       if (!output || output.length < 2) return true;
@@ -109,7 +229,28 @@ export function createC64ProcessorClass(BaseProcessor) {
         return true;
       }
 
+      const started = now();
+      const frame = typeof currentFrame === "number" ? currentFrame : 0;
+      if (this.lastFrame !== null) {
+        const delta = frame - this.lastFrame;
+        if (delta > QUANTUM_FRAMES) {
+          this.diagnostics.missedQuanta += Math.max(1, Math.round(delta / QUANTUM_FRAMES) - 1);
+        }
+      }
+      this.lastFrame = frame;
+
       this.core.renderAudio(left, right);
+      this.applyGain(left, right);
+
+      if (this.pendingPause && this.gain <= 0) {
+        this.pendingPause = false;
+        this.forward({ type: "pause" });
+      }
+
+      this.recordProcess((now() - started) * 1000);
+      if (this.diagnostics.windowCalls >= this.diagnosticsInterval) {
+        this.reportDiagnostics();
+      }
       return true;
     }
   };

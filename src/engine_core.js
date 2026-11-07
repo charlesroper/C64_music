@@ -224,6 +224,9 @@ export function createEngineCore({
   let cachedBorder = null;
   let cachedSidRegs = null;
   let cachedScope = null;
+  let cachedAudioN = 0;
+  let cachedAudioL = null;
+  let cachedAudioR = null;
 
   const telemetry = {
     frameCount: 0,
@@ -408,10 +411,13 @@ export function createEngineCore({
 
     wasm.wasm_render_audio(n);
     refreshViews();
-    const wasmL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), n);
-    const wasmR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
-    outL.set(wasmL);
-    if (outR) outR.set(wasmR);
+    if (cachedAudioN !== n || cachedAudioL?.buffer !== wasm.memory.buffer) {
+      cachedAudioN = n;
+      cachedAudioL = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_l_ptr(), n);
+      cachedAudioR = new Float32Array(wasm.memory.buffer, wasm.wasm_get_audio_r_ptr(), n);
+    }
+    outL.set(cachedAudioL);
+    if (outR) outR.set(cachedAudioR);
 
     renderCount++;
     if (renderCount % telemetryEvery === 0) emitTelemetry();
@@ -425,7 +431,6 @@ export function createEngineCore({
       return { left, right };
     }
     renderInto(outLOrLength, outR);
-    return { left: outLOrLength, right: outR };
   }
 
   function drainPendingMessages() {

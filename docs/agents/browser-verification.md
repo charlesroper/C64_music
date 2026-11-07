@@ -59,6 +59,7 @@ The checks below use the app's own browser contract. They do not depend on Playw
 4. For engine audio, call `player.pullAudioBlock(left, right)` with two `Float32Array` buffers. Playback must be active first. A valid track yields nonzero samples. A peak above 0.1 is the current sanity threshold.
 5. For worklet checks, call `audioContext.audioWorklet.addModule(url)`, create an `AudioWorkletNode`, connect it through a near-silent gain to `destination`, and count `process()` ticks posted over the node port.
 6. For the real app, the first tap starts the worklet. `player.getState().audioBackend` changes to `"worklet"` when the processor owns audio. `player.getTelemetry().frameCount` must advance while the page plays.
+7. Add `?audioDebug=1` to show process timing, missed quanta, telemetry drops, context state, and latency in the overlay. Add `?latency=playback` to compare the playback latency hint against the default interactive hint.
 
 Minimal worklet probe:
 
