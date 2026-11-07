@@ -471,3 +471,11 @@ Issue #14 corrected the live workbench copy against the emulator and the assembl
 The Morse banner names the frequency register pair (`$D400` to `$D401`), and the assembler reference explains the Arkanoid raster lines, the per-game zero-page maps, the `$60` duration threshold and the stepped Morse carrier. The HUD Row Guide is now game-aware: Wizball uses `ZERO0` at `$04-$1C`, Arkanoid and Game Over use `ZER0` at `$10-$2E`, Green Beret uses its own `A0..SZ` layout, and Rambo uses its loader rows. The guide re-renders when the active game changes.
 
 The copy edits remove ghost shortcuts, Americanisms, Oxford commas and Title Case tooltips. `npm test` passes with 64 checks.
+
+### 7 November 2026: the catalogue is checked against the sources
+
+Issue #15 corrected the last metadata layer: the 73 track entries in `src/tracks_catalog.js` ([Issue #15](https://github.com/charlesroper/C64_music/issues/15)). Header dates now use the dates written in Galway's files, from Rambo in November 1985 to Game Over in July 1987. The `ORG` and zero-page maps match the assembler layout: Wizball at `$1000` and `$4600`, Arkadrum at `$4000` and `$5000`, Arkanoid at `$0803`, `$2000`, `$3E00` and `$3F00`. Arkanoid now lists 6 tunes and 12 three-channel SFX. Green Beret lists 12 tunes and 8 SFX, with two stage siren cues.
+
+The track durations, loop markers and voice roles were checked against playback. End of Level is 0:02, four one-shot SFX no longer claim to loop, Game Over's cowbell break starts in bar 11, Green Beret's title voices are swapped back to the source order, and Rambo's loader runs for about 30 seconds of Morse before finishing at 3:32 rather than looping. Raw backticks are gone from the summary text.
+
+The metadata test now checks for en and em dashes across the documentation, rejects backticks in game summaries, validates keys for every keyed game, and compares the Arkanoid and Green Beret badge counts with the catalogue. `tests/narrative.test.mjs` checks the Game Over and Arkanoid `DREFRESH` lines and ties the digi-boost slider maximum to the narrative. The suite remains at 64 checks across 9 files.

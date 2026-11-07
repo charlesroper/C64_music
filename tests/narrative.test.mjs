@@ -70,4 +70,18 @@ test("narrative facts match the source files", () => {
   const ram = read("rambload.asm").split("\n");
   assert.match(ram[1231], /^STARTMC/);
   assert.match(read("arkadrum.asm").split("\n")[137], /^HIHAT/);
+
+  const gameover = read("gameover.asm").split("\n");
+  assert.match(gameover[372], /^DREFRESH\s+LDA #32/);
+  const arkanoid = read("arkanoid.asm").split("\n");
+  assert.match(arkanoid[542], /^DREFRESH\s+LDA #57/);
+
+  const html = read("index.html");
+  const slider = html.match(/id="slider-digi-boost"[\s\S]*?max="([0-9.]+)"/);
+  assert.ok(slider, "digi boost slider must declare a max value");
+  const narrative = read("NARRATIVE.md");
+  assert.ok(
+    narrative.includes(`${slider[1]}x`),
+    `NARRATIVE.md must cite the slider max of ${slider[1]}x`,
+  );
 });

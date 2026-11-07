@@ -282,6 +282,50 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
 
   assert.equal(totalTracks, 73);
 
+  const keyedGames = new Set(["wizball.asm", "arkanoid.asm", "gameover.asm", "greenberet.asm"]);
+  for (const game of GAME_FILES) {
+    assert.ok(!game.summary.includes("`"), `Game summary contains raw backticks: ${game.id}`);
+    if (!keyedGames.has(game.id)) continue;
+    for (const track of game.tracks) {
+      if (track.withDrums || track.drumsSolo) continue;
+      assert.match(
+        String(track.key || ""),
+        /^[A-Z]$/,
+        `Track ${track.id} must carry a valid single-letter key`,
+      );
+    }
+  }
+
+  for (const gameId of ["arkanoid.asm", "greenberet.asm"]) {
+    const game = GAME_FILES.find((g) => g.id === gameId);
+    const tunes = (game.badge.match(/(\d+) Tunes?/) || [])[1];
+    const sfx = (game.badge.match(/(\d+) Arcade SFX/) || [])[1];
+    assert.ok(tunes && sfx, `Expected numeric tune and SFX counts in ${gameId} badge`);
+    assert.equal(
+      Number(tunes),
+      game.tracks.filter((t) => t.category === "music").length,
+      `${gameId} badge tune count must match catalogue`,
+    );
+    assert.equal(
+      Number(sfx),
+      game.tracks.filter((t) => t.category === "sfx").length,
+      `${gameId} badge SFX count must match catalogue`,
+    );
+  }
+
+  const proseFiles = [
+    "README.md",
+    "NARRATIVE.md",
+    "AGENTS.md",
+    "index.html",
+    "src/tracks_catalog.js",
+    "src/app.js",
+  ];
+  for (const file of proseFiles) {
+    const text = fs.readFileSync(path.join(ROOT, file), "utf8");
+    assert.ok(!/[\u2013\u2014]/.test(text), `${file} must not contain en or em dashes`);
+  }
+
   // Wizball specific verification
   const wiz = GAME_FILES.find((g) => g.id === "wizball.asm");
   assert.ok(wiz, "wizball.asm not found in catalog");
@@ -289,6 +333,9 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
   assert.ok(filth, "wiz-filth not found");
   assert.equal(filth.key, "B");
   assert.equal(filth.durationHint, "0:05");
+  const endOfLevel = wiz.tracks.find((t) => t.id === "wiz-endoflevel");
+  assert.ok(endOfLevel, "wiz-endoflevel not found");
+  assert.equal(endOfLevel.durationHint, "0:02");
 
   const keys = wiz.tracks.map((t) => t.key).sort();
   assert.deepEqual(keys, ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]);
