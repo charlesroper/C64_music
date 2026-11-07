@@ -218,8 +218,8 @@ test("documentation test counts in README.md and NARRATIVE.md match automated te
 
 test("AGENTS.md search guidance stays harness agnostic", () => {
   const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
-  const section = agents.match(/## 7\. Search Tooling\n([\s\S]*?)(?=\n## )/);
-  assert.ok(section, "AGENTS.md must keep Section 7 Search Tooling");
+  const section = agents.match(/## 7\. Search tooling\n([\s\S]*?)(?=\n## )/);
+  assert.ok(section, "AGENTS.md must keep Section 7 Search tooling");
 
   const guidance = section[1];
   assert.match(

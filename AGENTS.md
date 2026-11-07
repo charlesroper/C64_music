@@ -1,33 +1,23 @@
-# Agent Guidelines for Galway 2664 C64 Music Workbench
+# Agent guidelines for the Galway 2664 C64 music workbench
 
-Instructions and conventions for AI coding agents working in this repository.
+## 1. Versioning and deployment (CalVer)
 
-## 1. Versioning and Deployment (CalVer)
-
-Every deployment must update the calendar version across four synchronized files:
-- `package.json`: `"version": "YYYY.MM.DD"` (or `"YYYY.MM.DD.MICRO"`).
-- `package-lock.json`: `"version": "YYYY.MM.DD"`.
-- `index.html`:
-  - Document title: `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
-  - Header badge: `<span class="brand-version" id="app-version">vYYYY.MM.DD</span>` placed immediately following the app title inside `<div class="brand-title">`.
+Every deployment updates the calendar version in seven synchronised places:
+- `package.json`: `"version": "YYYY.MM.DD"` or `"YYYY.MM.DD.MICRO"`.
+- `package-lock.json`: root `"version": "YYYY.MM.DD"`.
+- `index.html` document title: `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
+- `index.html` header badge: `<span class="brand-version" id="app-version">vYYYY.MM.DD</span>` next to the app title inside `<div class="brand-title">`.
+- `index.html` stylesheet query string: `href="./src/styles.css?v=YYYY.MM.DD"`.
+- `index.html` script query string: `src="./src/main.js?v=YYYY.MM.DD"`.
 - `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`.
 
-### Same-Day Updates
-When multiple updates deploy on the same calendar day, append a sequential increment (`.1`, `.2`, `.3`):
-- First release: `2026.10.30`
-- Second release: `2026.10.30.1`
-- Third release: `2026.10.30.2`
-- Next day: reset to `YYYY.MM.DD` for the new date.
+Run `npm run bump` to update all seven places. If today's UTC date matches the current version, it appends or increments the `.MICRO` counter. On a new day it resets to `YYYY.MM.DD`. To set an explicit version, run `node scripts/bump_version.mjs YYYY.MM.DD`.
 
-### Automated Version Bumping
-Run `npm run bump` (or `node scripts/bump_version.mjs`) to update all four files automatically:
-- If today's UTC date matches the current version, it appends or increments the `.MICRO` counter.
-- On a new calendar day, it resets to `YYYY.MM.DD`.
-- To set an explicit version: `node scripts/bump_version.mjs YYYY.MM.DD`.
+Same-day releases append `.1`, `.2`, `.3`. Completion: every listed location shows the same version and `npm test` passes.
 
-## 2. Historical Source Code Integrity
+## 2. Historical source integrity
 
-Martin Galway's original assembly source files must remain authentic and unmodified:
+Keep Galway's original files byte-identical to upstream:
 - `wizball.asm`
 - `arkanoid.asm`
 - `arkadrum.asm`
@@ -36,62 +26,81 @@ Martin Galway's original assembly source files must remain authentic and unmodif
 - `rambload.asm`
 - `ocean_assembler_directives.txt`
 
-Never edit, reformat, or patch these historical files. All catalog corrections, bug fixes, and emulator adjustments belong in the emulator, web driver (`src/`), or catalog metadata (`src/tracks_catalog.js`).
+Implement catalogue fixes, bug fixes and timing changes in `src/` or `src/tracks_catalog.js`. Completion: `npm test` verifies the SHA-256 checksums of all seven files.
 
-## 3. Style and Prose Rules
+## 3. Style and prose rules
 
-- **No em-dashes**: Do not use em-dash characters (Unicode U+2014) anywhere in this repository (markdown, code comments, commit messages, or HTML). Use commas, colons, parentheses, or periods instead.
-- **William Zinsser prose**: Keep documentation concise, active, and direct. Avoid marketing hype, jargon, and fluff.
+Read the relevant skill before editing:
+- Prose, UI copy or catalogue descriptions: `.agents/skills/guardian-style-guide/SKILL.md` and `.agents/skills/on-writing-well/SKILL.md`, including `references/tropes.md`.
+- `NARRATIVE.md`: `.agents/skills/project-narrative/SKILL.md`.
+- Commit messages: `.agents/skills/cbeams-git-commit-messages/SKILL.md`.
+- `AGENTS.md`: `.agents/skills/writing-for-agents/SKILL.md`.
 
-## 4. Documentation and Test Suite Synchronization
+Apply Guardian British English and Zinsser clarity:
+- Use `licence` as a noun and `licensed` as a verb. Use `catalogue`, `analogue`, `colour`, `centre`, `artefact`, `modelled`, `labelled`, `focused`, `synthesise`, `synthesiser`, `digitised`, `synchronise`, `synchronisation` and `program` for computer code.
+- Use sentence case for headings, tooltips and descriptive labels.
+- Omit Oxford commas in straightforward lists. End every bullet with a full stop. Avoid exclamation marks.
+- Spell out one to nine in general prose. Use numerals from 10 upward and with units.
+- Leave no space before abbreviated units: `50Hz`, `200Hz`, `44.1kHz`, `1.023MHz`, `20ms`, `40px`. Use a space before spelled-out units: `40 pixels`.
+- Format dates as `23 April 1987` and times as `4.31pm`.
+- Use commas, colons, parentheses or full stops for pauses. Never use em-dashes (U+2014) or en-dashes (U+2013).
+- Use backticks around code identifiers and registers such as `$D400` and `requestAnimationFrame`. Use `->` rather than arrow glyphs.
+- Keep active voice, concrete verbs and one controlling idea per sentence. Remove brochure adjectives and AI tropes.
 
-- **Dual-document updates**: Every feature, UI change, workflow script, bug fix, or catalog adjustment must be reflected in both `README.md` and `NARRATIVE.md` in lockstep:
-  - `README.md`: Technical setup, architecture overview, capabilities, and developer workflow.
-  - `NARRATIVE.md`: In-app story overlay covering visible player UI elements (Section 3), architecture (Section 5), verification (Section 7), and development blog (Section 8).
-- **Mandatory Development Blog Entries (NARRATIVE.md Section 8)**:
-  Every task or wave that introduces a story-changing event (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must automatically append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md` before committing:
-  - Explain the problem, what changed, how it was verified, and link commit hashes, issues, and ADRs.
-  - Never wait for the user to prompt for a dev blog entry. Write and commit it automatically as part of the work.
-  - **Do not log trivial or chore commits**: Exclude mechanical maintenance such as typo fixes, CalVer version bumps, minor formatting adjustments, or routine dependency updates. Ask: "Would a newcomer need this story to understand how the system evolved?" If not, keep it out of the blog.
-- **Test synchronization**: Run `npm test` before committing. All tests must pass. When adding, modifying, or removing tests, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly.
+`NARRATIVE.md` powers the in-app THE STORY modal. Keep its eight-section progressive layout:
+- Sections 1 to 3 orient non-technical listeners with no assumed 6502 knowledge.
+- Sections 4 to 8 move into hardware, assembly and build detail.
+- Do not replace the layout with the nine-section template in `project-narrative`.
+- Keep Martin Galway's quotations verbatim.
+- Respect `src/markdown.js`: full `https://` URLs only, `#`, `##` and `###` headings only, single-line unwrapped paragraphs and code spans around `*` expressions.
 
-## 5. Commit Standards
+Completion: the edited prose passes the repository rules test, with zero em-dashes or en-dashes and no broken Markdown rendering.
+
+## 4. Documentation and test suite synchronisation
+
+Reflect every feature, UI change, workflow script, bug fix or catalogue adjustment in both `README.md` and `NARRATIVE.md`:
+- `README.md`: technical setup, architecture, capabilities and developer workflow.
+- `NARRATIVE.md`: the in-app story overlay, including Sections 3, 5, 7 and 8.
+
+Append a dated entry (`### DD Month YYYY: title`) to `NARRATIVE.md` Section 8 for every story-changing event: a new feature, significant bug fix, architectural seam, performance optimisation or notable failure or reversal. Explain the problem, the change, how it was verified and link commit hashes, issues and ADRs. Skip routine chores such as typo fixes, CalVer bumps, formatting and dependency updates.
+
+Run `npm test` before committing. When tests change, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly. Completion: both documents state the same test count as the suite.
+
+## 5. Commit standards
 
 Follow Chris Beams' git commit message guidelines:
-- Separate subject from body with a blank line.
-- Limit subject line to 50 characters, capitalized, imperative mood ("Add...", "Fix...", "Update..."), no trailing period.
+- Separate the subject from the body with a blank line.
+- Limit the subject to 50 characters, capitalised, imperative mood, with no trailing full stop.
 - Wrap body text at 72 characters.
 
-## 6. GitHub Pages Deployment ("Ship it" / "Deploy")
+Completion: `git log -1` shows a compliant subject and body.
 
-When the user says "ship it", "deploy", or asks to publish, deploy to GitHub Pages:
+## 6. GitHub Pages deployment
 
-### Deployment Target
-- **Remote & Branch**: Push to `fork main` (`git push fork main`).
-- **Live URL**: `https://charlesroper.github.io/C64_music/`
-- **Hosting**: GitHub Pages serves directly from the root `/` of `main` on `fork`.
+When the user says "ship it", "deploy" or asks to publish, release to GitHub Pages.
 
-### Quick Command
-Run:
-```bash
-npm run deploy
-```
-This runs the full test suite (`npm test`) and pushes to `fork/main`.
+Repository remotes:
+- `origin` points to upstream `MartinGalway/C64_music`.
+- `fork` points to `charlesroper/C64_music`.
+- Pass `-R charlesroper/C64_music` to every `gh` command.
+- Push releases only to `fork main`.
+- Live URL: `https://charlesroper.github.io/C64_music/`.
+- GitHub Pages serves the root `/` of `main` on `fork`.
 
-### Deployment Checklist
-1. **CalVer Bumping**: Run `npm run bump` to update `package.json`, `index.html`, and `src/version.js`.
-2. **Docs & Test Sync**: Verify all tests pass (`npm test`) and test counts match in `README.md` and `NARRATIVE.md`.
-3. **Commit**: Commit changes following Chris Beams standards (Section 5).
-4. **Deploy**: Run `npm run deploy` (or `git push fork main`).
-5. **Verification**: Confirm the build at `gh api repos/charlesroper/C64_music/pages/builds/latest` or curl `https://charlesroper.github.io/C64_music/`. Report the live URL, CalVer version, and commit hash.
+Release sequence:
+1. Run `npm run bump`. Completion: all seven version locations show the new CalVer.
+2. Run `npm test`. Completion: every check passes and the documented test counts match.
+3. Commit the release. Completion: the working tree is clean.
+4. Run `npm run deploy`. Completion: the push succeeds on `fork/main`.
+5. Verify the live build with `gh api repos/charlesroper/C64_music/pages/builds/latest` or `curl https://charlesroper.github.io/C64_music/`. Completion: report the live URL, CalVer version and commit hash.
 
-## 7. Search Tooling
+## 7. Search tooling
 
 Use the agent harness's built-in content search and file discovery tools when they exist. They are permission-aware and usually return structured results. Many harnesses already back content search with ripgrep. If the harness has no built-in search tools, use shell `rg` and `fd`.
 
-Use shell `rg` only when the built-in search lacks a needed flag, such as `--type`, `-uu`, or multiline search.
+Use shell `rg` only when the built-in search lacks a needed flag, such as `--type`, `-uu` or multiline search.
 
-Use shell `fd` only when the built-in file discovery lacks a needed filter, such as `--type`, `--changed-within`, `--exclude`, or `--exec`. On Debian, `fd` may be installed as `fdfind`.
+Use shell `fd` only when the built-in file discovery lacks a needed filter, such as `--type`, `--changed-within`, `--exclude` or `--exec`. On Debian, `fd` may be installed as `fdfind`.
 
 Do not run shell `grep` or `find` merely to get output compression. Where RTK is wired, it rewrites shell commands, not built-in tools.
 
