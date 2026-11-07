@@ -510,4 +510,4 @@ The bottom register strip moved out of the source panel and now spans all three 
 
 There is no separate drum strip. The digi drums use SID register `$D418`, which already belongs to the filter group, so the last group is labelled Filter + Drums. The strip header reads SID Registers (`$D400-$D418`). Existing register tooltips and the technical addresses remain.
 
-On mobile the strip stacks vertically and stays hidden in the Monitor and Tunes tabs, matching the source panel it used to live inside. Tests assert the full-width grid placement and the four plain-English labels. The suite remains at 67 checks across 9 files.
+The register groups share the available width. Four sit across when they fit, then each row grows to fill as the groups wrap, down to one full-width row per group on mobile. The strip stays hidden in the Monitor and Tunes tabs, matching the source panel it used to live inside. Tests assert the full-width grid placement, the wrapping flex behaviour and the four plain-English labels. The suite remains at 67 checks across 9 files.

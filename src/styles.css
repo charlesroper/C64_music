@@ -1412,15 +1412,20 @@ button.active {
 
 .sid-hex-cells {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  min-width: 0;
 }
 
 .sid-hex-group {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  justify-content: space-between;
   gap: 4px;
+  min-width: 0;
   padding: 2px 4px;
   background: rgba(20, 27, 41, 0.7);
   border: 1px solid var(--border-subtle);
@@ -1459,6 +1464,7 @@ button.active {
 
 .sid-group-cells {
   display: inline-flex;
+  flex: 0 0 auto;
   gap: 2px;
 }
 

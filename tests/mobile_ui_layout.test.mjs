@@ -522,6 +522,19 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   const cellsDesktop = computeStyleForSelector(rules, [".sid-hex-cells"], desktop);
   assert.equal(cellsDesktop.display, "flex", ".sid-hex-cells must be flex on desktop");
   assert.equal(cellsDesktop["flex-wrap"], "wrap", ".sid-hex-cells must allow flex-wrap");
+  assert.equal(
+    cellsDesktop.flex,
+    "1 1 auto",
+    ".sid-hex-cells must consume the remaining strip width",
+  );
+
+  const groupDesktop = computeStyleForSelector(rules, [".sid-hex-group"], desktop);
+  assert.equal(groupDesktop.flex, "1 1 auto", ".sid-hex-group must grow to fill each row");
+  assert.equal(
+    groupDesktop["justify-content"],
+    "space-between",
+    ".sid-hex-group must spread its label and registers across the row",
+  );
 
   // Mobile styles: column strip with stacked voice groups and no horizontal overflow
   const stripMobile = computeStyleForSelector(rules, [".sid-hex-strip"], mobile);
