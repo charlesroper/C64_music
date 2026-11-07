@@ -103,7 +103,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   }
 });
 
-test("hardware and audio mode switches replace dropdowns and apply options", () => {
+test("SID and audio mode switches apply hardware options", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   try {
     const player = createFakePlayer();
@@ -120,9 +120,9 @@ test("hardware and audio mode switches replace dropdowns and apply options", () 
       "SID chip must no longer use a dropdown",
     );
     assert.equal(
-      harness.elementsById.get("select-video-std"),
+      harness.elementsById.get("chk-video-ntsc"),
       undefined,
-      "Video standard must no longer use a dropdown",
+      "The PAL/NTSC switch must be removed from the interface",
     );
 
     const sidToggle = harness.elementsById.get("chk-sid-8580");
@@ -130,12 +130,6 @@ test("hardware and audio mode switches replace dropdowns and apply options", () 
     sidToggle.dispatchEvent("change");
     assert.equal(player.getState().sidModel8580, true);
     assert.equal(harness.elementsById.get("sid-model-value").textContent, "8580");
-
-    const videoToggle = harness.elementsById.get("chk-video-ntsc");
-    videoToggle.checked = true;
-    videoToggle.dispatchEvent("change");
-    assert.equal(player.getState().videoNtsc, true);
-    assert.equal(harness.elementsById.get("video-std-value").textContent, "NTSC 60Hz");
 
     const latencyToggle = harness.elementsById.get("chk-latency-interactive");
     latencyToggle.checked = true;

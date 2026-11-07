@@ -199,6 +199,7 @@ export function createWorkbenchView({
     activeFilter: "all",
 
     sidModel8580: false,
+    // Dormant NTSC plumbing: the engine and player support remain; the UI switch is retired.
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
@@ -1384,16 +1385,6 @@ export function createWorkbenchView({
         const valueEl = getEl("sid-model-value");
         if (valueEl) valueEl.textContent = state.sidModel8580 ? "8580" : "6581";
         if (state.player) state.player.setHardwareOptions({ sidModel8580: state.sidModel8580 });
-      });
-    }
-
-    const chkVideo = getEl("chk-video-ntsc");
-    if (chkVideo) {
-      addListener(chkVideo, "change", (e) => {
-        state.videoNtsc = Boolean(e.target.checked);
-        const valueEl = getEl("video-std-value");
-        if (valueEl) valueEl.textContent = state.videoNtsc ? "NTSC 60Hz" : "PAL 50Hz";
-        if (state.player) state.player.setHardwareOptions({ videoNtsc: state.videoNtsc });
       });
     }
 

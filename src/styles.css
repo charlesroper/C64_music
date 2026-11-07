@@ -1998,8 +1998,7 @@ button.active {
     min-width: 0;
   }
 
-  #hw-group-digi,
-  #hw-group-latency {
+  #hw-group-digi {
     grid-column: 1 / -1;
     width: 100%;
   }
