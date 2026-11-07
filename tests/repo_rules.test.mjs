@@ -216,6 +216,33 @@ test("documentation test counts in README.md and NARRATIVE.md match automated te
   );
 });
 
+test("AGENTS.md search guidance stays harness agnostic", () => {
+  const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+  const section = agents.match(/## 7\. Search Tooling\n([\s\S]*?)(?=\n## )/);
+  assert.ok(section, "AGENTS.md must keep Section 7 Search Tooling");
+
+  const guidance = section[1];
+  assert.match(
+    guidance,
+    /agent harness's built-in content search and file discovery tools/,
+    "Search guidance must refer to the harness, not one named tool set",
+  );
+  assert.doesNotMatch(guidance, /OpenCode/, "Search guidance must not assume OpenCode");
+  assert.doesNotMatch(
+    guidance,
+    /built-in `(?:grep|glob)`/,
+    "Search guidance must not hardcode OpenCode built-in tool names",
+  );
+  assert.match(guidance, /shell `rg`/, "Search guidance must name the rg fallback");
+  assert.match(guidance, /shell `fd`/, "Search guidance must name the fd fallback");
+  assert.match(guidance, /fdfind/, "Search guidance must note the Debian fd binary name");
+  assert.match(
+    guidance,
+    /Where RTK is wired, it rewrites shell commands, not built-in tools/,
+    "Search guidance must not assume RTK is wired in every harness",
+  );
+});
+
 test("calendar version is synchronized across package.json, package-lock.json, index.html, and src/version.js", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const lock = JSON.parse(fs.readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
