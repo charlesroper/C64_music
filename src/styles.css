@@ -426,6 +426,7 @@ button.active {
   flex: 1;
   display: grid;
   grid-template-columns: 320px minmax(430px, 1fr) minmax(440px, 1.12fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 8px;
   padding: 8px;
   min-height: 0;
@@ -1391,12 +1392,14 @@ button.active {
 
 /* SID Register Hex Dump Strip */
 .sid-hex-strip {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 5px 8px;
   background: #0d111a;
-  border-top: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 9.5px;
   flex-shrink: 0;
@@ -2228,6 +2231,7 @@ button.active {
   }
 
   .sid-hex-strip {
+    order: 4;
     flex-direction: column;
     align-items: stretch;
     gap: 5px;
@@ -2235,6 +2239,11 @@ button.active {
     overflow-x: hidden;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .workbench-grid[data-mobile-view="monitor"] .sid-hex-strip,
+  .workbench-grid[data-mobile-view="tunes"] .sid-hex-strip {
+    display: none;
   }
 
   .sid-hex-label {

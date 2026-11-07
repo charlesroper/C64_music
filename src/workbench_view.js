@@ -644,10 +644,38 @@ export function createWorkbenchView({
     container.innerHTML = "";
 
     const groups = [
-      { id: "v0", label: "V1", start: 0, count: 7, cls: "v0" },
-      { id: "v1", label: "V2", start: 7, count: 7, cls: "v1" },
-      { id: "v2", label: "V3", start: 14, count: 7, cls: "v2" },
-      { id: "flt", label: "FLT", start: 21, count: 4, cls: "flt" },
+      {
+        id: "v0",
+        label: "VOICE 1 (V1)",
+        title: "Voice 1 registers $D400-$D406 (V1)",
+        start: 0,
+        count: 7,
+        cls: "v0",
+      },
+      {
+        id: "v1",
+        label: "VOICE 2 (V2)",
+        title: "Voice 2 registers $D407-$D40D (V2)",
+        start: 7,
+        count: 7,
+        cls: "v1",
+      },
+      {
+        id: "v2",
+        label: "VOICE 3 (V3)",
+        title: "Voice 3 registers $D40E-$D414 (V3)",
+        start: 14,
+        count: 7,
+        cls: "v2",
+      },
+      {
+        id: "flt",
+        label: "FILTER + DRUMS (FLT)",
+        title: "Filter cutoff, resonance and routing, master volume and $D418 digi drums (FLT)",
+        start: 21,
+        count: 4,
+        cls: "flt",
+      },
     ];
 
     const regNames = [
@@ -682,6 +710,7 @@ export function createWorkbenchView({
       const grpEl = doc.createElement("div");
       grpEl.className = `sid-hex-group ${g.cls}`;
       grpEl.id = `sid-group-${g.id}`;
+      grpEl.title = g.title;
 
       const tag = doc.createElement("span");
       tag.className = "sid-group-tag";

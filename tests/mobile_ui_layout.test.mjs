@@ -386,9 +386,13 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
     assert.match(elementsById.get("source-file-title").textContent, /ARKADRUM\.ASM/);
 
-    // 7. SID Hex Strip renders all 4 labeled voice groups
+    // 7. SID Hex Strip renders all 4 labeled voice and filter groups
     const hexCells = elementsById.get("sid-hex-cells");
-    assert.equal(hexCells.children.length, 4, "Must render 4 groups: V1, V2, V3, and FLT");
+    assert.equal(hexCells.children.length, 4, "Must render 4 register groups");
+    assert.deepEqual(
+      hexCells.children.map((group) => group.children[0].textContent),
+      ["VOICE 1 (V1)", "VOICE 2 (V2)", "VOICE 3 (V3)", "FILTER + DRUMS (FLT)"],
+    );
     assert.ok(elementsById.get("sid-group-v0"), "Must render #sid-group-v0");
     assert.ok(elementsById.get("sid-group-v1"), "Must render #sid-group-v1");
     assert.ok(elementsById.get("sid-group-v2"), "Must render #sid-group-v2");
@@ -508,7 +512,13 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   const desktop = { width: 1440, height: 900 };
   const mobile = { width: 375, height: 812 };
 
-  // Desktop styles: flex items inline with gap
+  // Desktop styles: full-width strip, flex items inline with gap
+  const stripDesktop = computeStyleForSelector(rules, [".sid-hex-strip"], desktop);
+  assert.equal(
+    stripDesktop["grid-column"],
+    "1 / -1",
+    ".sid-hex-strip must span the full workbench width on wide screens",
+  );
   const cellsDesktop = computeStyleForSelector(rules, [".sid-hex-cells"], desktop);
   assert.equal(cellsDesktop.display, "flex", ".sid-hex-cells must be flex on desktop");
   assert.equal(cellsDesktop["flex-wrap"], "wrap", ".sid-hex-cells must allow flex-wrap");
@@ -532,6 +542,16 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     "column",
     ".sid-hex-cells must stack sections vertically on mobile",
   );
+
+  for (const tab of ["monitor", "tunes"]) {
+    const hiddenLocator = `.workbench-grid[data-mobile-view="${tab}"] .sid-hex-strip`;
+    const stripHidden = computeStyleForSelector(rules, [hiddenLocator], mobile);
+    assert.equal(
+      stripHidden.display,
+      "none",
+      `SID strip must stay hidden in the ${tab} mobile tab`,
+    );
+  }
 
   const groupMobile = computeStyleForSelector(rules, [".sid-hex-group"], mobile);
   assert.equal(
