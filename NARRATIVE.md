@@ -450,3 +450,11 @@ Headless WebKit reports a 25 microsecond median, about 1 millisecond at p95, and
 The phone comparison settled the latency trade. Playback mode reported zero missed quanta, about 184 ms output latency, and minimal pops. Interactive mode reported about 16 ms output latency, but the capture was taken while paused, so it never proved itself under load. Listening judgment favored playback mode.
 
 The default `AudioContext` latency hint is now `"playback"`. `?latency=interactive` remains available for lower-latency experiments. The diagnostic overlay still reports both values, so the choice can be revisited with data. The 64-check suite includes a regression test that keeps playback as the default.
+
+### 7 November 2026: the worklet passes the phone test
+
+The final listening test passed on Android at `2026.11.07.1` ([Issue #40](https://github.com/charlesroper/C64_music/issues/40)). Playback stayed clean while scrolling the assembly viewer, rotating the phone, opening and closing the notification shade, changing volume, switching games and tracks, and using fast-forward.
+
+The debug overlay reported zero missed quanta, a p99 near 1 ms against the 2.67 ms budget, and about 184 ms output latency in playback mode. The remaining occasional pop is outside the app: Android volume ducking or the device audio path. No render-ahead buffer was needed.
+
+This closes the AudioWorklet refactor ([Issue #29](https://github.com/charlesroper/C64_music/issues/29)). Browser playback now has one path: the worklet owns emulation, audio rendering, command handling, and telemetry transfer. The ScriptProcessorNode path is gone, the in-thread adapter remains for tests, and the default latency hint favors stability over the last 180 ms of responsiveness.
