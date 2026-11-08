@@ -71,6 +71,13 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 
 * Click **STATS FOR NERDS** in the header to show or hide the live audio budget and callback timing overlay.
 * Append `?audioDebug=1` to the URL to open the same overlay on load.
+* The overlay reports late audio blocks as a cumulative total and as a count within the current diagnostics window. Late blocks are over the 2.67ms quantum budget.
+
+### Telemetry rate
+
+* Toggle **TELEMETRY** between `30Hz` and `62.5Hz`.
+* `30Hz` is the default because it is lighter on the main thread.
+* `62.5Hz` updates the scopes and telemetry more often but can exhaust the telemetry buffer pool on slower browsers.
 
 ### Audio mode
 
@@ -119,13 +126,13 @@ The test suite uses the built-in Node.js test runner (`node:test`) with zero ext
 npm test
 ```
 
-The test runner executes 75 automated checks across 12 test files:
+The test runner executes 76 automated checks across 12 test files:
 
 * `tests/engine_core.test.mjs`: Tests the Engine Core message protocol. It loads assembled bytecode (`mem` and `symbols`), passes the extra `arkanoid.asm` payload for `arkadrum.asm` tracks, renders stereo blocks and checks playback controls, hardware options, key injection, telemetry and sample-rate updates. It also checks that track loads freeze the clock at frame 0 without pre-rendering audio, apply queued commands in order after loading and scale fast-forward to three extra frames per 2048 samples across 128-frame and 2048-frame blocks.
 * `tests/c64_screen.test.mjs`: Checks the shared PETSCII screen rasteriser used by the workbench CRT monitor and the Boot Sequence. It verifies border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
 * `tests/assembly_prewarm.test.mjs`: Checks the module worker assembler prewarm. It verifies all six sources are assembled, source indexes are rehydrated, the cache is filled and the synchronous fallback works when no worker is available.
 * `tests/boot_sequence.test.mjs`: Checks the Boot Sequence phases, PRESS PLAY gate, readiness wait, skip path, reduced-motion path, hidden workbench and completion handoff.
-* `tests/audio_worklet.test.mjs`: Runs `AudioWorkletProcessor` with a compiled `WebAssembly.Module` across 128-frame stereo quanta. It checks command queueing before readiness, silence before instantiation, telemetry throttling, transferable buffer recycling, process timing diagnostics, queued playback startup, the default `playback` latency hint and the soft audio-context restart when the latency mode changes.
+* `tests/audio_worklet.test.mjs`: Runs `AudioWorkletProcessor` with a compiled `WebAssembly.Module` across 128-frame stereo quanta. It checks command queueing before readiness, silence before instantiation, telemetry throttling, the 30Hz/62.5Hz telemetry divider, forced track-load telemetry, transferable buffer recycling, late-block and process timing diagnostics, queued playback startup, the default `playback` latency hint and the soft audio-context restart when the latency mode changes.
 * `tests/telemetry_buffer.test.mjs`: Checks that telemetry snapshots pack screen RAM, oscilloscope samples, SID registers, scanline border colours, voice states and filter values into one transferable `ArrayBuffer` and unpack cleanly without stale data on reuse.
 * `tests/issue_close_guard.test.mjs`: Checks that `npm run issue:close` blocks issue closure when any definition-of-done or acceptance-criteria checkbox is unchecked or missing.
 * `tests/repo_rules.test.mjs`: Checks CalVer monotonicity in `scripts/bump_version.mjs`, clean-tree and remote preflight guards in `scripts/deploy.mjs`, zero literal em-dashes (U+2014), SHA-256 checksums for all seven historical files, test-count synchronisation between `README.md` and `NARRATIVE.md`, harness-agnostic search rules in `AGENTS.md` and version synchronisation across all seven release locations.

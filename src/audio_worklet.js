@@ -12,7 +12,8 @@ export const WORKLET_PROCESSOR_NAME = "c64-engine";
 // The browser calls process() about 375 times per second at 48 kHz.
 // Six callbacks per Telemetry Snapshot is about 62.5 Hz.
 const TELEMETRY_INTERVAL = 6;
-const TELEMETRY_POOL_SIZE = 3;
+const TELEMETRY_DIVIDER = 2;
+const TELEMETRY_POOL_SIZE = 6;
 const QUANTUM_FRAMES = 128;
 const GAIN_RAMP_SECONDS = 0.005;
 const DIAGNOSTICS_INTERVAL = 375;
@@ -26,16 +27,19 @@ export function createC64ProcessorClass(BaseProcessor) {
   return class C64WorkletProcessor extends BaseProcessor {
     constructor(options = {}) {
       super();
+      const processorOptions = options.processorOptions || {};
       this.core = null;
       this.ready = false;
       this.pending = [];
+      this.telemetryDivider = Number(processorOptions.telemetryDivider) || TELEMETRY_DIVIDER;
+      this.telemetryCounter = 0;
+      this.forceTelemetry = false;
       this.telemetryPool = [];
       for (let i = 0; i < TELEMETRY_POOL_SIZE; i++) {
         this.telemetryPool.push(new ArrayBuffer(TELEMETRY_BUFFER_BYTES));
       }
       this.port.onmessage = (event) => this.onMessage(event.data);
 
-      const processorOptions = options.processorOptions || {};
       const wasmModule = processorOptions.wasmModule;
       const sampleRate = Number(processorOptions.sampleRate) || 48000;
       this.sampleRate = sampleRate;
@@ -53,6 +57,8 @@ export function createC64ProcessorClass(BaseProcessor) {
         maxUs: 0,
         histogram: new Uint32Array(HISTOGRAM_BUCKETS + 1),
         missedQuanta: 0,
+        lateQuanta: 0,
+        lateWindow: 0,
         telemetryDrops: 0,
       };
 
@@ -69,6 +75,13 @@ export function createC64ProcessorClass(BaseProcessor) {
             telemetryInterval: TELEMETRY_INTERVAL,
             postMessage: (message) => {
               if (message.type === "telemetry") {
+                if (this.forceTelemetry) {
+                  this.forceTelemetry = false;
+                  this.sendTelemetry(message.snapshot);
+                  return;
+                }
+                this.telemetryCounter++;
+                if (this.telemetryCounter % this.telemetryDivider !== 0) return;
                 this.sendTelemetry(message.snapshot);
                 return;
               }
@@ -99,6 +112,11 @@ export function createC64ProcessorClass(BaseProcessor) {
         }
         return;
       }
+      if (message.type === "setTelemetryDivider") {
+        this.telemetryDivider = Math.max(1, Math.round(Number(message.divider)) || 1);
+        this.telemetryCounter = 0;
+        return;
+      }
       if (message.type === "play") {
         this.playRequested = true;
         this.targetGain = 1;
@@ -111,9 +129,12 @@ export function createC64ProcessorClass(BaseProcessor) {
           return;
         }
       } else if (message.type === "loadTrack") {
+        this.forceTelemetry = true;
         this.playRequested = Boolean(message.autoPlay);
         this.targetGain = this.playRequested ? 1 : 0;
         this.pendingPause = false;
+      } else if (message.type === "requestTelemetry") {
+        this.forceTelemetry = true;
       }
       this.forward(message);
     }
@@ -177,6 +198,10 @@ export function createC64ProcessorClass(BaseProcessor) {
       const diagnostics = this.diagnostics;
       diagnostics.windowCalls++;
       if (elapsedUs > diagnostics.maxUs) diagnostics.maxUs = elapsedUs;
+      if (elapsedUs > this.budgetUs) {
+        diagnostics.lateQuanta++;
+        diagnostics.lateWindow++;
+      }
       const bucket = Math.min(HISTOGRAM_BUCKETS, Math.floor(elapsedUs / HISTOGRAM_BUCKET_US));
       diagnostics.histogram[bucket]++;
     }
@@ -206,6 +231,8 @@ export function createC64ProcessorClass(BaseProcessor) {
         maxUs: diagnostics.maxUs,
         budgetUs: this.budgetUs,
         missedQuanta: diagnostics.missedQuanta,
+        lateQuanta: diagnostics.lateQuanta,
+        lateWindow: diagnostics.lateWindow,
         telemetryDrops: diagnostics.telemetryDrops,
         gain: this.gain,
         playing: this.playRequested,
@@ -214,6 +241,7 @@ export function createC64ProcessorClass(BaseProcessor) {
 
       diagnostics.windowCalls = 0;
       diagnostics.maxUs = 0;
+      diagnostics.lateWindow = 0;
       diagnostics.histogram.fill(0);
     }
 

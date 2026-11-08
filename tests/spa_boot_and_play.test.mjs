@@ -103,7 +103,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   }
 });
 
-test("SID and audio mode switches apply hardware options", () => {
+test("SID, audio mode and telemetry switches apply options", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   try {
     const player = createFakePlayer();
@@ -136,6 +136,12 @@ test("SID and audio mode switches apply hardware options", () => {
     latencyToggle.dispatchEvent("change");
     assert.equal(player.getState().latencyHint, "interactive");
     assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
+
+    const telemetryToggle = harness.elementsById.get("chk-telemetry-high");
+    telemetryToggle.checked = true;
+    telemetryToggle.dispatchEvent("change");
+    assert.equal(player.getState().telemetryHz, 62.5);
+    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "62.5Hz");
   } finally {
     harness.restoreGlobals();
   }

@@ -2018,7 +2018,8 @@ button.active {
     min-width: 0;
   }
 
-  #hw-group-digi {
+  #hw-group-digi,
+  #hw-group-telemetry {
     grid-column: 1 / -1;
     width: 100%;
   }

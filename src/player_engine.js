@@ -53,6 +53,7 @@ function createWorkletTransport({
   wasmModule,
   workletUrl,
   sampleRate,
+  telemetryDivider,
   onReady,
   onTelemetry,
   onError,
@@ -77,7 +78,7 @@ function createWorkletTransport({
         numberOfInputs: 0,
         numberOfOutputs: 1,
         outputChannelCount: [2],
-        processorOptions: { wasmModule, sampleRate },
+        processorOptions: { wasmModule, sampleRate, telemetryDivider },
       });
       node.port.onmessage = (event) => {
         const message = event.data;
@@ -175,6 +176,10 @@ function createDefaultAssemblyWorker() {
   return new Worker(new URL("./assembly_worker.js", import.meta.url), { type: "module" });
 }
 
+function telemetryDividerForHz(hz) {
+  return Number(hz) >= 60 ? 1 : 2;
+}
+
 export function createWorkbenchPlayer({
   wasm,
   wasmModule,
@@ -263,6 +268,7 @@ export function createWorkbenchPlayer({
     soloVoice: -1,
     sampleRate: 48000,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
+    telemetryHz: 30,
     audioCtx: null,
     currentSession: null,
     audioBackend: null,
@@ -300,6 +306,7 @@ export function createWorkbenchPlayer({
       contextState: ctx ? ctx.state : "none",
       sampleRate: state.sampleRate,
       latencyHint: state.latencyHint,
+      telemetryHz: state.telemetryHz,
       baseLatency: ctx?.baseLatency ?? null,
       outputLatency: ctx?.outputLatency ?? null,
       contextEvents: contextEvents.slice(),
@@ -316,6 +323,7 @@ export function createWorkbenchPlayer({
       wasmModule,
       workletUrl,
       sampleRate: state.sampleRate,
+      telemetryDivider: telemetryDividerForHz(state.telemetryHz),
       onTelemetry(snapshot) {
         lastTelemetry = snapshot;
       },
@@ -323,6 +331,10 @@ export function createWorkbenchPlayer({
         workletTransport.send({ type: "init", sampleRate: state.sampleRate });
         if (lastLoadMessage) workletTransport.send(lastLoadMessage);
         workletTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
+        workletTransport.send({
+          type: "setTelemetryDivider",
+          divider: telemetryDividerForHz(state.telemetryHz),
+        });
         workletTransport.send({ type: state.isPlaying ? "play" : "pause" });
         transport = workletTransport;
         state.audioBackend = "worklet";
@@ -431,6 +443,13 @@ export function createWorkbenchPlayer({
       }
     });
     return restartQueue.then(() => state.latencyHint);
+  }
+
+  function setTelemetryHz(hz) {
+    const next = Number(hz) >= 60 ? 62.5 : 30;
+    state.telemetryHz = next;
+    transport.send({ type: "setTelemetryDivider", divider: telemetryDividerForHz(next) });
+    return next;
   }
 
   function getActiveGame() {
@@ -543,6 +562,7 @@ export function createWorkbenchPlayer({
     injectKey,
     setHardwareOptions,
     setLatencyMode,
+    setTelemetryHz,
     updateSource,
     getRamView,
     getRawSource: (gameId) => sources[gameId],

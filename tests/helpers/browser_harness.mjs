@@ -632,6 +632,7 @@ export function createFakePlayer(options = {}) {
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: "playback",
+    telemetryHz: 30,
     muteMask: 0,
     soloVoice: -1,
   };
@@ -693,6 +694,11 @@ export function createFakePlayer(options = {}) {
       state.latencyHint = mode === "interactive" ? "interactive" : "playback";
       options.onLatencyMode?.(state.latencyHint);
       return Promise.resolve(state.latencyHint);
+    },
+    setTelemetryHz(hz) {
+      state.telemetryHz = Number(hz) >= 60 ? 62.5 : 30;
+      options.onTelemetryHz?.(state.telemetryHz);
+      return state.telemetryHz;
     },
     injectKey(code) {
       options.onInjectKey?.(code);

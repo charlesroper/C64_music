@@ -26,7 +26,7 @@ function formatDiagnostics(diagnostics) {
   if (!diagnostics) return "STATS FOR NERDS\nwaiting for player";
   const lines = [
     "STATS FOR NERDS",
-    `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}`,
+    `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}   telemetry: ${diagnostics.telemetryHz ?? 30}Hz`,
     `latency: ${diagnostics.latencyHint || "-"}   base: ${formatLatency(diagnostics.baseLatency)}   out: ${formatLatency(diagnostics.outputLatency)}`,
   ];
 
@@ -35,7 +35,10 @@ function formatDiagnostics(diagnostics) {
       `process ms: p50 ${formatMs(diagnostics.p50Us)}  p95 ${formatMs(diagnostics.p95Us)}  p99 ${formatMs(diagnostics.p99Us)}  max ${formatMs(diagnostics.maxUs)}  budget ${formatMs(diagnostics.budgetUs)}`,
     );
     lines.push(
-      `missed: ${diagnostics.missedQuanta}   telemetry drops: ${diagnostics.telemetryDrops}   gain: ${(diagnostics.gain ?? 0).toFixed(2)}   playing: ${diagnostics.playing ? "yes" : "no"}`,
+      `late: ${diagnostics.lateQuanta ?? 0} total   ${diagnostics.lateWindow ?? 0}/${diagnostics.processCalls} window   missed: ${diagnostics.missedQuanta ?? 0}`,
+    );
+    lines.push(
+      `telemetry drops: ${diagnostics.telemetryDrops}   gain: ${(diagnostics.gain ?? 0).toFixed(2)}   playing: ${diagnostics.playing ? "yes" : "no"}`,
     );
   } else {
     lines.push("process: waiting for worklet diagnostics");

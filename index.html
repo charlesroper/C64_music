@@ -141,6 +141,18 @@
             </label>
           </div>
 
+          <div class="hw-group" id="hw-group-telemetry">
+            <span class="hw-label" id="telemetry-rate-label">TELEMETRY</span>
+            <label
+              class="hw-toggle"
+              title="30Hz is lighter on the main thread. 62.5Hz updates scopes and telemetry more often."
+            >
+              <input type="checkbox" id="chk-telemetry-high" aria-labelledby="telemetry-rate-label">
+              <span class="hw-toggle-switch" aria-hidden="true"></span>
+              <span class="hw-toggle-value" id="telemetry-rate-value">30Hz</span>
+            </label>
+          </div>
+
           <div class="hw-group" id="hw-group-digi">
             <label
               class="hw-label"

@@ -42,7 +42,7 @@ function createProcessor(port, options = {}) {
   }
   const Processor = createC64ProcessorClass(FakeAudioWorkletProcessor);
   return new Processor({
-    processorOptions: { wasmModule, sampleRate: 48000, ...options },
+    processorOptions: { wasmModule, sampleRate: 48000, telemetryDivider: 1, ...options },
   });
 }
 
@@ -151,6 +151,27 @@ test("worklet processor throttles telemetry below the audio callback rate", asyn
   assert.ok(telemetryCount <= 3, `Expected throttled telemetry, got ${telemetryCount} messages`);
 });
 
+test("worklet processor sends telemetry at the selected divider", async () => {
+  const port = createPort();
+  const processor = createProcessor(port, { telemetryDivider: 2 });
+  await waitForMessage(port, "ready");
+
+  loadWizball(port);
+  const loadTelemetry = port.messages.findLast((message) => message.type === "telemetry");
+  assert.ok(loadTelemetry, "Track load telemetry must be sent immediately");
+  port.onmessage({ data: { type: "telemetry-recycle", buffer: loadTelemetry.buffer } });
+  port.messages.length = 0;
+
+  const left = new Float32Array(128);
+  const right = new Float32Array(128);
+  for (let block = 0; block < 18; block++) {
+    processor.process([], [[left, right]]);
+  }
+
+  const sent = port.messages.filter((message) => message.type === "telemetry");
+  assert.equal(sent.length, 1, "18 quanta at divider 2 must send one periodic snapshot");
+});
+
 test("worklet processor reports process timing and audio budget diagnostics", async () => {
   const port = createPort();
   const processor = createProcessor(port, { diagnosticsInterval: 4 });
@@ -168,6 +189,9 @@ test("worklet processor reports process timing and audio budget diagnostics", as
   assert.ok(report.diagnostics.p50Us >= 0);
   assert.ok(report.diagnostics.maxUs >= report.diagnostics.p50Us);
   assert.ok(Math.abs(report.diagnostics.budgetUs - 2666.67) < 1);
+  assert.ok(report.diagnostics.lateQuanta >= 0);
+  assert.ok(report.diagnostics.lateWindow >= 0);
+  assert.ok(report.diagnostics.lateWindow <= report.diagnostics.processCalls);
   assert.ok(report.diagnostics.gain > 0, "Play should ramp the output gain up");
 });
 
@@ -312,6 +336,18 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.ok(types.includes("loadTrack"), "Active track must be replayed to the worklet");
     assert.ok(types.includes("play"), "Queued play intent must reach the worklet");
     assert.equal(player.getState().audioBackend, "worklet");
+
+    player.setTelemetryHz(62.5);
+    let divider = node.port.messages
+      .filter((message) => message.type === "setTelemetryDivider")
+      .at(-1);
+    assert.equal(divider.divider, 1);
+    assert.equal(player.getState().telemetryHz, 62.5);
+
+    player.setTelemetryHz(30);
+    divider = node.port.messages.filter((message) => message.type === "setTelemetryDivider").at(-1);
+    assert.equal(divider.divider, 2);
+    assert.equal(player.getAudioDiagnostics().telemetryHz, 30);
   } finally {
     globalThis.AudioWorkletNode = previousNode;
   }

@@ -197,6 +197,7 @@ export function createWorkbenchView({
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
+    telemetryHz: 30,
     diagnostics: null,
 
     muteMask: 0,
@@ -1387,6 +1388,16 @@ export function createWorkbenchView({
           valueEl.textContent = state.latencyHint === "interactive" ? "INTERACTIVE" : "PLAYBACK";
         }
         if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
+      });
+    }
+
+    const chkTelemetry = getEl("chk-telemetry-high");
+    if (chkTelemetry) {
+      addListener(chkTelemetry, "change", (e) => {
+        state.telemetryHz = e.target.checked ? 62.5 : 30;
+        const valueEl = getEl("telemetry-rate-value");
+        if (valueEl) valueEl.textContent = state.telemetryHz === 62.5 ? "62.5Hz" : "30Hz";
+        if (state.player?.setTelemetryHz) state.player.setTelemetryHz(state.telemetryHz);
       });
     }
 
