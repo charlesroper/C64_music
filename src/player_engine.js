@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
-import { assembleOceanSource } from "./ocean_assembler.js";
+import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
@@ -170,6 +170,11 @@ export function getSessionSourceFile(session, voice) {
   return session ? session.sourceFile : "wizball.asm";
 }
 
+function createDefaultAssemblyWorker() {
+  if (typeof Worker === "undefined") return null;
+  return new Worker(new URL("./assembly_worker.js", import.meta.url), { type: "module" });
+}
+
 export function createWorkbenchPlayer({
   wasm,
   wasmModule,
@@ -177,16 +182,70 @@ export function createWorkbenchPlayer({
   createAudioContext,
   navigatorObj,
   workletUrl,
+  createAssemblyWorker = createDefaultAssemblyWorker,
   latencyHint = "playback",
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
+  let prewarmPromise = null;
 
   function getAssembled(gameId) {
     if (!assembledCache[gameId] && sources[gameId]) {
       assembledCache[gameId] = assembleOceanSource(sources[gameId]);
     }
     return assembledCache[gameId];
+  }
+
+  function hydrateAssembly(assembled) {
+    if (!assembled) return assembled;
+    if (assembled.sourceIndex) return assembled;
+    return { ...assembled, sourceIndex: createSourceIndex(assembled) };
+  }
+
+  function prewarmAssemblies() {
+    if (prewarmPromise) return prewarmPromise;
+    const sourceSnapshot = { ...sources };
+    let worker = null;
+    try {
+      worker = createAssemblyWorker ? createAssemblyWorker() : null;
+    } catch (_) {
+      worker = null;
+    }
+    if (!worker) {
+      prewarmPromise = Promise.resolve(false);
+      return prewarmPromise;
+    }
+
+    prewarmPromise = new Promise((resolve) => {
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        if (typeof worker.terminate === "function") worker.terminate();
+        resolve(ok);
+      };
+
+      worker.onmessage = (event) => {
+        const data = event?.data || {};
+        if (data.error || !data.results) {
+          finish(false);
+          return;
+        }
+        for (const [gameId, assembled] of Object.entries(data.results)) {
+          if (sources[gameId] !== sourceSnapshot[gameId]) continue;
+          assembledCache[gameId] = hydrateAssembly(assembled);
+        }
+        finish(true);
+      };
+      worker.onerror = () => finish(false);
+
+      try {
+        worker.postMessage({ sources: sourceSnapshot });
+      } catch (_) {
+        finish(false);
+      }
+    });
+    return prewarmPromise;
   }
 
   const state = {
@@ -485,6 +544,7 @@ export function createWorkbenchPlayer({
     getRawSource: (gameId) => sources[gameId],
     getAssembled,
     getAssembledCache: () => assembledCache,
+    prewarmAssemblies,
     getSession: () =>
       state.currentSession || buildSessionDescriptor(getActiveGame(), getActiveTrack()),
     getState: () => ({ ...state }),

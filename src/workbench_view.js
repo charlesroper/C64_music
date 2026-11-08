@@ -3,18 +3,12 @@
 // Presentation, Telemetry Visualization, Source Rendering & UI Wiring
 // ============================================================================
 
-import { C64_CHAR_ROM, VIC_PALETTE_RGBA } from "./c64_charset.js";
+import { createC64ScreenRenderer } from "./c64_screen.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
-
-const VIC_PALETTE_U32 = new Uint32Array(16);
-for (let i = 0; i < 16; i++) {
-  const [r, g, b, a] = VIC_PALETTE_RGBA[i];
-  VIC_PALETTE_U32[i] = (a << 24) | (b << 16) | (g << 8) | r;
-}
 
 export function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -226,20 +220,17 @@ export function createWorkbenchView({
     globalThis.__workbenchState = state;
   }
 
-  let c64Canvas = null;
-  let c64Ctx = null;
-  let c64ImgData = null;
-  let c64Pixels32 = null;
+  let c64Renderer = null;
+  let c64RamView = null;
+  let c64ScreenRam = null;
+  let c64ColorRam = null;
 
   function ensureC64ScreenCanvas() {
-    if (c64Pixels32) return true;
-    c64Canvas = getEl("c64-monitor-canvas");
-    if (!c64Canvas || typeof c64Canvas.getContext !== "function") return false;
-    c64Ctx = c64Canvas.getContext("2d");
-    if (!c64Ctx) return false;
-    c64ImgData = c64Ctx.createImageData(384, 272);
-    c64Pixels32 = new Uint32Array(c64ImgData.data.buffer);
-    return true;
+    if (c64Renderer) return true;
+    const canvas = getEl("c64-monitor-canvas");
+    if (!canvas || typeof canvas.getContext !== "function") return false;
+    c64Renderer = createC64ScreenRenderer(canvas);
+    return Boolean(c64Renderer);
   }
 
   const domCache = {
@@ -363,47 +354,17 @@ export function createWorkbenchView({
   function renderC64Monitor(ram, scanlineBorder) {
     if (!ensureC64ScreenCanvas() || !scanlineBorder || !ram) return;
 
-    for (let y = 0; y < 272; y++) {
-      const vicLine = y + 20;
-      const bdrColorIdx = scanlineBorder[vicLine] & 0x0f;
-      const bdrPixel = VIC_PALETTE_U32[bdrColorIdx];
-      const inScreenY = y >= 36 && y < 236;
-      const screenY = y - 36;
-      const textRow = screenY >> 3;
-      const charRow = screenY & 7;
-
-      const dstIdx = y * 384;
-
-      if (!inScreenY) {
-        for (let x = 0; x < 384; x++) {
-          c64Pixels32[dstIdx + x] = bdrPixel;
-        }
-        continue;
-      }
-
-      for (let x = 0; x < 32; x++) {
-        c64Pixels32[dstIdx + x] = bdrPixel;
-      }
-
-      const rowBase = textRow * 40;
-      let pixelOffset = dstIdx + 32;
-      for (let col = 0; col < 40; col++) {
-        const charCode = ram[0x0400 + rowBase + col];
-        const fgColorIdx = ram[0xd800 + rowBase + col] & 0x0f;
-        const fgPixel = VIC_PALETTE_U32[fgColorIdx];
-        const glyphByte = C64_CHAR_ROM[charCode * 8 + charRow];
-
-        for (let bit = 7; bit >= 0; bit--) {
-          c64Pixels32[pixelOffset++] = (glyphByte >> bit) & 1 ? fgPixel : 0xff000000;
-        }
-      }
-
-      for (let x = 0; x < 32; x++) {
-        c64Pixels32[pixelOffset + x] = bdrPixel;
-      }
+    if (c64RamView !== ram) {
+      c64RamView = ram;
+      c64ScreenRam = ram.subarray(0x0400, 0x0400 + 1000);
+      c64ColorRam = ram.subarray(0xd800, 0xd800 + 1000);
     }
 
-    c64Ctx.putImageData(c64ImgData, 0, 0);
+    c64Renderer.render({
+      screenRam: c64ScreenRam,
+      colorRam: c64ColorRam,
+      border: scanlineBorder,
+    });
   }
 
   function sidFreqToNoteString(freqReg) {
