@@ -180,19 +180,104 @@ test("worklet processor reports process timing and audio budget diagnostics", as
   loadWizball(port);
   const left = new Float32Array(128);
   const right = new Float32Array(128);
-  for (let block = 0; block < 4; block++) {
-    processor.process([], [[left, right]]);
-  }
+  const frames = [0, 128, 384, 512];
+  globalThis.currentFrame = frames[0];
+  try {
+    for (let block = 0; block < 4; block++) {
+      globalThis.currentFrame = frames[block];
+      processor.process([], [[left, right]]);
+    }
 
-  const report = await waitForMessage(port, "audio-diagnostics");
-  assert.equal(report.diagnostics.processCalls, 4);
-  assert.ok(report.diagnostics.p50Us >= 0);
-  assert.ok(report.diagnostics.maxUs >= report.diagnostics.p50Us);
-  assert.ok(Math.abs(report.diagnostics.budgetUs - 2666.67) < 1);
-  assert.ok(report.diagnostics.lateQuanta >= 0);
-  assert.ok(report.diagnostics.lateWindow >= 0);
-  assert.ok(report.diagnostics.lateWindow <= report.diagnostics.processCalls);
-  assert.ok(report.diagnostics.gain > 0, "Play should ramp the output gain up");
+    const first = await waitForMessage(port, "audio-diagnostics");
+    const firstDiagnostics = first.diagnostics;
+    assert.equal(firstDiagnostics.processCalls, 4);
+    assert.ok(firstDiagnostics.p50Us >= 0);
+    assert.ok(firstDiagnostics.maxUs >= firstDiagnostics.p50Us);
+    assert.ok(Math.abs(firstDiagnostics.budgetUs - 2666.67) < 1);
+    assert.ok(firstDiagnostics.lateQuanta >= 0);
+    assert.ok(firstDiagnostics.lateWindow >= 0);
+    assert.ok(firstDiagnostics.latePeakWindow >= firstDiagnostics.lateWindow);
+    assert.ok(firstDiagnostics.missedQuanta >= 1, "A 256-frame gap must count as missed");
+    assert.equal(firstDiagnostics.missedWindow, 1);
+    assert.ok(firstDiagnostics.missedPeakWindow >= 1);
+    assert.ok(firstDiagnostics.processPeakUs >= firstDiagnostics.maxUs);
+    assert.ok(firstDiagnostics.telemetryDropWindow >= 0);
+    assert.ok(firstDiagnostics.telemetryDropPeakWindow >= 0);
+
+    for (const key of [
+      "renderAudioMaxUs",
+      "renderAudioPeakUs",
+      "packTelemetryMaxUs",
+      "packTelemetryPeakUs",
+      "postMessageMaxUs",
+      "postMessagePeakUs",
+      "applyGainMaxUs",
+      "applyGainPeakUs",
+    ]) {
+      assert.equal(typeof firstDiagnostics[key], "number", `${key} must be numeric`);
+      assert.ok(firstDiagnostics[key] >= 0, `${key} must be non-negative`);
+    }
+    assert.ok(firstDiagnostics.renderAudioPeakUs >= firstDiagnostics.renderAudioMaxUs);
+    assert.ok(firstDiagnostics.packTelemetryPeakUs >= firstDiagnostics.packTelemetryMaxUs);
+    assert.ok(firstDiagnostics.postMessagePeakUs >= firstDiagnostics.postMessageMaxUs);
+    assert.ok(firstDiagnostics.applyGainPeakUs >= firstDiagnostics.applyGainMaxUs);
+    assert.ok(firstDiagnostics.gain > 0, "Play should ramp the output gain up");
+
+    port.messages.length = 0;
+    for (let block = 0; block < 4; block++) {
+      globalThis.currentFrame += 128;
+      processor.process([], [[left, right]]);
+    }
+
+    const second = await waitForMessage(port, "audio-diagnostics");
+    const secondDiagnostics = second.diagnostics;
+    assert.ok(secondDiagnostics.processPeakUs >= firstDiagnostics.processPeakUs);
+    assert.ok(secondDiagnostics.processPeakUs >= secondDiagnostics.maxUs);
+    assert.equal(secondDiagnostics.missedWindow, 0, "The clean window must reset missedWindow");
+    assert.equal(secondDiagnostics.missedPeakWindow, firstDiagnostics.missedPeakWindow);
+  } finally {
+    delete globalThis.currentFrame;
+  }
+});
+
+test("worklet processor windows telemetry drops and keeps the peak", () => {
+  const port = createPort();
+  const processor = createProcessor(port);
+  const snapshot = {
+    frameCount: 0,
+    cpuPc: 0,
+    d418: 0,
+    morseIndex: -1,
+    ram: new Uint8Array(65536),
+    scopeData: new Float32Array(4 * 512),
+    sidRegs: new Uint8Array(32),
+    scanlineBorder: new Uint8Array(312),
+    voices: [
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+      { freq: 0, pw: 0, ctrl: 0, env: 0 },
+    ],
+    filter: { fc: 0, res: 0, rout: 0, mode: 0, vol: 0 },
+  };
+
+  for (let i = 0; i < 8; i++) processor.sendTelemetry(snapshot);
+  processor.reportDiagnostics();
+
+  let report = port.messages.findLast((message) => message.type === "audio-diagnostics");
+  assert.equal(report.diagnostics.telemetryDropWindow, 2);
+  assert.equal(report.diagnostics.telemetryDropPeakWindow, 2);
+
+  for (const message of port.messages.filter((message) => message.type === "telemetry")) {
+    processor.recycleTelemetry(message.buffer);
+  }
+  port.messages.length = 0;
+
+  processor.sendTelemetry(snapshot);
+  processor.reportDiagnostics();
+
+  report = port.messages.findLast((message) => message.type === "audio-diagnostics");
+  assert.equal(report.diagnostics.telemetryDropWindow, 0);
+  assert.equal(report.diagnostics.telemetryDropPeakWindow, 2);
 });
 
 test("player defaults to the playback latency hint", async () => {
@@ -370,6 +455,29 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.ok(types.includes("play"), "Queued play intent must reach the worklet");
     assert.equal(player.getState().audioBackend, "worklet");
 
+    node.port.onmessage({
+      data: {
+        type: "audio-diagnostics",
+        diagnostics: {
+          processPeakUs: 16000,
+          latePeakWindow: 6,
+          missedPeakWindow: 3,
+          telemetryDropPeakWindow: 4,
+          renderAudioPeakUs: 14000,
+          packTelemetryPeakUs: 2000,
+          postMessagePeakUs: 300,
+          applyGainPeakUs: 50,
+        },
+      },
+    });
+    assert.equal(player.getAudioDiagnostics().processPeakUs, 16000);
+    assert.equal(player.getAudioDiagnostics().latePeakWindow, 6);
+    assert.equal(player.getAudioDiagnostics().missedPeakWindow, 3);
+    assert.equal(player.getAudioDiagnostics().renderAudioPeakUs, 14000);
+    assert.equal(player.getAudioDiagnostics().packTelemetryPeakUs, 2000);
+    assert.equal(player.getAudioDiagnostics().postMessagePeakUs, 300);
+    assert.equal(player.getAudioDiagnostics().applyGainPeakUs, 50);
+
     let divider = node.port.messages
       .filter((message) => message.type === "setTelemetryDivider")
       .at(-1);
@@ -395,6 +503,30 @@ test("player queues play until the worklet is ready and then dispatches the acti
       .at(-1);
     assert.equal(restartedDivider.divider, 2, "Restart must keep the 30Hz divider");
     assert.equal(player.getState().latencyHint, "interactive");
+
+    restartedNode.port.onmessage({
+      data: {
+        type: "audio-diagnostics",
+        diagnostics: {
+          processPeakUs: 1000,
+          latePeakWindow: 1,
+          missedPeakWindow: 0,
+          telemetryDropPeakWindow: 0,
+          renderAudioPeakUs: 900,
+          packTelemetryPeakUs: 100,
+          postMessagePeakUs: 10,
+          applyGainPeakUs: 5,
+        },
+      },
+    });
+    const diagnostics = player.getAudioDiagnostics();
+    assert.equal(diagnostics.processPeakUs, 16000, "Process peak must survive a context restart");
+    assert.equal(diagnostics.latePeakWindow, 6, "Late peak must survive a context restart");
+    assert.equal(diagnostics.missedPeakWindow, 3, "Missed peak must survive a context restart");
+    assert.equal(diagnostics.renderAudioPeakUs, 14000);
+    assert.equal(diagnostics.packTelemetryPeakUs, 2000);
+    assert.equal(diagnostics.postMessagePeakUs, 300);
+    assert.equal(diagnostics.applyGainPeakUs, 50);
   } finally {
     globalThis.AudioWorkletNode = previousNode;
   }

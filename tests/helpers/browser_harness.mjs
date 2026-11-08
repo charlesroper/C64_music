@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assembleOceanSource } from "../../src/ocean_assembler.js";
 import { buildSessionDescriptor } from "../../src/player_engine.js";
+import { resolveTelemetryHz } from "../../src/telemetry_rate.js";
 import { GAME_FILES } from "../../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -699,7 +700,7 @@ export function createFakePlayer(options = {}) {
       return Promise.resolve(state.latencyHint);
     },
     setTelemetryHz(hz) {
-      state.telemetryHz = Number(hz) >= 60 ? 62.5 : 30;
+      state.telemetryHz = resolveTelemetryHz(hz);
       options.onTelemetryHz?.(state.telemetryHz);
       return state.telemetryHz;
     },

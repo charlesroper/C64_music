@@ -55,11 +55,25 @@ export function createC64ProcessorClass(BaseProcessor) {
       this.diagnostics = {
         windowCalls: 0,
         maxUs: 0,
+        processPeakUs: 0,
         histogram: new Uint32Array(HISTOGRAM_BUCKETS + 1),
         missedQuanta: 0,
+        missedWindow: 0,
+        missedPeakWindow: 0,
         lateQuanta: 0,
         lateWindow: 0,
+        latePeakWindow: 0,
         telemetryDrops: 0,
+        telemetryDropWindow: 0,
+        telemetryDropPeakWindow: 0,
+        renderAudioMaxUs: 0,
+        renderAudioPeakUs: 0,
+        packTelemetryMaxUs: 0,
+        packTelemetryPeakUs: 0,
+        postMessageMaxUs: 0,
+        postMessagePeakUs: 0,
+        applyGainMaxUs: 0,
+        applyGainPeakUs: 0,
       };
 
       if (!wasmModule) {
@@ -151,10 +165,15 @@ export function createC64ProcessorClass(BaseProcessor) {
       const buffer = this.telemetryPool.pop();
       if (!buffer) {
         this.diagnostics.telemetryDrops++;
+        this.diagnostics.telemetryDropWindow++;
         return;
       }
+      const packStarted = now();
       packTelemetry(snapshot, buffer);
+      this.recordPhase("packTelemetryMaxUs", "packTelemetryPeakUs", (now() - packStarted) * 1000);
+      const postStarted = now();
       this.port.postMessage({ type: "telemetry", buffer }, [buffer]);
+      this.recordPhase("postMessageMaxUs", "postMessagePeakUs", (now() - postStarted) * 1000);
     }
 
     recycleTelemetry(buffer) {
@@ -194,10 +213,16 @@ export function createC64ProcessorClass(BaseProcessor) {
       this.gain = gain;
     }
 
+    recordPhase(maxKey, peakKey, elapsedUs) {
+      const diagnostics = this.diagnostics;
+      if (elapsedUs > diagnostics[maxKey]) diagnostics[maxKey] = elapsedUs;
+      if (elapsedUs > diagnostics[peakKey]) diagnostics[peakKey] = elapsedUs;
+    }
+
     recordProcess(elapsedUs) {
       const diagnostics = this.diagnostics;
       diagnostics.windowCalls++;
-      if (elapsedUs > diagnostics.maxUs) diagnostics.maxUs = elapsedUs;
+      this.recordPhase("maxUs", "processPeakUs", elapsedUs);
       if (elapsedUs > this.budgetUs) {
         diagnostics.lateQuanta++;
         diagnostics.lateWindow++;
@@ -223,17 +248,40 @@ export function createC64ProcessorClass(BaseProcessor) {
 
     reportDiagnostics() {
       const diagnostics = this.diagnostics;
+      diagnostics.latePeakWindow = Math.max(diagnostics.latePeakWindow, diagnostics.lateWindow);
+      diagnostics.missedPeakWindow = Math.max(
+        diagnostics.missedPeakWindow,
+        diagnostics.missedWindow,
+      );
+      diagnostics.telemetryDropPeakWindow = Math.max(
+        diagnostics.telemetryDropPeakWindow,
+        diagnostics.telemetryDropWindow,
+      );
       const report = {
         processCalls: diagnostics.windowCalls,
         p50Us: this.percentile(0.5),
         p95Us: this.percentile(0.95),
         p99Us: this.percentile(0.99),
         maxUs: diagnostics.maxUs,
+        processPeakUs: diagnostics.processPeakUs,
         budgetUs: this.budgetUs,
         missedQuanta: diagnostics.missedQuanta,
+        missedWindow: diagnostics.missedWindow,
+        missedPeakWindow: diagnostics.missedPeakWindow,
         lateQuanta: diagnostics.lateQuanta,
         lateWindow: diagnostics.lateWindow,
+        latePeakWindow: diagnostics.latePeakWindow,
         telemetryDrops: diagnostics.telemetryDrops,
+        telemetryDropWindow: diagnostics.telemetryDropWindow,
+        telemetryDropPeakWindow: diagnostics.telemetryDropPeakWindow,
+        renderAudioMaxUs: diagnostics.renderAudioMaxUs,
+        renderAudioPeakUs: diagnostics.renderAudioPeakUs,
+        packTelemetryMaxUs: diagnostics.packTelemetryMaxUs,
+        packTelemetryPeakUs: diagnostics.packTelemetryPeakUs,
+        postMessageMaxUs: diagnostics.postMessageMaxUs,
+        postMessagePeakUs: diagnostics.postMessagePeakUs,
+        applyGainMaxUs: diagnostics.applyGainMaxUs,
+        applyGainPeakUs: diagnostics.applyGainPeakUs,
         gain: this.gain,
         playing: this.playRequested,
       };
@@ -242,6 +290,12 @@ export function createC64ProcessorClass(BaseProcessor) {
       diagnostics.windowCalls = 0;
       diagnostics.maxUs = 0;
       diagnostics.lateWindow = 0;
+      diagnostics.missedWindow = 0;
+      diagnostics.telemetryDropWindow = 0;
+      diagnostics.renderAudioMaxUs = 0;
+      diagnostics.packTelemetryMaxUs = 0;
+      diagnostics.postMessageMaxUs = 0;
+      diagnostics.applyGainMaxUs = 0;
       diagnostics.histogram.fill(0);
     }
 
@@ -262,13 +316,20 @@ export function createC64ProcessorClass(BaseProcessor) {
       if (this.lastFrame !== null) {
         const delta = frame - this.lastFrame;
         if (delta > QUANTUM_FRAMES) {
-          this.diagnostics.missedQuanta += Math.max(1, Math.round(delta / QUANTUM_FRAMES) - 1);
+          const missed = Math.max(1, Math.round(delta / QUANTUM_FRAMES) - 1);
+          this.diagnostics.missedQuanta += missed;
+          this.diagnostics.missedWindow += missed;
         }
       }
       this.lastFrame = frame;
 
+      const renderStarted = now();
       this.core.renderAudio(left, right);
+      this.recordPhase("renderAudioMaxUs", "renderAudioPeakUs", (now() - renderStarted) * 1000);
+
+      const gainStarted = now();
       this.applyGain(left, right);
+      this.recordPhase("applyGainMaxUs", "applyGainPeakUs", (now() - gainStarted) * 1000);
 
       if (this.pendingPause && this.gain <= 0) {
         this.pendingPause = false;

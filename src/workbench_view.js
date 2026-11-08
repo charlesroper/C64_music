@@ -11,6 +11,11 @@ import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
 
+const nowMs = () =>
+  typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+
 export function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -81,19 +86,15 @@ export function smoothScrollSourceViewer(viewer, targetTop, { instant = false } 
     duration = 130;
   }
 
-  const getNow = () =>
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
-  const startTime = getNow();
+  const startTime = nowMs();
 
   const reqRaf =
     typeof requestAnimationFrame === "function"
       ? requestAnimationFrame
-      : (cb) => setTimeout(() => cb(getNow()), 16);
+      : (cb) => setTimeout(() => cb(nowMs()), 16);
 
   function step(now) {
-    const currentNow = typeof now === "number" && now > 0 ? now : getNow();
+    const currentNow = typeof now === "number" && now > 0 ? now : nowMs();
     const elapsed = currentNow - startTime;
     const progress = Math.min(1, Math.max(0, elapsed / duration));
     const ease = 1 - (1 - progress) ** 3;
@@ -1813,6 +1814,39 @@ export function createWorkbenchView({
   let isDestroyed = false;
   let lastFrameTimestamp = 0;
   const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
+  const FRAME_SAMPLE_SIZE = 60;
+  const frameSamples = new Float64Array(FRAME_SAMPLE_SIZE);
+  let frameSampleIndex = 0;
+  let frameSampleCount = 0;
+  let framePeakMs = 0;
+
+  function recordFrameWork(elapsedMs) {
+    frameSamples[frameSampleIndex] = elapsedMs;
+    frameSampleIndex = (frameSampleIndex + 1) % FRAME_SAMPLE_SIZE;
+    frameSampleCount = Math.min(frameSampleCount + 1, FRAME_SAMPLE_SIZE);
+    if (elapsedMs > framePeakMs) framePeakMs = elapsedMs;
+  }
+
+  function percentileFromSamples(samples, fraction) {
+    if (samples.length === 0) return 0;
+    const index = Math.min(samples.length - 1, Math.ceil(samples.length * fraction) - 1);
+    return samples[index];
+  }
+
+  function getFrameDiagnostics() {
+    const count = frameSampleCount;
+    if (count === 0) {
+      return { frameCalls: 0, frameP50Ms: 0, frameP95Ms: 0, frameMaxMs: 0, framePeakMs };
+    }
+    const samples = Array.from(frameSamples.slice(0, count)).sort((a, b) => a - b);
+    return {
+      frameCalls: count,
+      frameP50Ms: percentileFromSamples(samples, 0.5),
+      frameP95Ms: percentileFromSamples(samples, 0.95),
+      frameMaxMs: samples[samples.length - 1],
+      framePeakMs,
+    };
+  }
 
   function renderFrameLoop(timestamp) {
     if (isDestroyed) return;
@@ -1832,28 +1866,29 @@ export function createWorkbenchView({
       lastFrameTimestamp = timestamp;
     }
 
-    if (state.player) {
-      const isPlaying = Boolean(state.player.getState().isPlaying);
-      const tel = state.player.getTelemetry();
-      const sessionId = state.currentSession ? state.currentSession.id : null;
+    if (!state.player) return;
+    const frameStarted = nowMs();
+    const isPlaying = Boolean(state.player.getState().isPlaying);
+    const tel = state.player.getTelemetry();
+    const sessionId = state.currentSession ? state.currentSession.id : null;
 
-      if (
-        !isPlaying &&
-        !lastWasPlaying &&
-        tel &&
-        lastRenderedFrame === tel.frameCount &&
-        lastRenderedSessionId === sessionId
-      ) {
-        return;
-      }
-
-      lastWasPlaying = isPlaying;
-      if (tel) {
-        lastRenderedFrame = tel.frameCount;
-        lastRenderedSessionId = sessionId;
-        renderTelemetry(tel);
-      }
+    if (
+      !isPlaying &&
+      !lastWasPlaying &&
+      tel &&
+      lastRenderedFrame === tel.frameCount &&
+      lastRenderedSessionId === sessionId
+    ) {
+      return;
     }
+
+    lastWasPlaying = isPlaying;
+    if (tel) {
+      lastRenderedFrame = tel.frameCount;
+      lastRenderedSessionId = sessionId;
+      renderTelemetry(tel);
+    }
+    recordFrameWork(nowMs() - frameStarted);
   }
 
   function handleVisibilityChange() {
@@ -1911,6 +1946,7 @@ export function createWorkbenchView({
     setAssets,
     selectGameAndTrack,
     stepTrack,
+    getFrameDiagnostics,
     isPendingPlayOnBoot() {
       return state.pendingPlayOnBoot;
     },

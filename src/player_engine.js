@@ -177,6 +177,17 @@ function createDefaultAssemblyWorker() {
   return new Worker(new URL("./assembly_worker.js", import.meta.url), { type: "module" });
 }
 
+const SESSION_PEAK_KEYS = [
+  "processPeakUs",
+  "latePeakWindow",
+  "missedPeakWindow",
+  "telemetryDropPeakWindow",
+  "renderAudioPeakUs",
+  "packTelemetryPeakUs",
+  "postMessagePeakUs",
+  "applyGainPeakUs",
+];
+
 export function createWorkbenchPlayer({
   wasm,
   wasmModule,
@@ -283,8 +294,19 @@ export function createWorkbenchPlayer({
   let workletAttempted = false;
   let restartQueue = Promise.resolve();
   const contextEvents = [];
+  const sessionPeaks = Object.fromEntries(SESSION_PEAK_KEYS.map((key) => [key, 0]));
+  let hasDiagnostics = false;
 
   getAssembled(state.activeGameId);
+
+  function captureSessionPeaks(diagnostics) {
+    if (!diagnostics) return;
+    hasDiagnostics = true;
+    for (const key of SESSION_PEAK_KEYS) {
+      const value = diagnostics[key];
+      if (typeof value === "number" && value > sessionPeaks[key]) sessionPeaks[key] = value;
+    }
+  }
 
   function getTelemetry() {
     const snapshot = transport.requestTelemetry();
@@ -300,6 +322,7 @@ export function createWorkbenchPlayer({
   function getAudioDiagnostics() {
     const ctx = state.audioCtx;
     const workletDiagnostics = transport.getDiagnostics ? transport.getDiagnostics() : null;
+    captureSessionPeaks(workletDiagnostics);
     return {
       backend: state.audioBackend,
       contextState: ctx ? ctx.state : "none",
@@ -310,6 +333,7 @@ export function createWorkbenchPlayer({
       outputLatency: ctx?.outputLatency ?? null,
       contextEvents: contextEvents.slice(),
       ...(workletDiagnostics || {}),
+      ...(hasDiagnostics ? sessionPeaks : {}),
     };
   }
 
@@ -398,6 +422,7 @@ export function createWorkbenchPlayer({
 
   function closeAudioContext() {
     const ctx = state.audioCtx;
+    if (transport?.getDiagnostics) captureSessionPeaks(transport.getDiagnostics());
     if (transport && typeof transport.close === "function") transport.close();
     transport = inThreadTransport;
     state.audioCtx = null;

@@ -20,6 +20,14 @@ _Avoid_: Track switch, game change, reload
 A reusable, pre-allocated snapshot of Commodore 64 engine state refreshed on each frame, containing cycle counts, program counter locations, SID registers, voice channels, filter state, oscilloscope buffers, and screen RAM.
 _Avoid_: Frame state, telemetry DTO, debug data
 
+**Session Peak**:
+The worst value seen for a windowed diagnostic since the page loaded. It survives diagnostics windows and audio-context restarts until reload.
+_Avoid_: all-time max, historical maximum
+
+**Frame Work**:
+The main-thread time spent inside one rendered Workbench View frame, from telemetry fetch through canvas and DOM updates.
+_Avoid_: frame time, render time
+
 **Workbench View**:
 The presentation layer responsible for rendering oscilloscope canvases, the PETSCII CRT monitor, assembly source line tracking, and interactive controls without direct knowledge of emulator ABI internals.
 _Avoid_: UI container, frontend app

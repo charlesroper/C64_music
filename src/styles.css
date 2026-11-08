@@ -2453,14 +2453,94 @@ body[data-boot-state="booting"] .app-shell {
   bottom: 8px;
   z-index: 10000;
   max-width: calc(100vw - 16px);
-  margin: 0;
   padding: 8px 10px;
   border: 1px solid #35ff6d;
   background: rgba(0, 0, 0, 0.88);
   color: #b9ffcc;
   font-family: monospace;
   font-size: 10px;
-  line-height: 1.45;
-  white-space: pre-wrap;
+  line-height: 1.35;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.diag-title {
+  color: var(--accent-cyan);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.diag-group {
+  --diag-accent: var(--accent-cyan);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 10px;
+  padding-left: 6px;
+  border-left: 2px solid var(--diag-accent);
+}
+
+.diag-group--latency {
+  --diag-accent: var(--accent-blue);
+}
+
+.diag-group--process {
+  --diag-accent: var(--accent-green);
+}
+
+.diag-group--deadlines {
+  --diag-accent: var(--accent-yellow);
+}
+
+.diag-group--telemetry {
+  --diag-accent: var(--accent-magenta);
+}
+
+.diag-group--events {
+  --diag-accent: var(--text-muted);
+}
+
+.diag-group-title {
+  flex-basis: 100%;
+  color: var(--diag-accent);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+.diag-item {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.diag-label {
+  color: var(--text-muted);
+}
+
+.diag-value {
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.diag-group--events .diag-item {
+  flex-basis: 100%;
+  display: flex;
+  white-space: normal;
+}
+
+.diag-group--events .diag-value {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+  .audio-diagnostics {
+    font-size: 9px;
+    gap: 4px;
+  }
+
+  .diag-group {
+    gap: 1px 8px;
+  }
 }

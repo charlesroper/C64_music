@@ -197,7 +197,97 @@ test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
     window: globalThis.window,
   });
   try {
-    assert.match(overlay.element.textContent, /telemetry: 62\.5Hz/);
+    const value = globalThis.document.querySelector('[data-metric="context:telemetry"]');
+    assert.ok(value, "Stats must have a telemetry rate value");
+    assert.equal(value.textContent, "62.5Hz");
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats groups metrics and keeps each label with its value", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: {
+      getAudioDiagnostics: () => ({
+        backend: "worklet",
+        contextState: "running",
+        sampleRate: 48000,
+        telemetryHz: 62.5,
+        latencyHint: "playback",
+        baseLatency: 0.0027,
+        outputLatency: 0.01,
+        processCalls: 375,
+        p50Us: 30,
+        p95Us: 1020,
+        p99Us: 1020,
+        maxUs: 1000,
+        processPeakUs: 16000,
+        budgetUs: 2666.67,
+        renderAudioMaxUs: 900,
+        renderAudioPeakUs: 14000,
+        packTelemetryMaxUs: 100,
+        packTelemetryPeakUs: 2000,
+        postMessageMaxUs: 20,
+        postMessagePeakUs: 300,
+        applyGainMaxUs: 5,
+        applyGainPeakUs: 50,
+        lateQuanta: 64,
+        lateWindow: 2,
+        latePeakWindow: 6,
+        missedQuanta: 1,
+        missedWindow: 1,
+        missedPeakWindow: 3,
+        telemetryDrops: 10,
+        telemetryDropWindow: 2,
+        telemetryDropPeakWindow: 4,
+        gain: 1,
+        playing: true,
+        contextEvents: [{ state: "running" }],
+      }),
+    },
+    window: globalThis.window,
+    getFrameDiagnostics: () => ({
+      frameCalls: 60,
+      frameP50Ms: 1.25,
+      frameP95Ms: 4.5,
+      frameMaxMs: 8,
+      framePeakMs: 16,
+    }),
+  });
+
+  try {
+    const groups = globalThis.document.querySelectorAll(".diag-group");
+    assert.equal(groups.length, 6, "Stats must render six metric groups");
+    for (const id of ["context", "latency", "process", "deadlines", "telemetry", "events"]) {
+      assert.ok(
+        globalThis.document.querySelector(`.diag-group--${id}`),
+        `Stats must render the ${id} group`,
+      );
+    }
+
+    const value = (metric) =>
+      globalThis.document.querySelector(`[data-metric="${metric}"]`)?.textContent;
+    assert.equal(value("context:telemetry"), "62.5Hz");
+    assert.equal(value("process:peak"), "16.00");
+    assert.equal(value("process:renderPeak"), "14.00");
+    assert.equal(value("process:packPeak"), "2.00");
+    assert.equal(value("process:postPeak"), "0.30");
+    assert.equal(value("process:gainPeak"), "0.05");
+    assert.equal(value("process:framePeak"), "16.00");
+    assert.equal(value("process:frameCalls"), "60");
+    assert.equal(value("deadlines:latePeak"), "6");
+    assert.equal(value("deadlines:missedPeak"), "3");
+    assert.equal(value("telemetry:dropsPeak"), "4");
+    assert.equal(value("telemetry:volume"), "1.00");
+
+    for (const item of globalThis.document.querySelectorAll(".diag-item")) {
+      assert.equal(item.children.length, 2, "Each metric must be one label/value unit");
+      assert.equal(item.children[0].className, "diag-label");
+      assert.equal(item.children[1].className, "diag-value");
+    }
   } finally {
     overlay.stop();
     harness.restoreGlobals();
@@ -1077,6 +1167,34 @@ test("telemetry change guards eliminate redundant DOM writes and morse re-render
       0,
       "Identical morseIndex on subsequent frame must not rebuild morse stream",
     );
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("Workbench View reports main-thread frame work p50, p95, max and peak", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    player.play();
+    for (let i = 0; i < 60; i++) {
+      player.getTelemetry().frameCount++;
+      harness.stepAnimationFrame();
+    }
+
+    const frame = view.getFrameDiagnostics();
+    assert.equal(frame.frameCalls, 60);
+    assert.ok(frame.framePeakMs >= frame.frameMaxMs);
+    assert.ok(frame.frameMaxMs >= frame.frameP95Ms);
+    assert.ok(frame.frameP95Ms >= frame.frameP50Ms);
+    assert.ok(frame.frameP50Ms >= 0);
   } finally {
     view.destroy();
     harness.restoreGlobals();

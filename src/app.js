@@ -179,6 +179,7 @@ export async function bootWorkbench(options = {}) {
     document: doc,
     player,
     window: win,
+    getFrameDiagnostics: view.getFrameDiagnostics,
   });
   view.setDiagnostics(diagnostics);
 

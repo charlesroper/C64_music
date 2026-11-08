@@ -6,14 +6,99 @@
 
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
+const GROUPS = [
+  {
+    id: "context",
+    title: "CONTEXT",
+    items: [
+      ["backend", "backend"],
+      ["ctx", "ctx"],
+      ["rate", "rate"],
+      ["telemetry", "telemetry"],
+    ],
+  },
+  {
+    id: "latency",
+    title: "LATENCY",
+    items: [
+      ["mode", "mode"],
+      ["base", "base"],
+      ["out", "out"],
+    ],
+  },
+  {
+    id: "process",
+    title: "PROCESS (ms)",
+    items: [
+      ["p50", "p50"],
+      ["p95", "p95"],
+      ["p99", "p99"],
+      ["max", "max"],
+      ["peak", "peak"],
+      ["budget", "budget"],
+      ["renderMax", "render max"],
+      ["renderPeak", "render peak"],
+      ["packMax", "pack max"],
+      ["packPeak", "pack peak"],
+      ["postMax", "post max"],
+      ["postPeak", "post peak"],
+      ["gainMax", "gain max"],
+      ["gainPeak", "gain peak"],
+      ["frameP50", "frame p50"],
+      ["frameP95", "frame p95"],
+      ["frameMax", "frame max"],
+      ["framePeak", "frame peak"],
+      ["frameCalls", "frames"],
+    ],
+  },
+  {
+    id: "deadlines",
+    title: "DEADLINES",
+    items: [
+      ["lateTotal", "late total"],
+      ["lateWindow", "late window"],
+      ["latePeak", "late peak"],
+      ["missedTotal", "missed total"],
+      ["missedWindow", "missed window"],
+      ["missedPeak", "missed peak"],
+    ],
+  },
+  {
+    id: "telemetry",
+    title: "TELEMETRY",
+    items: [
+      ["dropsTotal", "drops total"],
+      ["dropsWindow", "drops window"],
+      ["dropsPeak", "drops peak"],
+      ["volume", "volume"],
+      ["playing", "playing"],
+    ],
+  },
+  {
+    id: "events",
+    title: "EVENTS",
+    items: [["events", "events"]],
+  },
+];
+
 function formatMs(microseconds) {
   if (typeof microseconds !== "number" || !Number.isFinite(microseconds)) return "-";
   return (microseconds / 1000).toFixed(2);
 }
 
+function formatMilliseconds(milliseconds) {
+  if (typeof milliseconds !== "number" || !Number.isFinite(milliseconds)) return "-";
+  return milliseconds.toFixed(2);
+}
+
 function formatLatency(seconds) {
   if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "-";
   return `${(seconds * 1000).toFixed(1)}ms`;
+}
+
+function formatCount(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "-";
+  return String(value);
 }
 
 function formatEvents(events) {
@@ -24,48 +109,126 @@ function formatEvents(events) {
     .join(" -> ");
 }
 
-function formatDiagnostics(diagnostics) {
-  if (!diagnostics) return "STATS FOR NERDS\nwaiting for player";
-  const lines = [
-    "STATS FOR NERDS",
-    `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}   telemetry: ${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
-    `latency: ${diagnostics.latencyHint || "-"}   base: ${formatLatency(diagnostics.baseLatency)}   out: ${formatLatency(diagnostics.outputLatency)}`,
-  ];
-
-  if (typeof diagnostics.processCalls === "number") {
-    lines.push(
-      `process ms: p50 ${formatMs(diagnostics.p50Us)}  p95 ${formatMs(diagnostics.p95Us)}  p99 ${formatMs(diagnostics.p99Us)}  max ${formatMs(diagnostics.maxUs)}  budget ${formatMs(diagnostics.budgetUs)}`,
-    );
-    lines.push(
-      `late: ${diagnostics.lateQuanta ?? 0} total   ${diagnostics.lateWindow ?? 0}/${diagnostics.processCalls} window   missed: ${diagnostics.missedQuanta ?? 0}`,
-    );
-    lines.push(
-      `telemetry drops: ${diagnostics.telemetryDrops}   gain: ${(diagnostics.gain ?? 0).toFixed(2)}   playing: ${diagnostics.playing ? "yes" : "no"}`,
-    );
-  } else {
-    lines.push("process: waiting for worklet diagnostics");
-  }
-
-  lines.push(`events: ${formatEvents(diagnostics.contextEvents)}`);
-  return lines.join("\n");
+function buildValues(diagnostics) {
+  const processCalls = diagnostics.processCalls;
+  const lateWindow = diagnostics.lateWindow ?? 0;
+  return {
+    "context:backend": diagnostics.backend || "-",
+    "context:ctx": diagnostics.contextState || "-",
+    "context:rate": diagnostics.sampleRate || "-",
+    "context:telemetry": `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
+    "latency:mode": diagnostics.latencyHint || "-",
+    "latency:base": formatLatency(diagnostics.baseLatency),
+    "latency:out": formatLatency(diagnostics.outputLatency),
+    "process:p50": formatMs(diagnostics.p50Us),
+    "process:p95": formatMs(diagnostics.p95Us),
+    "process:p99": formatMs(diagnostics.p99Us),
+    "process:max": formatMs(diagnostics.maxUs),
+    "process:peak": formatMs(diagnostics.processPeakUs),
+    "process:budget": formatMs(diagnostics.budgetUs),
+    "process:renderMax": formatMs(diagnostics.renderAudioMaxUs),
+    "process:renderPeak": formatMs(diagnostics.renderAudioPeakUs),
+    "process:packMax": formatMs(diagnostics.packTelemetryMaxUs),
+    "process:packPeak": formatMs(diagnostics.packTelemetryPeakUs),
+    "process:postMax": formatMs(diagnostics.postMessageMaxUs),
+    "process:postPeak": formatMs(diagnostics.postMessagePeakUs),
+    "process:gainMax": formatMs(diagnostics.applyGainMaxUs),
+    "process:gainPeak": formatMs(diagnostics.applyGainPeakUs),
+    "process:frameP50": formatMilliseconds(diagnostics.frameP50Ms),
+    "process:frameP95": formatMilliseconds(diagnostics.frameP95Ms),
+    "process:frameMax": formatMilliseconds(diagnostics.frameMaxMs),
+    "process:framePeak": formatMilliseconds(diagnostics.framePeakMs),
+    "process:frameCalls": formatCount(diagnostics.frameCalls),
+    "deadlines:lateTotal": formatCount(diagnostics.lateQuanta),
+    "deadlines:lateWindow":
+      processCalls === undefined
+        ? formatCount(lateWindow)
+        : `${formatCount(lateWindow)}/${formatCount(processCalls)}`,
+    "deadlines:latePeak": formatCount(diagnostics.latePeakWindow),
+    "deadlines:missedTotal": formatCount(diagnostics.missedQuanta),
+    "deadlines:missedWindow": formatCount(diagnostics.missedWindow),
+    "deadlines:missedPeak": formatCount(diagnostics.missedPeakWindow),
+    "telemetry:dropsTotal": formatCount(diagnostics.telemetryDrops),
+    "telemetry:dropsWindow": formatCount(diagnostics.telemetryDropWindow),
+    "telemetry:dropsPeak": formatCount(diagnostics.telemetryDropPeakWindow),
+    "telemetry:volume":
+      typeof diagnostics.gain === "number" && Number.isFinite(diagnostics.gain)
+        ? diagnostics.gain.toFixed(2)
+        : "-",
+    "telemetry:playing": diagnostics.playing ? "yes" : "no",
+    "events:events": formatEvents(diagnostics.contextEvents),
+  };
 }
 
-export function createAudioDiagnosticsOverlay({ document: doc, player, window: win }) {
+function createDiagnosticsLayout(doc) {
+  const element = doc.createElement("section");
+  element.id = "audio-diagnostics";
+  element.classList.add("audio-diagnostics");
+
+  const title = doc.createElement("h2");
+  title.classList.add("diag-title");
+  title.textContent = "STATS FOR NERDS";
+  element.appendChild(title);
+
+  const valueNodes = new Map();
+  for (const group of GROUPS) {
+    const groupEl = doc.createElement("div");
+    groupEl.classList.add("diag-group", `diag-group--${group.id}`);
+
+    const groupTitle = doc.createElement("div");
+    groupTitle.classList.add("diag-group-title");
+    groupTitle.textContent = group.title;
+    groupEl.appendChild(groupTitle);
+
+    for (const [key, label] of group.items) {
+      const item = doc.createElement("span");
+      item.classList.add("diag-item");
+
+      const labelEl = doc.createElement("span");
+      labelEl.classList.add("diag-label");
+      labelEl.textContent = label;
+
+      const valueEl = doc.createElement("span");
+      valueEl.classList.add("diag-value");
+      valueEl.dataset.metric = `${group.id}:${key}`;
+      valueEl.textContent = "-";
+
+      item.appendChild(labelEl);
+      item.appendChild(valueEl);
+      groupEl.appendChild(item);
+      valueNodes.set(`${group.id}:${key}`, valueEl);
+    }
+
+    element.appendChild(groupEl);
+  }
+
+  return { element, valueNodes };
+}
+
+export function createAudioDiagnosticsOverlay({
+  document: doc,
+  player,
+  window: win,
+  getFrameDiagnostics = null,
+}) {
   if (!doc || !player) return null;
   const params = new URLSearchParams(win?.location?.search || "");
   let visible = params.get("audioDebug") === "1";
 
-  const element = doc.createElement("pre");
-  element.id = "audio-diagnostics";
-  element.className = "audio-diagnostics";
-  element.textContent = formatDiagnostics(player.getAudioDiagnostics());
+  const { element, valueNodes } = createDiagnosticsLayout(doc);
   element.classList.toggle("hidden", !visible);
   doc.body.appendChild(element);
 
   let timer = null;
 
   function refresh() {
-    element.textContent = formatDiagnostics(player.getAudioDiagnostics());
+    const diagnostics = player.getAudioDiagnostics() || {};
+    const frameDiagnostics = getFrameDiagnostics?.() || {};
+    const values = buildValues({ ...diagnostics, ...frameDiagnostics });
+    for (const [key, node] of valueNodes) {
+      const next = values[key] ?? "-";
+      if (node.textContent !== next) node.textContent = next;
+    }
   }
 
   function stopTimer() {
@@ -98,6 +261,8 @@ export function createAudioDiagnosticsOverlay({ document: doc, player, window: w
     return visible ? hide() : show();
   }
 
+  // Populate the values immediately so a visible overlay never shows placeholders.
+  refresh();
   if (visible) startTimer();
 
   return {
