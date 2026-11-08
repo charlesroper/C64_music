@@ -27,18 +27,34 @@ export async function bootWorkbench(options = {}) {
   let view = null;
   let player = null;
   let bootOutcome = null;
+  let bootTarget = null;
+  let bootTargetLoaded = false;
+  let prewarmDone = false;
   let preUnlockedAudioCtx = null;
   let preUnlockedLatencyHint = null;
   const tapeSound = createTapeLoadingSound({
     getContext: () => player?.getAudioContext?.() || null,
   });
 
+  function loadBootTargetPaused() {
+    if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
+    bootTargetLoaded = true;
+    view.selectGameAndTrack(bootTarget.gameId, bootTarget.trackId, false);
+    const telemetry = player.getTelemetry();
+    if (telemetry) view.renderTelemetry(telemetry);
+  }
+
   function applyBootOutcome() {
     if (!bootOutcome || !view || !player) return;
     const outcome = bootOutcome;
     bootOutcome = null;
     const autoPlay = outcome.autoPlay || view.isPendingPlayOnBoot();
+    if (bootTargetLoaded) {
+      if (autoPlay) view.setPlaying(true);
+      return;
+    }
     view.selectGameAndTrack(outcome.target.gameId, outcome.target.trackId, autoPlay);
+    bootTargetLoaded = true;
   }
 
   const boot = createBootSequence({
@@ -47,6 +63,10 @@ export async function bootWorkbench(options = {}) {
     reducedMotion,
     skip: skipBoot,
     tapeSound,
+    onGate({ target }) {
+      bootTarget = target;
+      loadBootTargetPaused();
+    },
     onComplete(outcome) {
       bootOutcome = outcome;
       applyBootOutcome();
@@ -146,6 +166,7 @@ export async function bootWorkbench(options = {}) {
     },
     navigatorObj: typeof navigator !== "undefined" ? navigator : null,
   });
+  const prewarm = player.prewarmAssemblies();
 
   view.setAssets({ directivesText, narrativeText });
   view.setPlayer(player);
@@ -171,8 +192,12 @@ export async function bootWorkbench(options = {}) {
   const led = view.elements.get("status-led");
   if (led) led.classList.add("ready");
 
-  boot.setReady();
-  applyBootOutcome();
+  prewarm.finally(() => {
+    prewarmDone = true;
+    loadBootTargetPaused();
+    boot.setReady();
+    applyBootOutcome();
+  });
 
   return { player, view, diagnostics, boot };
 }

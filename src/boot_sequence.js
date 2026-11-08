@@ -54,6 +54,7 @@ export function createBootSequence({
   skip = false,
   tapeSound = null,
   onPhase = () => {},
+  onGate = () => {},
   onComplete = () => {},
   schedule = (fn, ms) => setTimeout(fn, ms),
   cancel = (id) => clearTimeout(id),
@@ -263,6 +264,9 @@ export function createBootSequence({
     setPhase(BOOT_PHASES.LOADING);
     loadScheduled = false;
     loaderMinimumElapsed = false;
+    try {
+      onGate({ target });
+    } catch (_) {}
     if (tapeSound && typeof tapeSound.start === "function") tapeSound.start();
     startLoader();
     maybeFinishLoad();
