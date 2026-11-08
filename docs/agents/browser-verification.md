@@ -60,6 +60,7 @@ The checks below use the app's own browser contract. They do not depend on Playw
 5. For worklet checks, call `audioContext.audioWorklet.addModule(url)`, create an `AudioWorkletNode`, connect it through a near-silent gain to `destination`, and count `process()` ticks posted over the node port.
 6. For the real app, the first tap starts the worklet. `player.getState().audioBackend` changes to `"worklet"` when the processor owns audio. `player.getTelemetry().frameCount` must advance while the page plays.
 7. Click Stats for Nerds to show process timing, missed quanta, telemetry drops, context state and latency. Add `?audioDebug=1` to open the same overlay on load. Playback latency is the default. Toggle Audio Mode to `INTERACTIVE` for the lower-latency hint, or add `?latency=interactive` to start there.
+8. For the Boot Sequence, load without `?skipBoot=1`. Confirm the full-screen power-on, exact BASIC screen, typed `LOAD""`, PRESS PLAY ON TAPE gate, tape loader, tape sound, `READY.`, CRT collapse and Wizball playback. Check the gate hint, skip path and reduced-motion path. Copy Playwright screenshots to `/sdcard/Download/tmp`.
 
 Minimal worklet probe:
 

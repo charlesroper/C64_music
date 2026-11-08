@@ -218,12 +218,15 @@ export function createWorkbenchPlayer({
 
     prewarmPromise = new Promise((resolve) => {
       let settled = false;
+      let timeoutId = null;
       const finish = (ok) => {
         if (settled) return;
         settled = true;
+        if (timeoutId !== null) clearTimeout(timeoutId);
         if (typeof worker.terminate === "function") worker.terminate();
         resolve(ok);
       };
+      timeoutId = setTimeout(() => finish(false), 5000);
 
       worker.onmessage = (event) => {
         const data = event?.data || {};

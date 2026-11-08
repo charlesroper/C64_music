@@ -32,6 +32,7 @@ Galway's sources show him working around those limits:
 
 ## 3. What you see in the player
 
+* **Boot Sequence.** Every full page load starts on a full-screen C64 CRT. A brief power-on flash leads to the exact BASIC screen, typed `LOAD""` and a PRESS PLAY ON TAPE gate. A click, tap or key unlocks browser audio and starts the `GALWAY 2664` tape loader for Wizball, with credits, loading bars, a block counter, border raster stripes and a synthesised tape sound. After a brief `READY.`, the CRT shrinks into the workbench monitor and Wizball title music starts. A key or click skips to loaded Wizball; `?skipBoot=1` and reduced motion start paused.
 * **Header, logo and version.** The banner shows the white Galway 2664 logo, drawn with glyphs from the Commodore 64 PETSCII character ROM, which sparkles through VIC-II colours. It also shows the WebAssembly engine status light and the CalVer release pill.
 * **Tune list and transport controls.** Choose a tune, pause, restart or fast-forward.
 * **Oscilloscopes.** Live traces for the three voices and the master volume channel.
@@ -187,6 +188,10 @@ The emulator is written in C and compiled to WebAssembly, a compact binary forma
 * A SID with three oscillators, envelope generators, a noise source, the `$D418` volume channel and a filter.
 
 The filter is a 2x-oversampled Chamberlin state-variable design. The output stage has a high-pass at about 15Hz, modelled on the capacitor that blocks direct current on a real machine's audio output and a soft saturation curve (`soft_saturate`) in place of hard clipping.
+
+### Boot Sequence (`src/boot_sequence.js`)
+
+The Boot Sequence mounts before the WASM engine and source files finish downloading, so the C64 screen appears immediately. It drives a small phase state machine through power-on, BASIC, typing, PRESS PLAY, tape load, READY and collapse. The PRESS PLAY gate is the user gesture that unlocks browser audio. Tape sound is a short-lived Web Audio graph that stops before Wizball starts playing. The screen uses the same PETSCII rasteriser and VIC-II palette as the workbench monitor. A module Web Worker assembles all six sources and the Arkanoid payload during the boot, and the loader waits for that prewarm before handing off. A system worker failure falls back to synchronous assembly of the active track.
 
 ### Engine core (`src/engine_core.js`)
 
@@ -514,3 +519,13 @@ The bottom register strip moved out of the source panel and now spans all three 
 There is no separate drum strip. The digi drums use SID register `$D418`, which already belongs to the filter group, so the last group is labelled Filter + Drums. The strip header reads SID Registers (`$D400-$D418`). Existing register tooltips and the technical addresses remain.
 
 The register groups use balanced rows. Four sit across on wide screens, two per row on tablets and one full-width row per group on phones. Inside each group the label stays fixed while the register cells grow to fill the spare width. Cells are capped at 34px and floored at 18px, so they stay readable without becoming oversized. The strip stays hidden in the Monitor and Tunes tabs, matching the source panel it used to live inside. Tests assert the full-width grid placement, the 4/2/1 row behaviour, the cell width limits and the labels. The suite remains at 67 checks across 9 files.
+
+### 8 November 2026: the first load becomes a C64 power-on
+
+The workbench used to appear as a finished dashboard. The first impression was a web page loading, not a Commodore 64 booting Galway's software. Issue #42 specified a full-screen Boot Sequence that runs on every full page load. A power-on flash leads to the exact BASIC screen, typed `LOAD""`, and a PRESS PLAY ON TAPE gate. The gate is the browser gesture that unlocks audio. It starts an Ocean-style `GALWAY 2664` tape loader for Wizball, with Martin Galway and Ocean Software credits, loading bars, a block counter, border raster stripes and a synthesised tape sound. After a brief `READY.`, the CRT shrinks into the workbench monitor and Wizball title music starts.
+
+The screen renderer is shared with the workbench monitor, so the boot does not duplicate PETSCII glyph or palette code. All six sources and the Arkanoid payload are assembled in a module Web Worker during the boot. The loader waits for that prewarm before handoff, and a worker failure falls back to synchronous assembly of the active track. Wizball is loaded paused from the warmed cache while the loader is visible, then playback starts when the CRT collapses. This avoids a blank monitor at handoff.
+
+The Boot Sequence can be skipped with a key or click. Skipping uses the same gesture to unlock audio and lands on loaded Wizball with music. `?skipBoot=1` and `prefers-reduced-motion` land on the workbench with Wizball loaded but paused. The workbench stays hidden during the boot and the strip does not repeat on in-app track changes.
+
+Tickets [#43](https://github.com/charlesroper/C64_music/issues/43), [#44](https://github.com/charlesroper/C64_music/issues/44), [#45](https://github.com/charlesroper/C64_music/issues/45), [#46](https://github.com/charlesroper/C64_music/issues/46) and [#47](https://github.com/charlesroper/C64_music/issues/47) delivered the rasteriser, prewarm, shell, loader and handoff. Commits [6062f73](https://github.com/charlesroper/C64_music/commit/6062f73), [76fc552](https://github.com/charlesroper/C64_music/commit/76fc552), [d3a25e0](https://github.com/charlesroper/C64_music/commit/d3a25e0) and [1c554b1](https://github.com/charlesroper/C64_music/commit/1c554b1) carry the implementation. WebKit 27.2 and Chromium 153 verified the full boot, gate, loader, handoff and mobile layout. Playwright screenshots are in `/sdcard/Download/tmp`. The suite is 75 checks across 12 files.

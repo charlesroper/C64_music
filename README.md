@@ -32,10 +32,11 @@ Read [NARRATIVE.md](NARRATIVE.md) or click **THE STORY** in the player for the h
 
 ## How the workbench works
 
+* **Boot Sequence** (`src/boot_sequence.js`, `src/tape_loading_sound.js`): Every full page load opens on a full-screen C64 CRT, with a power-on flash, the exact BASIC screen, typed `LOAD""`, a PRESS PLAY ON TAPE gate and a `GALWAY 2664` tape loader for Wizball. The gate unlocks browser audio, tape loading sound plays during the loader, and the CRT shrinks into the workbench monitor as Wizball title music starts. A key or click skips to loaded Wizball; `?skipBoot=1` and reduced motion start paused.
 * **Cross-assembler and source index** (`src/ocean_assembler.js`, `src/source_index.js`): Parses Galway's source text and Ocean's directives in the browser with no external dependencies. It resolves symbols in three passes, outputs a 64KB memory image with line-to-address maps and indexes symbols and lines for search and navigation.
 * **WebAssembly 6510 and SID core** (`src/wasm/c64_engine.c`): Emulates the MOS 6510 CPU, the VIC-II raster timer (63 cycles per line on PAL, 65 on NTSC) and the MOS 6581/8580 SID synthesiser in freestanding C. It runs Galway's 200Hz polled raster loop alongside a 50Hz VIC-II interrupt harness for the drum drivers in `arkadrum.asm` and `gameover.asm`. The audio path uses a 2x-oversampled Chamberlin state-variable filter, a 15Hz high-pass filter modelled on the C64 motherboard output capacitor and a cubic soft saturation curve (`soft_saturate`).
 * **Engine Core** (`src/engine_core.js`): Wraps the WebAssembly instance, the six game loader adapters (`GAME_LOADERS`), audio rendering and telemetry collection behind an ordered message interface (`init`, `loadTrack`, `play`, `pause`, `setHardwareOptions`, `injectKey`, `requestTelemetry`). The same core runs inside the browser `AudioWorkletProcessor` (`src/audio_worklet.js`) and in-thread for Node.js tests.
-* **Player Engine and telemetry pool** (`src/player_engine.js`, `src/audio_worklet.js`, `src/telemetry_buffer.js`): Keeps the assembler and source index on the main thread, sends compiled bytecode to the worklet over a `MessagePort` and recycles a pool of three transferable `ArrayBuffer` snapshots so telemetry crosses threads without allocation pauses.
+* **Player Engine and telemetry pool** (`src/player_engine.js`, `src/audio_worklet.js`, `src/telemetry_buffer.js`, `src/assembly_worker.js`): Keeps the assembler and source index on the main thread, sends compiled bytecode to the worklet over a `MessagePort` and recycles a pool of three transferable `ArrayBuffer` snapshots so telemetry crosses threads without allocation pauses. It prewarms all six assemblies, plus the Arkanoid payload, in a module Web Worker during the Boot Sequence.
 * **C64 character ROM** (`src/c64_charset.js`): Decodes 8x8 bitmap glyphs for all 256 C64 character ROM codes and renders Galway's `$0400` screen memory onto the CRT canvas. Most sources display light grey text; `greenberet.asm` mixes medium grey, light grey and white, and `rambload.asm` uses a custom colour HUD.
 * **Workbench UI and catalogue** (`src/workbench_view.js`, `src/app.js`, `src/main.js`, `src/tracks_catalog.js`, `src/markdown.js`): Mounts the UI behind `createWorkbenchView`, including the `$D020` border raster profiler, four-channel oscilloscopes, a full-width SID register strip with V1, V2, V3 and Filter + Drums groups in balanced rows of four, two or one and register cells that stretch between 18px and 34px, live assembly tracking that follows each voice's program counter (`PC0` to `PC2`, `seqPC`), in-browser code editing with live hot-reload, metadata for all 73 tracks and the story modal.
 
@@ -63,6 +64,8 @@ Browsers block WebAssembly modules and `.asm` source fetches over `file://` URLs
    ```
 
 3. Open `http://localhost:8080` (or the port printed by your server) in your browser and click **PLAY**.
+
+The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?skipBoot=1` to bypass the boot and land on the workbench with Wizball loaded paused.
 
 ### Stats for Nerds
 
