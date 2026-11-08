@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
+import { createBootSequence } from "./boot_sequence.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import {
   cancelViewerSmoothScroll,
@@ -18,8 +19,35 @@ export async function bootWorkbench(options = {}) {
 
   const params = new URLSearchParams(win?.location?.search || "");
   const latencyHint = params.get("latency") === "interactive" ? "interactive" : "playback";
+  const reducedMotion =
+    options.reducedMotion === true ||
+    Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+  const skipBoot = options.skipBoot === true || params.get("skipBoot") === "1";
+  let view = null;
+  let player = null;
+  let bootOutcome = null;
   let preUnlockedAudioCtx = null;
   let preUnlockedLatencyHint = null;
+
+  function applyBootOutcome() {
+    if (!bootOutcome || !view || !player) return;
+    const outcome = bootOutcome;
+    bootOutcome = null;
+    const autoPlay = outcome.autoPlay || view.isPendingPlayOnBoot();
+    view.selectGameAndTrack(outcome.target.gameId, outcome.target.trackId, autoPlay);
+  }
+
+  const boot = createBootSequence({
+    document: doc,
+    target: { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" },
+    reducedMotion,
+    skip: skipBoot,
+    onComplete(outcome) {
+      bootOutcome = outcome;
+      applyBootOutcome();
+    },
+  });
+  boot.start();
 
   const handleFirstInteraction = () => {
     if (typeof navigator !== "undefined" && navigator.audioSession) {
@@ -56,7 +84,7 @@ export async function bootWorkbench(options = {}) {
   const fetchFn = options.fetch || (typeof fetch !== "undefined" ? fetch : globalThis.fetch);
 
   // Mount view early so UI handlers (including early first-tap unlock) are active
-  const view = createWorkbenchView({
+  view = createWorkbenchView({
     document: doc,
     root: options.root,
     elements: options.elements,
@@ -86,7 +114,7 @@ export async function bootWorkbench(options = {}) {
     rawSources[fileNames[i]] = decoder.decode(buf);
   }
 
-  const player = createWorkbenchPlayer({
+  player = createWorkbenchPlayer({
     wasm: instance.exports,
     wasmModule,
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
@@ -138,10 +166,10 @@ export async function bootWorkbench(options = {}) {
   const led = view.elements.get("status-led");
   if (led) led.classList.add("ready");
 
-  const autoPlay = view.isPendingPlayOnBoot();
-  view.selectGameAndTrack("wizball.asm", "wiz-title", autoPlay);
+  boot.setReady();
+  applyBootOutcome();
 
-  return { player, view, diagnostics };
+  return { player, view, diagnostics, boot };
 }
 
 export {

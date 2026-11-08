@@ -8,7 +8,6 @@ const SCREEN_TOP = 36;
 const SCREEN_ROWS = 25;
 const SCREEN_COLS = 40;
 const BORDER_OFFSET = 20;
-const BLACK = 0xff000000;
 
 const VIC_PALETTE_U32 = new Uint32Array(16);
 for (let i = 0; i < 16; i++) {
@@ -24,8 +23,9 @@ export function createC64ScreenRenderer(canvas) {
   const imageData = ctx.createImageData(C64_SCREEN_WIDTH, C64_SCREEN_HEIGHT);
   const pixels = new Uint32Array(imageData.data.buffer);
 
-  function render({ screenRam, colorRam, border }) {
+  function render({ screenRam, colorRam, border, background = 0 }) {
     if (!screenRam || !colorRam || !border) return;
+    const bgPixel = VIC_PALETTE_U32[background & 0x0f];
 
     for (let y = 0; y < C64_SCREEN_HEIGHT; y++) {
       const bdrColorIdx = border[BORDER_OFFSET + y] & 0x0f;
@@ -56,7 +56,7 @@ export function createC64ScreenRenderer(canvas) {
         const glyphByte = C64_CHAR_ROM[charCode * 8 + charRow];
 
         for (let bit = 7; bit >= 0; bit--) {
-          pixels[pixelOffset++] = (glyphByte >> bit) & 1 ? fgPixel : BLACK;
+          pixels[pixelOffset++] = (glyphByte >> bit) & 1 ? fgPixel : bgPixel;
         }
       }
 

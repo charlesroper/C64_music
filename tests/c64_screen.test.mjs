@@ -46,31 +46,31 @@ test("shared C64 screen renderer draws border, glyph rows and colour RAM", () =>
 
   const screenRam = new Uint8Array(1000).fill(0x20);
   const colorRam = new Uint8Array(1000).fill(14);
-  const border = new Uint8Array(312).fill(6);
+  const border = new Uint8Array(312).fill(14);
   screenRam[0] = 1;
   colorRam[0] = 1;
   screenRam[40] = 1;
   colorRam[40] = 2;
 
-  renderer.render({ screenRam, colorRam, border });
+  renderer.render({ screenRam, colorRam, border, background: 6 });
   const image = canvas.getImage();
   assert.ok(image, "renderer must paint an image");
   assert.equal(image.width, C64_SCREEN_WIDTH);
   assert.equal(image.height, C64_SCREEN_HEIGHT);
 
-  assert.deepEqual(pixelBytes(image, 0, 0), paletteBytes(6));
+  assert.deepEqual(pixelBytes(image, 0, 0), paletteBytes(14));
 
   const glyph = C64_CHAR_ROM[1 * 8];
   for (let bit = 0; bit < 8; bit++) {
     const set = Boolean(glyph & (1 << (7 - bit)));
-    const expected = set ? paletteBytes(1) : paletteBytes(0);
+    const expected = set ? paletteBytes(1) : paletteBytes(6);
     assert.deepEqual(pixelBytes(image, 32 + bit, 36), expected);
   }
 
   const secondRowGlyph = C64_CHAR_ROM[1 * 8];
   for (let bit = 0; bit < 8; bit++) {
     const set = Boolean(secondRowGlyph & (1 << (7 - bit)));
-    const expected = set ? paletteBytes(2) : paletteBytes(0);
+    const expected = set ? paletteBytes(2) : paletteBytes(6);
     assert.deepEqual(pixelBytes(image, 32 + bit, 44), expected);
   }
 });

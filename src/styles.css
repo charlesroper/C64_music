@@ -2372,6 +2372,75 @@ button.active {
   }
 }
 
+/* ==================== C64 BOOT SEQUENCE ==================== */
+body[data-boot-state="booting"] .app-shell {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-sequence {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.boot-frame {
+  position: relative;
+  width: min(100vw, calc(100vh * 384 / 272));
+  max-height: 100vh;
+  aspect-ratio: 384 / 272;
+}
+
+.boot-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.boot-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.18) 0,
+    rgba(0, 0, 0, 0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.boot-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 1px solid rgba(124, 112, 218, 0.55);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #b9b3ff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (max-width: 560px) {
+  .boot-hint {
+    bottom: 16px;
+    max-width: calc(100vw - 24px);
+    font-size: 10px;
+  }
+}
+
 /* Opt-in audio diagnostics overlay (?audioDebug=1). */
 .audio-diagnostics {
   position: fixed;

@@ -83,7 +83,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   });
 
   try {
-    const { player } = await bootWorkbench();
+    const { player } = await bootWorkbench({ skipBoot: true });
     harness.stepAnimationFrame();
 
     // Simulate user tapping PLAY on mobile Safari (44.1 kHz hardware, sampleRate option rejected)
@@ -141,11 +141,47 @@ test("SID and audio mode switches apply hardware options", () => {
   }
 });
 
+test("boot sequence hides the workbench and hands off to a playing Wizball", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const booted = await bootWorkbench();
+    assert.equal(globalThis.document.body.dataset.bootState, "booting");
+    assert.ok(
+      !harness.elementsById.get("boot-sequence").classList.contains("hidden"),
+      "Boot overlay must be visible",
+    );
+    assert.ok(!booted.boot.getState().completed, "Boot must still be running");
+    assert.doesNotMatch(
+      harness.elementsById.get("now-playing-pill").textContent,
+      /Wizball/,
+      "Track must not be selected before the boot completes",
+    );
+
+    booted.boot.skip();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(globalThis.document.body.dataset.bootState, undefined);
+    assert.ok(
+      harness.elementsById.get("boot-sequence").classList.contains("hidden"),
+      "Boot overlay must hide after handoff",
+    );
+    assert.match(
+      harness.elementsById.get("now-playing-pill").textContent,
+      /Wizball/,
+      "Wizball must be selected at handoff",
+    );
+    assert.equal(booted.player.getState().isPlaying, true);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("Stats for Nerds button toggles the audio diagnostics overlay", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   let diagnostics = null;
   try {
-    const booted = await bootWorkbench();
+    const booted = await bootWorkbench({ skipBoot: true });
     diagnostics = booted.diagnostics;
     const btnStats = harness.elementsById.get("btn-stats-nerds");
 
@@ -183,7 +219,7 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
       return origFetch(url);
     };
 
-    const bootPromise = bootWorkbench();
+    const bootPromise = bootWorkbench({ skipBoot: true });
     // Wait 10ms so setupUIHandlers() has run, but fetches have NOT completed yet
     await new Promise((r) => setTimeout(r, 10));
 

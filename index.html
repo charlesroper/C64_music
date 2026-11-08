@@ -535,6 +535,22 @@
       </main>
     </div>
 
+    <!-- ==================== C64 BOOT SEQUENCE ==================== -->
+    <div
+      class="boot-sequence hidden"
+      id="boot-sequence"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Commodore 64 boot sequence"
+    >
+      <div class="boot-frame" id="boot-frame">
+        <canvas id="boot-canvas" width="384" height="272"></canvas>
+        <div class="boot-scanlines" aria-hidden="true"></div>
+      </div>
+      <div class="boot-hint hidden" id="boot-hint">Click or press any key to start</div>
+      <div class="sr-only" id="boot-live" aria-live="polite"></div>
+    </div>
+
     <!-- ==================== OCEAN ASSEMBLER DIRECTIVES MODAL ==================== -->
     <div class="modal-backdrop hidden" id="directives-modal">
       <div class="modal-card">

@@ -206,6 +206,21 @@ export function createBrowserHarness({
       scrolledElements.push(this.id);
     }
 
+    getBoundingClientRect() {
+      const width = this.width || 0;
+      const height = this.height || 0;
+      return { left: 0, top: 0, width, height, right: width, bottom: height };
+    }
+
+    animate(keyframes) {
+      this.animations = this.animations || [];
+      this.animations.push(keyframes);
+      return {
+        finished: Promise.resolve(),
+        cancel() {},
+      };
+    }
+
     closest(sel) {
       let cur = this;
       while (cur) {
@@ -352,6 +367,7 @@ export function createBrowserHarness({
     innerWidth: viewport.width,
     innerHeight: viewport.height,
     AudioContext: StrictAudioContext,
+    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
     requestAnimationFrame: (cb) => globalThis.requestAnimationFrame(cb),
     cancelAnimationFrame: (id) => globalThis.cancelAnimationFrame(id),
     addEventListener: (t, fn) => {
