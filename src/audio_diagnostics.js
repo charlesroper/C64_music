@@ -4,6 +4,8 @@
 // audio quanta, context state changes, and output latency on the phone.
 // ============================================================================
 
+import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
+
 function formatMs(microseconds) {
   if (typeof microseconds !== "number" || !Number.isFinite(microseconds)) return "-";
   return (microseconds / 1000).toFixed(2);
@@ -26,7 +28,7 @@ function formatDiagnostics(diagnostics) {
   if (!diagnostics) return "STATS FOR NERDS\nwaiting for player";
   const lines = [
     "STATS FOR NERDS",
-    `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}   telemetry: ${diagnostics.telemetryHz ?? 30}Hz`,
+    `backend: ${diagnostics.backend || "-"}   ctx: ${diagnostics.contextState || "-"}   rate: ${diagnostics.sampleRate || "-"}   telemetry: ${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
     `latency: ${diagnostics.latencyHint || "-"}   base: ${formatLatency(diagnostics.baseLatency)}   out: ${formatLatency(diagnostics.outputLatency)}`,
   ];
 

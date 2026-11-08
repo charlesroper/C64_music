@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
+import { createAudioDiagnosticsOverlay } from "../src/audio_diagnostics.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
@@ -138,11 +139,67 @@ test("SID, audio mode and telemetry switches apply options", () => {
     assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
 
     const telemetryToggle = harness.elementsById.get("chk-telemetry-high");
+    assert.equal(telemetryToggle.checked, true, "62.5Hz must be the checked default");
+    telemetryToggle.checked = false;
+    telemetryToggle.dispatchEvent("change");
+    assert.equal(player.getState().telemetryHz, 30);
+    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
+
     telemetryToggle.checked = true;
     telemetryToggle.dispatchEvent("change");
     assert.equal(player.getState().telemetryHz, 62.5);
     assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "62.5Hz");
   } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("Workbench View defaults telemetry to 62.5Hz and accepts 30Hz", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  try {
+    const player = createFakePlayer();
+    const view = createWorkbenchView({
+      document: globalThis.document,
+      elements: harness.elementsById,
+      player,
+    });
+    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "62.5Hz");
+    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, true);
+    assert.equal(
+      harness.elementsById.get("hw-group-telemetry").hidden,
+      true,
+      "The Telemetry group must be hidden from the interface",
+    );
+
+    const lowRatePlayer = createFakePlayer();
+    const lowRateView = createWorkbenchView({
+      document: globalThis.document,
+      elements: harness.elementsById,
+      player: lowRatePlayer,
+      telemetryHz: 30,
+    });
+    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
+    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, false);
+    assert.equal(lowRatePlayer.getState().telemetryHz, 30);
+
+    lowRateView.destroy();
+    view.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({}) },
+    window: globalThis.window,
+  });
+  try {
+    assert.match(overlay.element.textContent, /telemetry: 62\.5Hz/);
+  } finally {
+    overlay.stop();
     harness.restoreGlobals();
   }
 });
@@ -207,6 +264,20 @@ test("Stats for Nerds button toggles the audio diagnostics overlay", async () =>
     assert.ok(!btnStats.classList.contains("active"));
   } finally {
     diagnostics?.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("?telemetry=30 boots the workbench at 30Hz", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    globalThis.window.location = { search: "?telemetry=30" };
+    const booted = await bootWorkbench({ skipBoot: true });
+
+    assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 30);
+    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
+    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, false);
+  } finally {
     harness.restoreGlobals();
   }
 });

@@ -6,6 +6,7 @@ import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createBootSequence } from "./boot_sequence.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
+import { resolveTelemetryHz } from "./telemetry_rate.js";
 import {
   cancelViewerSmoothScroll,
   createWorkbenchView,
@@ -20,6 +21,7 @@ export async function bootWorkbench(options = {}) {
 
   const params = new URLSearchParams(win?.location?.search || "");
   const latencyHint = params.get("latency") === "interactive" ? "interactive" : "playback";
+  const telemetryHz = resolveTelemetryHz(params.get("telemetry"));
   const reducedMotion =
     options.reducedMotion === true ||
     Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -115,6 +117,7 @@ export async function bootWorkbench(options = {}) {
     elements: options.elements,
     player: null,
     latencyHint,
+    telemetryHz,
     onFirstInteraction: handleFirstInteraction,
   });
 
@@ -144,6 +147,7 @@ export async function bootWorkbench(options = {}) {
     wasmModule,
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
     latencyHint,
+    telemetryHz,
     rawSources,
     createAudioContext: (opts) => {
       if (preUnlockedAudioCtx && (!opts || opts.latencyHint === preUnlockedLatencyHint)) {

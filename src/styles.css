@@ -335,6 +335,10 @@ button.active {
   gap: 2px;
 }
 
+#hw-group-telemetry[hidden] {
+  display: none;
+}
+
 .hw-label {
   font-family: var(--font-mono);
   font-size: 9px;

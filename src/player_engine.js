@@ -8,6 +8,7 @@
 import { createEngineCore } from "./engine_core.js";
 import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
+import { resolveTelemetryHz, telemetryDividerForHz } from "./telemetry_rate.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 export {
@@ -176,10 +177,6 @@ function createDefaultAssemblyWorker() {
   return new Worker(new URL("./assembly_worker.js", import.meta.url), { type: "module" });
 }
 
-function telemetryDividerForHz(hz) {
-  return Number(hz) >= 60 ? 1 : 2;
-}
-
 export function createWorkbenchPlayer({
   wasm,
   wasmModule,
@@ -189,9 +186,11 @@ export function createWorkbenchPlayer({
   workletUrl,
   createAssemblyWorker = createDefaultAssemblyWorker,
   latencyHint = "playback",
+  telemetryHz = 62.5,
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
+  const initialTelemetryHz = resolveTelemetryHz(telemetryHz);
   let prewarmPromise = null;
 
   function getAssembled(gameId) {
@@ -268,7 +267,7 @@ export function createWorkbenchPlayer({
     soloVoice: -1,
     sampleRate: 48000,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
-    telemetryHz: 30,
+    telemetryHz: initialTelemetryHz,
     audioCtx: null,
     currentSession: null,
     audioBackend: null,
@@ -446,7 +445,7 @@ export function createWorkbenchPlayer({
   }
 
   function setTelemetryHz(hz) {
-    const next = Number(hz) >= 60 ? 62.5 : 30;
+    const next = resolveTelemetryHz(hz);
     state.telemetryHz = next;
     transport.send({ type: "setTelemetryDivider", divider: telemetryDividerForHz(next) });
     return next;

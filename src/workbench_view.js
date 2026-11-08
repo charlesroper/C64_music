@@ -6,6 +6,7 @@
 import { createC64ScreenRenderer } from "./c64_screen.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
+import { resolveTelemetryHz, TELEMETRY_HZ_DEFAULT, TELEMETRY_HZ_LOW } from "./telemetry_rate.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
@@ -174,11 +175,13 @@ export function createWorkbenchView({
   assets = null,
   elements = null,
   latencyHint = "playback",
+  telemetryHz = 62.5,
   onFirstInteraction = null,
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
   const registry = createDomRegistry(doc, elements);
   const getEl = (id) => registry.get(id);
+  const initialTelemetryHz = resolveTelemetryHz(telemetryHz);
 
   const state = {
     player: player || null,
@@ -197,7 +200,7 @@ export function createWorkbenchView({
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
-    telemetryHz: 30,
+    telemetryHz: initialTelemetryHz,
     diagnostics: null,
 
     muteMask: 0,
@@ -1266,6 +1269,7 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
+    syncTelemetryRate();
     updateDrmChipState();
     renderGameList();
   }
@@ -1282,6 +1286,19 @@ export function createWorkbenchView({
     if (chkLatency) chkLatency.checked = interactive;
     const valueEl = getEl("latency-mode-value");
     if (valueEl) valueEl.textContent = interactive ? "INTERACTIVE" : "PLAYBACK";
+  }
+
+  function syncTelemetryRate() {
+    const high = state.telemetryHz === TELEMETRY_HZ_DEFAULT;
+    const chkTelemetry = getEl("chk-telemetry-high");
+    if (chkTelemetry && chkTelemetry.checked !== high) chkTelemetry.checked = high;
+    const valueEl = getEl("telemetry-rate-value");
+    const label = `${state.telemetryHz === TELEMETRY_HZ_LOW ? TELEMETRY_HZ_LOW : TELEMETRY_HZ_DEFAULT}Hz`;
+    if (valueEl && valueEl.textContent !== label) valueEl.textContent = label;
+    const playerHz = state.player?.getState?.()?.telemetryHz;
+    if (playerHz !== undefined && playerHz !== state.telemetryHz) {
+      state.player.setTelemetryHz?.(state.telemetryHz);
+    }
   }
 
   function setAssets(newAssets) {
@@ -1394,10 +1411,8 @@ export function createWorkbenchView({
     const chkTelemetry = getEl("chk-telemetry-high");
     if (chkTelemetry) {
       addListener(chkTelemetry, "change", (e) => {
-        state.telemetryHz = e.target.checked ? 62.5 : 30;
-        const valueEl = getEl("telemetry-rate-value");
-        if (valueEl) valueEl.textContent = state.telemetryHz === 62.5 ? "62.5Hz" : "30Hz";
-        if (state.player?.setTelemetryHz) state.player.setTelemetryHz(state.telemetryHz);
+        state.telemetryHz = e.target.checked ? TELEMETRY_HZ_DEFAULT : TELEMETRY_HZ_LOW;
+        syncTelemetryRate();
       });
     }
 
@@ -1763,6 +1778,7 @@ export function createWorkbenchView({
   const cleanups = [];
   setupUIHandlers();
   syncLatencyMode();
+  syncTelemetryRate();
   renderKeypadButtons();
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();

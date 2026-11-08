@@ -282,6 +282,9 @@ export function createBrowserHarness({
     if (/\bchecked\b/.test(attrs)) {
       el.checked = true;
     }
+    if (/(?:^|\s)hidden(?:\s|=|$)/.test(attrs)) {
+      el.hidden = true;
+    }
 
     const valMatch = attrs.match(/\bvalue="([^"]*)"/);
     if (valMatch) {
@@ -632,7 +635,7 @@ export function createFakePlayer(options = {}) {
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: "playback",
-    telemetryHz: 30,
+    telemetryHz: 62.5,
     muteMask: 0,
     soloVoice: -1,
   };

@@ -206,6 +206,37 @@ test("player defaults to the playback latency hint", async () => {
   assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
 });
 
+test("player defaults to 62.5Hz telemetry and accepts 30Hz", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const defaultPlayer = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+  });
+
+  assert.equal(defaultPlayer.getState().telemetryHz, 62.5);
+  assert.equal(defaultPlayer.getAudioDiagnostics().telemetryHz, 62.5);
+
+  const lowRatePlayer = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    telemetryHz: 30,
+  });
+  assert.equal(lowRatePlayer.getState().telemetryHz, 30);
+  assert.equal(lowRatePlayer.getAudioDiagnostics().telemetryHz, 30);
+
+  const unknownRatePlayer = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    telemetryHz: 45,
+  });
+  assert.equal(unknownRatePlayer.getState().telemetryHz, 62.5);
+  unknownRatePlayer.setTelemetryHz(45);
+  assert.equal(unknownRatePlayer.getState().telemetryHz, 62.5);
+});
+
 test("player soft-restarts the audio context when latency mode changes", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const contexts = [];
@@ -285,6 +316,7 @@ test("player queues play until the worklet is ready and then dispatches the acti
       addModule: () => moduleReady,
     },
     resume: () => Promise.resolve(),
+    close: () => Promise.resolve(),
   };
 
   class FakeAudioWorkletNode {
@@ -315,6 +347,7 @@ test("player queues play until the worklet is ready and then dispatches the acti
       rawSources: { "wizball.asm": wizballSource },
       createAudioContext: () => fakeContext,
       workletUrl: "/audio_worklet.js",
+      telemetryHz: 30,
     });
 
     player.selectTrack("wizball.asm", "wiz-title", { autoPlay: false });
@@ -337,10 +370,13 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.ok(types.includes("play"), "Queued play intent must reach the worklet");
     assert.equal(player.getState().audioBackend, "worklet");
 
-    player.setTelemetryHz(62.5);
     let divider = node.port.messages
       .filter((message) => message.type === "setTelemetryDivider")
       .at(-1);
+    assert.equal(divider.divider, 2, "A 30Hz player must start the worklet at divider 2");
+
+    player.setTelemetryHz(62.5);
+    divider = node.port.messages.filter((message) => message.type === "setTelemetryDivider").at(-1);
     assert.equal(divider.divider, 1);
     assert.equal(player.getState().telemetryHz, 62.5);
 
@@ -348,6 +384,17 @@ test("player queues play until the worklet is ready and then dispatches the acti
     divider = node.port.messages.filter((message) => message.type === "setTelemetryDivider").at(-1);
     assert.equal(divider.divider, 2);
     assert.equal(player.getAudioDiagnostics().telemetryHz, 30);
+
+    await player.setLatencyMode("interactive");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(nodes.length, 2, "Restart must create a new worklet node");
+    const restartedNode = nodes[1];
+    restartedNode.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
+    const restartedDivider = restartedNode.port.messages
+      .filter((message) => message.type === "setTelemetryDivider")
+      .at(-1);
+    assert.equal(restartedDivider.divider, 2, "Restart must keep the 30Hz divider");
+    assert.equal(player.getState().latencyHint, "interactive");
   } finally {
     globalThis.AudioWorkletNode = previousNode;
   }
