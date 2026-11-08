@@ -15,6 +15,8 @@ The workbench view exposes a focused interface:
 - `renderTelemetry(telemetry)`: Refreshes CRT monitor, voice scopes, register cells, and line follow highlights.
 - `renderSource(sourceFile)`: Formats and displays assembly source lines using pre-cached DOM nodes.
 - `setPlaying(isPlaying)`: Synchronizes play/pause button state and status LED indicator.
+- `getFrameDiagnostics()`: Returns main-thread frame work percentiles and session peaks for Stats for Nerds.
+- `setRenderingPaused(paused)`: Skips rendering work while the Boot Sequence covers the workbench, then resets telemetry caches on resume.
 - `destroy()`: Cancels animation frames, smooth scrolling, and removes attached global listeners.
 
 Element lookups move behind a unified element registry. Automated UI tests drive the view directly using `createFakePlayer` and harness element maps without triggering network fetches or WebAssembly compilation. First-tap mobile audio unlocking is preserved via the `onFirstInteraction` callback.

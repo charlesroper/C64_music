@@ -1812,6 +1812,7 @@ export function createWorkbenchView({
 
   let rafId = null;
   let isDestroyed = false;
+  let renderingPaused = false;
   let lastFrameTimestamp = 0;
   const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
   const FRAME_SAMPLE_SIZE = 60;
@@ -1855,6 +1856,8 @@ export function createWorkbenchView({
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
 
+    if (renderingPaused) return;
+
     if (doc?.hidden) {
       return;
     }
@@ -1892,15 +1895,14 @@ export function createWorkbenchView({
   }
 
   function handleVisibilityChange() {
-    if (!doc.hidden) {
-      resetTelemetryCaches();
-      if (state.player) {
-        const tel = state.player.getTelemetry();
-        if (tel) {
-          lastRenderedFrame = tel.frameCount;
-          lastRenderedSessionId = state.currentSession ? state.currentSession.id : null;
-          renderTelemetry(tel);
-        }
+    if (doc.hidden || renderingPaused) return;
+    resetTelemetryCaches();
+    if (state.player) {
+      const tel = state.player.getTelemetry();
+      if (tel) {
+        lastRenderedFrame = tel.frameCount;
+        lastRenderedSessionId = state.currentSession ? state.currentSession.id : null;
+        renderTelemetry(tel);
       }
     }
   }
@@ -1912,6 +1914,16 @@ export function createWorkbenchView({
 
   if (win && typeof win.requestAnimationFrame === "function") {
     rafId = win.requestAnimationFrame(renderFrameLoop);
+  }
+
+  function setRenderingPaused(paused) {
+    const next = Boolean(paused);
+    if (renderingPaused === next) return;
+    renderingPaused = next;
+    if (!renderingPaused) {
+      resetTelemetryCaches();
+      lastFrameTimestamp = 0;
+    }
   }
 
   function destroy() {
@@ -1944,6 +1956,7 @@ export function createWorkbenchView({
     setPlayer,
     setDiagnostics,
     setAssets,
+    setRenderingPaused,
     selectGameAndTrack,
     stepTrack,
     getFrameDiagnostics,

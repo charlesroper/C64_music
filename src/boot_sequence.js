@@ -2,6 +2,7 @@ import { createC64ScreenRenderer } from "./c64_screen.js";
 
 const SCREEN_COLS = 40;
 const CURSOR_CHAR = 0xa0;
+export const BOOT_FADE_MS = 2400;
 const DEFAULT_TARGET = {
   gameId: "wizball.asm",
   trackId: "wiz-title",
@@ -250,6 +251,11 @@ export function createBootSequence({
     hint?.classList.add("hidden");
   }
 
+  function hideOverlay() {
+    overlay.classList.remove("is-fading");
+    overlay.classList.add("hidden");
+  }
+
   function maybeFinishLoad() {
     if (!state.gateActive || state.phase !== BOOT_PHASES.LOADING || !state.ready) return;
     if (!loaderMinimumElapsed || loadScheduled) return;
@@ -338,8 +344,14 @@ export function createBootSequence({
     try {
       onComplete({ target, autoPlay: state.autoPlay, reason });
     } finally {
-      overlay.classList.add("hidden");
       delete doc.body.dataset.bootState;
+      if (reason === "gate") {
+        overlay.style.transitionDuration = `${BOOT_FADE_MS}ms`;
+        overlay.classList.add("is-fading");
+        later(hideOverlay, BOOT_FADE_MS);
+      } else {
+        hideOverlay();
+      }
     }
   }
 
@@ -421,7 +433,7 @@ export function createBootSequence({
     if (tapeSound && typeof tapeSound.stop === "function") tapeSound.stop();
     removeInputListeners();
     hideHint();
-    overlay.classList.add("hidden");
+    hideOverlay();
     delete doc.body.dataset.bootState;
   }
 

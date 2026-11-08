@@ -1201,6 +1201,40 @@ test("Workbench View reports main-thread frame work p50, p95, max and peak", () 
   }
 });
 
+test("Workbench View pauses and resumes rendering for boot presentation", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    let draws = 0;
+    const ctx = harness.elementsById.get("c64-monitor-canvas").getContext("2d");
+    ctx.putImageData = () => {
+      draws++;
+    };
+
+    player.play();
+    view.setRenderingPaused(true);
+    for (let i = 0; i < 3; i++) {
+      player.getTelemetry().frameCount++;
+      harness.stepAnimationFrame();
+    }
+    assert.equal(draws, 0, "A paused view must not draw the C64 monitor");
+
+    view.setRenderingPaused(false);
+    player.getTelemetry().frameCount++;
+    harness.stepAnimationFrame();
+    assert.ok(draws > 0, "An unpaused view must draw the C64 monitor");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
 test("idle render loop skips canvas repaints and DOM writes when paused or hidden, resuming on visibility", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();

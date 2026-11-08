@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOOT_PHASES, createBootSequence } from "../src/boot_sequence.js";
+import { BOOT_FADE_MS, BOOT_PHASES, createBootSequence } from "../src/boot_sequence.js";
 import { createBrowserHarness } from "./helpers/browser_harness.mjs";
 
 function createClock() {
@@ -67,6 +67,13 @@ function createBoot(options = {}) {
   return { boot, clock, phases, completions };
 }
 
+function assertImmediateReveal(harness, label) {
+  const overlay = harness.elementsById.get("boot-sequence");
+  assert.ok(overlay.classList.contains("hidden"), `${label} must reveal immediately`);
+  assert.ok(!overlay.classList.contains("is-fading"));
+  assert.equal(globalThis.document.body.dataset.bootState, undefined);
+}
+
 test("boot sequence reaches the gate, waits for readiness and completes with Wizball playing", async () => {
   const harness = createBrowserHarness();
   try {
@@ -84,9 +91,18 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
         },
       },
     });
+    const overlay = harness.elementsById.get("boot-sequence");
+    assert.equal(
+      globalThis.document.body.dataset.bootState,
+      "booting",
+      "The static boot state must exist before boot.start()",
+    );
+    assert.ok(
+      !overlay.classList.contains("hidden"),
+      "The boot overlay must be visible at first paint",
+    );
     boot.start();
 
-    const overlay = harness.elementsById.get("boot-sequence");
     assert.ok(!overlay.classList.contains("hidden"));
     assert.equal(globalThis.document.body.dataset.bootState, "booting");
     assert.equal(boot.getState().phase, BOOT_PHASES.POWER_ON);
@@ -121,8 +137,16 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
     assert.equal(completions.length, 1);
     assert.equal(completions[0].autoPlay, true);
     assert.equal(completions[0].reason, "gate");
-    assert.ok(overlay.classList.contains("hidden"));
+    assert.ok(overlay.classList.contains("is-fading"), "Gate completion must start the fade");
+    assert.ok(
+      !overlay.classList.contains("hidden"),
+      "The overlay must stay visible during the fade",
+    );
     assert.equal(globalThis.document.body.dataset.bootState, undefined);
+
+    clock.advance(BOOT_FADE_MS);
+    assert.ok(overlay.classList.contains("hidden"), "The overlay must hide after the fade");
+    assert.ok(!overlay.classList.contains("is-fading"));
   } finally {
     harness.restoreGlobals();
   }
@@ -139,6 +163,7 @@ test("skip completes with Wizball playing once the player is ready", async () =>
     assert.equal(completions.length, 1);
     assert.equal(completions[0].autoPlay, true);
     assert.equal(completions[0].reason, "skip");
+    assertImmediateReveal(harness, "Skip");
   } finally {
     harness.restoreGlobals();
   }
@@ -153,7 +178,7 @@ test("reduced motion bypasses the boot and leaves Wizball paused", async () => {
     assert.equal(completions[0].autoPlay, false);
     assert.equal(completions[0].reason, "reduced-motion");
     assert.ok(!phases.includes(BOOT_PHASES.POWER_ON));
-    assert.ok(harness.elementsById.get("boot-sequence").classList.contains("hidden"));
+    assertImmediateReveal(harness, "Reduced motion");
   } finally {
     harness.restoreGlobals();
   }

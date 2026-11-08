@@ -29,6 +29,7 @@ export async function bootWorkbench(options = {}) {
   let view = null;
   let player = null;
   let bootOutcome = null;
+  let bootActive = true;
   let bootTarget = null;
   let bootTargetLoaded = false;
   let prewarmDone = false;
@@ -42,8 +43,6 @@ export async function bootWorkbench(options = {}) {
     if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
     bootTargetLoaded = true;
     view.selectGameAndTrack(bootTarget.gameId, bootTarget.trackId, false);
-    const telemetry = player.getTelemetry();
-    if (telemetry) view.renderTelemetry(telemetry);
   }
 
   function applyBootOutcome() {
@@ -70,6 +69,8 @@ export async function bootWorkbench(options = {}) {
       loadBootTargetPaused();
     },
     onComplete(outcome) {
+      bootActive = false;
+      view?.setRenderingPaused(false);
       bootOutcome = outcome;
       applyBootOutcome();
     },
@@ -120,6 +121,7 @@ export async function bootWorkbench(options = {}) {
     telemetryHz,
     onFirstInteraction: handleFirstInteraction,
   });
+  view.setRenderingPaused(bootActive);
 
   const [wasmResp, directivesResp, narrativeResp, ...asmResps] = await Promise.all([
     fetchFn("./wasm/c64_engine.wasm"),

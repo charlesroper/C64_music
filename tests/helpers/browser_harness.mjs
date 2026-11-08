@@ -397,6 +397,13 @@ export function createBrowserHarness({
   });
 
   const pageBody = new MockElement("body");
+  const bodyTag = html.match(/<body([^>]*)>/);
+  if (bodyTag) {
+    for (const dataMatch of bodyTag[1].matchAll(/\bdata-([a-zA-Z0-9-]+)="([^"]*)"/g)) {
+      const camel = dataMatch[1].replace(/-([a-z0-9])/g, (_, ch) => ch.toUpperCase());
+      pageBody.dataset[camel] = dataMatch[2];
+    }
+  }
 
   globalThis.document = {
     hidden: false,

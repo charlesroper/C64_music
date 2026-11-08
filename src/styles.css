@@ -2383,6 +2383,11 @@ body[data-boot-state="booting"] .app-shell {
   pointer-events: none;
 }
 
+html[data-boot-mode="immediate"] body[data-boot-state="booting"] .app-shell {
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .boot-sequence {
   position: fixed;
   inset: 0;
@@ -2392,6 +2397,17 @@ body[data-boot-state="booting"] .app-shell {
   justify-content: center;
   overflow: hidden;
   background: #000;
+}
+
+.boot-sequence.is-fading {
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: ease-out;
+  pointer-events: none;
+}
+
+html[data-boot-mode="immediate"] .boot-sequence {
+  display: none;
 }
 
 .boot-frame {

@@ -3,10 +3,19 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+      (() => {
+        const params = new URLSearchParams(location.search);
+        const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (params.get("skipBoot") === "1" || reduced) {
+          document.documentElement.dataset.bootMode = "immediate";
+        }
+      })();
+    </script>
     <title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) v2026.11.08.3</title>
     <link rel="stylesheet" href="./src/styles.css?v=2026.11.08.3">
   </head>
-  <body>
+  <body data-boot-state="booting">
     <div class="app-shell">
       <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
       <header class="top-bar">
@@ -549,7 +558,7 @@
 
     <!-- ==================== C64 BOOT SEQUENCE ==================== -->
     <div
-      class="boot-sequence hidden"
+      class="boot-sequence"
       id="boot-sequence"
       role="dialog"
       aria-modal="true"
