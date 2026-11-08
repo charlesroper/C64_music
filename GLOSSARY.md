@@ -28,6 +28,18 @@ _Avoid_: UI container, frontend app
 A track configuration descriptor defining the active game, tune, source file, drum routine availability, and program counter symbols.
 _Avoid_: Song selection, track model
 
+**Boot Sequence**:
+The full-screen CRT startup that simulates a Commodore 64 power-on, BASIC screen and tape load before handing off to the workbench with a named Load Target.
+_Avoid_: Intro, splash screen, loading overlay
+
+**Load Target**:
+The Galway software selected by the Boot Sequence. Wizball is the only target exposed in the first version.
+_Avoid_: Boot game, startup track
+
+**Press Play Gate**:
+The user gesture in the Boot Sequence that unlocks browser audio and starts the tape load.
+_Avoid_: Autoplay prompt, start button
+
 **Loader Adapter**:
 A dedicated game-specific loader function responsible for initializing Commodore 64 memory, custom raster routines, jump tables, and CPU registers for one Galway audio routine before driver execution begins.
 _Avoid_: Boot branch, track init script
