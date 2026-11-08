@@ -5,6 +5,7 @@
 import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createBootSequence } from "./boot_sequence.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
+import { createTapeLoadingSound } from "./tape_loading_sound.js";
 import {
   cancelViewerSmoothScroll,
   createWorkbenchView,
@@ -28,6 +29,9 @@ export async function bootWorkbench(options = {}) {
   let bootOutcome = null;
   let preUnlockedAudioCtx = null;
   let preUnlockedLatencyHint = null;
+  const tapeSound = createTapeLoadingSound({
+    getContext: () => player?.getAudioContext?.() || null,
+  });
 
   function applyBootOutcome() {
     if (!bootOutcome || !view || !player) return;
@@ -42,6 +46,7 @@ export async function bootWorkbench(options = {}) {
     target: { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" },
     reducedMotion,
     skip: skipBoot,
+    tapeSound,
     onComplete(outcome) {
       bootOutcome = outcome;
       applyBootOutcome();

@@ -48,7 +48,7 @@ function createClock() {
   };
 }
 
-function createBoot(harness, options = {}) {
+function createBoot(options = {}) {
   const clock = createClock();
   const phases = [];
   const completions = [];
@@ -73,7 +73,17 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
     const bootFrame = harness.elementsById.get("boot-frame");
     bootFrame.width = 1440;
     bootFrame.height = 1020;
-    const { boot, clock, completions } = createBoot(harness);
+    const tape = { starts: 0, stops: 0 };
+    const { boot, clock, completions } = createBoot({
+      tapeSound: {
+        start: () => {
+          tape.starts++;
+        },
+        stop: () => {
+          tape.stops++;
+        },
+      },
+    });
     boot.start();
 
     const overlay = harness.elementsById.get("boot-sequence");
@@ -95,10 +105,14 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
     globalThis.document.dispatchEvent("pointerdown");
     assert.equal(boot.getState().phase, BOOT_PHASES.LOADING);
     assert.equal(completions.length, 0);
+    assert.equal(tape.starts, 1);
 
     boot.setReady();
-    clock.advance(300);
+    clock.advance(1000);
+    assert.equal(boot.getState().phase, BOOT_PHASES.LOADING);
+    clock.advance(1400 + 300);
     assert.equal(boot.getState().phase, BOOT_PHASES.READY);
+    assert.equal(tape.stops, 1);
     clock.advance(500);
     await Promise.resolve();
     await Promise.resolve();
@@ -117,7 +131,7 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
 test("skip completes with Wizball playing once the player is ready", async () => {
   const harness = createBrowserHarness();
   try {
-    const { boot, completions } = createBoot(harness);
+    const { boot, completions } = createBoot();
     boot.start();
     boot.setReady();
     boot.skip();
@@ -133,7 +147,7 @@ test("skip completes with Wizball playing once the player is ready", async () =>
 test("reduced motion bypasses the boot and leaves Wizball paused", async () => {
   const harness = createBrowserHarness();
   try {
-    const { boot, phases, completions } = createBoot(harness, { reducedMotion: true });
+    const { boot, phases, completions } = createBoot({ reducedMotion: true });
     boot.start();
     assert.equal(completions.length, 1);
     assert.equal(completions[0].autoPlay, false);

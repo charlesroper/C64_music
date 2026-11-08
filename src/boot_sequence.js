@@ -52,6 +52,7 @@ export function createBootSequence({
   target = DEFAULT_TARGET,
   reducedMotion = false,
   skip = false,
+  tapeSound = null,
   onPhase = () => {},
   onComplete = () => {},
   schedule = (fn, ms) => setTimeout(fn, ms),
@@ -81,6 +82,9 @@ export function createBootSequence({
   let cursorCol = 0;
   let pendingCompletion = null;
   let loadScheduled = false;
+  let loaderTimer = null;
+  let loaderTick = 0;
+  let loaderMinimumElapsed = false;
 
   const state = {
     phase: BOOT_PHASES.IDLE,
@@ -131,9 +135,9 @@ export function createBootSequence({
     const cursorIndex = cursorRow * SCREEN_COLS + cursorCol;
     const showCursor =
       cursorVisible &&
-      state.phase !== BOOT_PHASES.POWER_ON &&
-      state.phase !== BOOT_PHASES.COLLAPSING &&
-      state.phase !== BOOT_PHASES.COMPLETE;
+      (state.phase === BOOT_PHASES.BASIC ||
+        state.phase === BOOT_PHASES.TYPING ||
+        state.phase === BOOT_PHASES.GATE);
     let previous = 0;
     if (showCursor) {
       previous = screenRam[cursorIndex];
@@ -158,6 +162,58 @@ export function createBootSequence({
     cursorRow = 6;
     cursorCol = 0;
     render(6);
+  }
+
+  function writeCentered(row, text, color) {
+    const col = Math.max(0, Math.floor((SCREEN_COLS - text.length) / 2));
+    writeText(screenRam, colorRam, row, col, text, color);
+  }
+
+  function drawLoaderScreen() {
+    const progress = Math.min(1, (loaderTick + 1) / 20);
+    screenRam.fill(0x20);
+    colorRam.fill(14);
+    border.fill(0);
+
+    for (let line = 0; line < border.length; line++) {
+      border[line] = [0, 6, 14, 3, 7][(line + loaderTick) % 5];
+    }
+
+    writeCentered(2, "GALWAY 2664", 7);
+    writeCentered(4, "WIZBALL", 14);
+    writeCentered(6, "MARTIN GALWAY", 14);
+    writeCentered(7, "OCEAN SOFTWARE", 14);
+    writeCentered(10, "LOADING", 7);
+    writeCentered(12, `BLOCK ${String(loaderTick * 5).padStart(3, "0")}`, 3);
+
+    const barLength = Math.round(progress * 30);
+    for (let i = 0; i < barLength; i++) {
+      screenRam[14 * SCREEN_COLS + 5 + i] = 0xa0;
+      colorRam[14 * SCREEN_COLS + 5 + i] = 13;
+    }
+    render(0);
+  }
+
+  function startLoader() {
+    loaderTick = 0;
+    drawLoaderScreen();
+    if (loaderTimer !== null) clearIntervalFn(loaderTimer);
+    loaderTimer = setIntervalFn(() => {
+      if (state.completed || state.phase !== BOOT_PHASES.LOADING) return;
+      loaderTick++;
+      drawLoaderScreen();
+    }, 120);
+    later(() => {
+      loaderMinimumElapsed = true;
+      maybeFinishLoad();
+    }, 2400);
+  }
+
+  function stopLoader() {
+    if (loaderTimer !== null) {
+      clearIntervalFn(loaderTimer);
+      loaderTimer = null;
+    }
   }
 
   function typeLoadCommand(index) {
@@ -195,7 +251,7 @@ export function createBootSequence({
 
   function maybeFinishLoad() {
     if (!state.gateActive || state.phase !== BOOT_PHASES.LOADING || !state.ready) return;
-    if (loadScheduled) return;
+    if (!loaderMinimumElapsed || loadScheduled) return;
     loadScheduled = true;
     later(finishLoad, 300);
   }
@@ -205,24 +261,20 @@ export function createBootSequence({
     state.gateActive = true;
     hideHint();
     setPhase(BOOT_PHASES.LOADING);
-    clearText(screenRam, colorRam, 8, 0, 40, 14);
-    writeText(screenRam, colorRam, 8, 0, "OK", 14);
-    writeText(screenRam, colorRam, 9, 0, "SEARCHING FOR WIZBALL", 14);
-    if (!state.ready) writeText(screenRam, colorRam, 10, 0, "LOADING...", 14);
-    cursorRow = 11;
-    cursorCol = 0;
-    render(6);
+    loadScheduled = false;
+    loaderMinimumElapsed = false;
+    if (tapeSound && typeof tapeSound.start === "function") tapeSound.start();
+    startLoader();
     maybeFinishLoad();
   }
 
   function finishLoad() {
     if (state.completed) return;
     loadScheduled = false;
-    clearText(screenRam, colorRam, 10, 0, 40, 14);
-    writeText(screenRam, colorRam, 10, 0, "FOUND WIZBALL", 14);
-    writeText(screenRam, colorRam, 11, 0, "READY.", 14);
-    cursorRow = 12;
-    cursorCol = 0;
+    stopLoader();
+    if (tapeSound && typeof tapeSound.stop === "function") tapeSound.stop();
+    resetScreen(14, 6, 14);
+    writeCentered(12, "READY.", 14);
     setPhase(BOOT_PHASES.READY);
     render(6);
     later(collapse, 500);
@@ -274,6 +326,8 @@ export function createBootSequence({
     state.reason = reason;
     clearTimers();
     stopBlink();
+    stopLoader();
+    if (tapeSound && typeof tapeSound.stop === "function") tapeSound.stop();
     removeInputListeners();
     hideHint();
     setPhase(BOOT_PHASES.COMPLETE);
@@ -359,6 +413,8 @@ export function createBootSequence({
     state.completed = true;
     clearTimers();
     stopBlink();
+    stopLoader();
+    if (tapeSound && typeof tapeSound.stop === "function") tapeSound.stop();
     removeInputListeners();
     hideHint();
     overlay.classList.add("hidden");

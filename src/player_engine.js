@@ -530,6 +530,7 @@ export function createWorkbenchPlayer({
   return {
     getTelemetry,
     getAudioDiagnostics,
+    getAudioContext: () => state.audioCtx,
     selectTrack,
     prepareAudio,
     play,
