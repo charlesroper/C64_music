@@ -99,6 +99,7 @@ export function createBrowserHarness({
       this.checked = false;
       this.style = {};
       this.dataset = {};
+      this.attributes = {};
       this.children = [];
       this.parentElement = null;
       this._isConnected = true;
@@ -191,6 +192,14 @@ export function createBrowserHarness({
     addEventListener(type, fn) {
       if (!this.listeners[type]) this.listeners[type] = [];
       this.listeners[type].push(fn);
+    }
+
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+    }
+
+    getAttribute(name) {
+      return Object.hasOwn(this.attributes, name) ? this.attributes[name] : null;
     }
 
     dispatchEvent(type, extra = {}) {

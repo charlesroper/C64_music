@@ -6,78 +6,103 @@
 
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
+const HELP_INTRO =
+  "A window is about one second. Window values reset every window. Peak values stay until reload. Use peak when a spike has already passed.";
+
 const GROUPS = [
   {
     id: "context",
     title: "CONTEXT",
+    description: "What browser and audio setup is running.",
     items: [
-      ["backend", "backend"],
-      ["ctx", "ctx"],
-      ["rate", "rate"],
-      ["telemetry", "telemetry"],
+      ["backend", "backend", "Audio engine in use. Worklet is normal playback."],
+      ["ctx", "ctx", "Browser audio state. Running means sound can play."],
+      ["rate", "rate", "Audio sample rate in Hz."],
+      ["telemetry", "telemetry", "How often screen and scope updates arrive."],
     ],
   },
   {
     id: "latency",
     title: "LATENCY",
+    description: "How much output buffer the browser reports.",
     items: [
-      ["mode", "mode"],
-      ["base", "base"],
-      ["out", "out"],
+      ["mode", "mode", "Browser buffer hint. Playback is the stable default."],
+      ["base", "base", "Browser-reported base latency."],
+      [
+        "out",
+        "out",
+        "Browser-reported output buffer. Firefox is about 10ms; Chromium about 192ms.",
+      ],
     ],
   },
   {
     id: "process",
     title: "PROCESS (ms)",
+    description: "How long audio callbacks and main-thread frames take.",
     items: [
-      ["p50", "p50"],
-      ["p95", "p95"],
-      ["p99", "p99"],
-      ["max", "max"],
-      ["peak", "peak"],
-      ["budget", "budget"],
-      ["renderMax", "render max"],
-      ["renderPeak", "render peak"],
-      ["packMax", "pack max"],
-      ["packPeak", "pack peak"],
-      ["postMax", "post max"],
-      ["postPeak", "post peak"],
-      ["gainMax", "gain max"],
-      ["gainPeak", "gain peak"],
-      ["frameP50", "frame p50"],
-      ["frameP95", "frame p95"],
-      ["frameMax", "frame max"],
-      ["framePeak", "frame peak"],
-      ["frameCalls", "frames"],
+      ["p50", "p50", "Half of audio callbacks were faster than this."],
+      ["p95", "p95", "95% of audio callbacks were faster. A near-worst case."],
+      ["p99", "p99", "99% of audio callbacks were faster. The worst 1%."],
+      ["max", "max", "Slowest audio callback in the current window."],
+      ["peak", "peak", "Slowest audio callback since page load."],
+      ["budget", "budget", "Time available for one callback, about 2.67ms."],
+      [
+        "renderMax",
+        "render max",
+        "Audio rendering time in the current window. Includes telemetry copy.",
+      ],
+      [
+        "renderPeak",
+        "render peak",
+        "Slowest audio rendering since page load. Includes telemetry copy.",
+      ],
+      ["packMax", "pack max", "Telemetry copy time in the current window."],
+      ["packPeak", "pack peak", "Slowest telemetry copy since page load."],
+      ["postMax", "post max", "Telemetry handoff time in the current window."],
+      ["postPeak", "post peak", "Slowest telemetry handoff since page load."],
+      ["gainMax", "gain max", "Volume ramp time in the current window."],
+      ["gainPeak", "gain peak", "Slowest volume ramp since page load."],
+      ["frameP50", "frame p50", "Half of rendered frames did less main-thread work."],
+      ["frameP95", "frame p95", "95% of rendered frames did less main-thread work."],
+      ["frameMax", "frame max", "Slowest rendered frame in the current frame window."],
+      ["framePeak", "frame peak", "Slowest rendered frame since page load."],
+      ["frameCalls", "frames", "Rendered frames in the current frame window. 60 means full."],
     ],
   },
   {
     id: "deadlines",
     title: "DEADLINES",
+    description: "Audio work that missed its deadline.",
     items: [
-      ["lateTotal", "late total"],
-      ["lateWindow", "late window"],
-      ["latePeak", "late peak"],
-      ["missedTotal", "missed total"],
-      ["missedWindow", "missed window"],
-      ["missedPeak", "missed peak"],
+      ["lateTotal", "late total", "Audio callbacks over budget since page load."],
+      [
+        "lateWindow",
+        "late window",
+        "Over-budget callbacks in the current window, out of the callback count.",
+      ],
+      ["latePeak", "late peak", "Worst window count since page load."],
+      ["missedTotal", "missed total", "Whole audio blocks skipped since page load."],
+      ["missedWindow", "missed window", "Whole audio blocks skipped in the current window."],
+      ["missedPeak", "missed peak", "Worst skipped-block count in a window since page load."],
     ],
   },
   {
     id: "telemetry",
     title: "TELEMETRY",
+    description: "Health of the screen and scope update stream.",
     items: [
-      ["dropsTotal", "drops total"],
-      ["dropsWindow", "drops window"],
-      ["dropsPeak", "drops peak"],
-      ["volume", "volume"],
-      ["playing", "playing"],
+      ["dropsTotal", "drops total", "UI snapshots dropped since page load. Audio is unaffected."],
+      ["dropsWindow", "drops window", "UI snapshots dropped in the current window."],
+      ["dropsPeak", "drops peak", "Worst dropped-snapshot count in a window since page load."],
+      ["volume", "volume", "Current output gain. 1.00 is full volume."],
+      ["playing", "playing", "Whether playback is requested."],
     ],
   },
   {
     id: "events",
     title: "EVENTS",
-    items: [["events", "events"]],
+    description: "Recent audio-context state changes.",
+    items: [["events", "events", "Recent audio-context state changes."]],
   },
 ];
 
@@ -165,10 +190,28 @@ function createDiagnosticsLayout(doc) {
   element.id = "audio-diagnostics";
   element.classList.add("audio-diagnostics");
 
+  const header = doc.createElement("div");
+  header.classList.add("diag-header");
+
   const title = doc.createElement("h2");
   title.classList.add("diag-title");
   title.textContent = "STATS FOR NERDS";
-  element.appendChild(title);
+  header.appendChild(title);
+
+  const helpButton = doc.createElement("button");
+  helpButton.classList.add("diag-help-toggle");
+  helpButton.type = "button";
+  helpButton.textContent = "?";
+  helpButton.setAttribute("aria-label", "Explain stats");
+  helpButton.setAttribute("aria-expanded", "false");
+  header.appendChild(helpButton);
+
+  element.appendChild(header);
+
+  const intro = doc.createElement("p");
+  intro.classList.add("diag-help-intro");
+  intro.textContent = HELP_INTRO;
+  element.appendChild(intro);
 
   const valueNodes = new Map();
   for (const group of GROUPS) {
@@ -180,7 +223,12 @@ function createDiagnosticsLayout(doc) {
     groupTitle.textContent = group.title;
     groupEl.appendChild(groupTitle);
 
-    for (const [key, label] of group.items) {
+    const groupDescription = doc.createElement("p");
+    groupDescription.classList.add("diag-group-description");
+    groupDescription.textContent = group.description;
+    groupEl.appendChild(groupDescription);
+
+    for (const [key, label, help] of group.items) {
       const item = doc.createElement("span");
       item.classList.add("diag-item");
 
@@ -193,8 +241,13 @@ function createDiagnosticsLayout(doc) {
       valueEl.dataset.metric = `${group.id}:${key}`;
       valueEl.textContent = "-";
 
+      const helpEl = doc.createElement("span");
+      helpEl.classList.add("diag-help");
+      helpEl.textContent = help;
+
       item.appendChild(labelEl);
       item.appendChild(valueEl);
+      item.appendChild(helpEl);
       groupEl.appendChild(item);
       valueNodes.set(`${group.id}:${key}`, valueEl);
     }
@@ -202,7 +255,7 @@ function createDiagnosticsLayout(doc) {
     element.appendChild(groupEl);
   }
 
-  return { element, valueNodes };
+  return { element, valueNodes, helpButton };
 }
 
 export function createAudioDiagnosticsOverlay({
@@ -214,10 +267,21 @@ export function createAudioDiagnosticsOverlay({
   if (!doc || !player) return null;
   const params = new URLSearchParams(win?.location?.search || "");
   let visible = params.get("audioDebug") === "1";
+  let helpOpen = false;
 
-  const { element, valueNodes } = createDiagnosticsLayout(doc);
+  const { element, valueNodes, helpButton } = createDiagnosticsLayout(doc);
   element.classList.toggle("hidden", !visible);
   doc.body.appendChild(element);
+
+  function setHelp(open) {
+    helpOpen = Boolean(open);
+    element.classList.toggle("is-help", helpOpen);
+    helpButton.textContent = helpOpen ? "×" : "?";
+    helpButton.setAttribute("aria-label", helpOpen ? "Close stats explanation" : "Explain stats");
+    helpButton.setAttribute("aria-expanded", helpOpen ? "true" : "false");
+  }
+
+  helpButton.addEventListener("click", () => setHelp(!helpOpen));
 
   let timer = null;
 
@@ -251,6 +315,7 @@ export function createAudioDiagnosticsOverlay({
   }
 
   function hide() {
+    setHelp(false);
     visible = false;
     element.classList.add("hidden");
     stopTimer();

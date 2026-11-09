@@ -267,6 +267,15 @@ test("Stats groups metrics and keeps each label with its value", () => {
         `Stats must render the ${id} group`,
       );
     }
+    assert.equal(
+      globalThis.document.querySelectorAll(".diag-group-description").length,
+      6,
+      "Every group must have a help description",
+    );
+    assert.match(
+      globalThis.document.querySelector(".diag-help-intro").textContent,
+      /window is about one second/i,
+    );
 
     const value = (metric) =>
       globalThis.document.querySelector(`[data-metric="${metric}"]`)?.textContent;
@@ -284,10 +293,57 @@ test("Stats groups metrics and keeps each label with its value", () => {
     assert.equal(value("telemetry:volume"), "1.00");
 
     for (const item of globalThis.document.querySelectorAll(".diag-item")) {
-      assert.equal(item.children.length, 2, "Each metric must be one label/value unit");
+      assert.equal(item.children.length, 3, "Each metric must have label, value and help");
       assert.equal(item.children[0].className, "diag-label");
       assert.equal(item.children[1].className, "diag-value");
+      assert.equal(item.children[2].className, "diag-help");
+      assert.ok(item.children[2].textContent.length > 0, "Every metric needs a help description");
     }
+    assert.equal(
+      globalThis.document.querySelectorAll(".diag-help").length,
+      38,
+      "All 38 metrics must have help text",
+    );
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats help mode expands descriptions and closes back to compact", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({}) },
+    window: globalThis.window,
+  });
+
+  try {
+    const button = globalThis.document.querySelector(".diag-help-toggle");
+    assert.ok(button, "Stats must have a help toggle");
+    assert.equal(button.textContent, "?");
+    assert.equal(button.getAttribute("aria-label"), "Explain stats");
+    assert.equal(button.getAttribute("aria-expanded"), "false");
+    assert.ok(!overlay.element.classList.contains("is-help"));
+
+    button.click();
+    assert.ok(overlay.element.classList.contains("is-help"));
+    assert.equal(button.getAttribute("aria-label"), "Close stats explanation");
+    assert.equal(button.getAttribute("aria-expanded"), "true");
+    assert.equal(button.textContent, "×");
+
+    overlay.hide();
+    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.equal(button.getAttribute("aria-expanded"), "false");
+    assert.ok(overlay.element.classList.contains("hidden"));
+
+    overlay.show();
+    assert.ok(!overlay.element.classList.contains("is-help"));
+    button.click();
+    assert.ok(overlay.element.classList.contains("is-help"));
+    button.click();
+    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.equal(button.textContent, "?");
   } finally {
     overlay.stop();
     harness.restoreGlobals();

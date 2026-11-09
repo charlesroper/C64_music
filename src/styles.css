@@ -2489,6 +2489,37 @@ html[data-boot-mode="immediate"] .boot-sequence {
   letter-spacing: 1px;
 }
 
+.diag-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.diag-help-toggle {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-bright);
+  background: transparent;
+  color: var(--accent-cyan);
+  font-family: monospace;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.diag-help-toggle:hover {
+  border-color: var(--accent-cyan);
+}
+
+.diag-help-toggle:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
 .diag-group {
   --diag-accent: var(--accent-cyan);
   display: flex;
@@ -2548,6 +2579,80 @@ html[data-boot-mode="immediate"] .boot-sequence {
 
 .diag-group--events .diag-value {
   overflow-wrap: anywhere;
+}
+
+.diag-help-intro,
+.diag-group-description,
+.diag-help {
+  display: none;
+}
+
+.diag-help-intro,
+.diag-group-description {
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.diag-help-intro {
+  border-left: 2px solid var(--border-bright);
+  padding-left: 6px;
+}
+
+.diag-group-description {
+  flex-basis: 100%;
+  margin: 1px 0 2px;
+}
+
+.diag-help {
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.audio-diagnostics.is-help {
+  top: 8px;
+  bottom: 8px;
+  left: 50%;
+  width: min(560px, calc(100vw - 16px));
+  max-width: none;
+  transform: translateX(-50%);
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.96);
+  pointer-events: auto;
+}
+
+.audio-diagnostics.is-help .diag-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 4px;
+  background: rgba(0, 0, 0, 0.96);
+}
+
+.audio-diagnostics.is-help .diag-help-intro,
+.audio-diagnostics.is-help .diag-group-description,
+.audio-diagnostics.is-help .diag-help {
+  display: block;
+}
+
+.audio-diagnostics.is-help .diag-item {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 6px;
+  white-space: normal;
+}
+
+.audio-diagnostics.is-help .diag-label,
+.audio-diagnostics.is-help .diag-value {
+  grid-row: 1;
+}
+
+.audio-diagnostics.is-help .diag-help {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }
 
 @media (max-width: 420px) {
