@@ -95,6 +95,11 @@ Release sequence:
 4. Run `npm run deploy`. Completion: the push succeeds on `fork/main`.
 5. Verify the live build with `gh api repos/charlesroper/C64_music/pages/builds/latest` or `curl https://charlesroper.github.io/C64_music/`. Completion: report the live URL, CalVer version and commit hash.
 
+### Release tags
+
+- After a successful deploy, tag the commit `deploy-v<CalVer>` and push it to `fork`.
+- Create `known-good-v<CalVer>` only after the user confirms the live build is good. Never create it automatically.
+
 ## 7. Search tooling
 
 Use the agent harness's built-in content search and file discovery tools when they exist. They are permission-aware and usually return structured results. Many harnesses already back content search with ripgrep. If the harness has no built-in search tools, use shell `rg` and `fd`.

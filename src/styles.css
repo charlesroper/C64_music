@@ -2633,7 +2633,7 @@ html[data-boot-mode="immediate"] .boot-sequence {
   gap: 0;
   transform: translateX(-50%);
   overflow-y: auto;
-  background: rgba(0, 0, 0, 0.96);
+  background: linear-gradient(to bottom, transparent 0, transparent 57px, rgba(0, 0, 0, 0.94) 57px);
   pointer-events: auto;
 }
 
@@ -2643,9 +2643,9 @@ html[data-boot-mode="immediate"] .boot-sequence {
   z-index: 2;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(56, 226, 255, 0.16);
-  background: rgba(4, 8, 12, 0.62);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(4, 8, 12, 0.56);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 
 .audio-diagnostics.is-help .diag-body {
