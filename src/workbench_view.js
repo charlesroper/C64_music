@@ -1907,18 +1907,20 @@ export function createWorkbenchView({
     };
   }
 
+  function isRenderLoopActive() {
+    return !isDestroyed && !renderingPaused && !state.renderMinimal;
+  }
+
+  function scheduleRenderFrame() {
+    if (!isRenderLoopActive() || !win || typeof win.requestAnimationFrame !== "function") return;
+    if (rafId !== null) return;
+    rafId = win.requestAnimationFrame(renderFrameLoop);
+  }
+
   function renderFrameLoop(timestamp) {
-    if (isDestroyed || state.renderMinimal) return;
-
-    if (win && typeof win.requestAnimationFrame === "function") {
-      rafId = win.requestAnimationFrame(renderFrameLoop);
-    }
-
-    if (renderingPaused) return;
-
-    if (doc?.hidden) {
-      return;
-    }
+    rafId = null;
+    if (!isRenderLoopActive() || doc?.hidden) return;
+    scheduleRenderFrame();
 
     if (typeof timestamp === "number") {
       const minFrameInterval = state.lowPower
@@ -1956,7 +1958,7 @@ export function createWorkbenchView({
   }
 
   function handleVisibilityChange() {
-    if (doc.hidden || renderingPaused || state.renderMinimal) return;
+    if (doc.hidden || !isRenderLoopActive()) return;
     resetTelemetryCaches();
     if (state.player) {
       const tel = state.player.getTelemetry();
@@ -1966,6 +1968,7 @@ export function createWorkbenchView({
         renderTelemetry(tel);
       }
     }
+    scheduleRenderFrame();
   }
 
   if (doc && typeof doc.addEventListener === "function") {
@@ -1974,7 +1977,7 @@ export function createWorkbenchView({
   }
 
   if (win && typeof win.requestAnimationFrame === "function") {
-    rafId = win.requestAnimationFrame(renderFrameLoop);
+    scheduleRenderFrame();
   }
 
   function setRenderingPaused(paused) {
@@ -1984,6 +1987,7 @@ export function createWorkbenchView({
     if (!renderingPaused) {
       resetTelemetryCaches();
       lastFrameTimestamp = 0;
+      scheduleRenderFrame();
     }
   }
 

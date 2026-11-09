@@ -1559,7 +1559,7 @@ test("Minimal render marks the body and pauses the workbench render loop", () =>
       !globalThis.document.body.classList.contains("low-power"),
       "Minimal render must not enable low power mode",
     );
-    assert.equal(rafCalls, 1, "Minimal render must schedule the initial frame only");
+    assert.equal(rafCalls, 0, "Minimal render must not schedule animation frames");
 
     player.play();
     for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
@@ -1570,7 +1570,7 @@ test("Minimal render marks the body and pauses the workbench render loop", () =>
       0,
       "Minimal render must pause the workbench render loop",
     );
-    assert.equal(rafCalls, 1, "Minimal render must not schedule another frame");
+    assert.equal(rafCalls, 0, "Minimal render must not schedule another frame");
 
     const before = view.state.activeTrackId;
     harness.elementsById.get("btn-next").click();
