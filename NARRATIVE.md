@@ -609,3 +609,11 @@ Telemetry snapshots ran whenever audio played. The low power mode lowered the ra
 The Player Engine now has an explicit telemetry enable and disable path. The Engine Core skips snapshot construction while telemetry is disabled, and the AudioWorklet processor drops any outgoing snapshot. Audio diagnostics keep flowing and the existing buffer pool stays in place. Stats shows `OFF` for the telemetry rate. `?telemetry=off` starts with snapshots disabled and locked, so opening Stats cannot re-enable them. The default 62.5Hz rate and `?telemetry=30` are unchanged.
 
 Tests cover the worklet gate, Player Engine state, the locked override, Stats `OFF` and URL parsing. The suite rose to 94 checks across 12 files. Commit [132ac8d](https://github.com/charlesroper/C64_music/commit/132ac8d), follow-up [47c4c08](https://github.com/charlesroper/C64_music/commit/47c4c08) and issue [#62](https://github.com/charlesroper/C64_music/issues/62) carry the change.
+
+### 9 November 2026: minimal render isolates presentation work
+
+The Firefox isolation matrix needed a way to remove presentation work without entering a product mode. The workbench can now be loaded with `?render=minimal`. The flag hides the centre and right panels, collapses the grid to one column, hides the mobile tabs and pauses the workbench render loop. The transport and track list stay usable, and the music-only state is not applied.
+
+The paused loop covers the boot handoff: boot completion clears its own pause flag but the minimal render guard still stops frames. The CSS keeps the track list visible even when a mobile tab would normally hide it.
+
+Tests cover the flag, the `render-minimal` body class, the paused loop, track switching, the absence of the low-power class and phone-width CSS hiding. A headless Chromium 153 check at 375x812 found the centre, right and tab elements hidden, the left panel visible and a 368px scroll width inside a 375px viewport. The suite rose to 97 checks across 12 files. Commit [b84b796](https://github.com/charlesroper/C64_music/commit/b84b796) and issue [#63](https://github.com/charlesroper/C64_music/issues/63) carry the change.
