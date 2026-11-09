@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { createAudioDiagnosticsOverlay } from "../src/audio_diagnostics.js";
+import { resolveLatencyHint } from "../src/latency_hint.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
@@ -39,6 +40,17 @@ function pullAudioFrames(player, blocks = 20, blockSize = 2048) {
 
   return { peakL, peakR, rms: Math.sqrt(sumSq / (blocks * blockSize)), nanCount };
 }
+
+test("debug latency hints parse with playback fallback", () => {
+  assert.equal(resolveLatencyHint("playback"), "playback");
+  assert.equal(resolveLatencyHint("balanced"), "balanced");
+  assert.equal(resolveLatencyHint("interactive"), "interactive");
+  assert.equal(resolveLatencyHint("0.1"), 0.1);
+  assert.equal(resolveLatencyHint("0.2"), 0.2);
+  assert.equal(resolveLatencyHint("0.3"), "playback");
+  assert.equal(resolveLatencyHint("bogus"), "playback");
+  assert.equal(resolveLatencyHint(undefined), "playback");
+});
 
 test("unified browser harness enforces strict element IDs and shares environment between UI tests", () => {
   const harness = createBrowserHarness({
@@ -218,6 +230,22 @@ test("Stats shows OFF when telemetry snapshots are disabled", () => {
   try {
     const value = globalThis.document.querySelector('[data-metric="context:telemetry"]');
     assert.equal(value.textContent, "OFF");
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats shows a numeric debug latency hint", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({ latencyHint: 0.2 }) },
+    window: globalThis.window,
+  });
+  try {
+    const value = globalThis.document.querySelector('[data-metric="latency:mode"]');
+    assert.equal(value.textContent, "0.2");
   } finally {
     overlay.stop();
     harness.restoreGlobals();
@@ -571,6 +599,28 @@ test("?telemetry=off boots with snapshots disabled and locked", async () => {
     );
     assert.equal(booted.player.getState().telemetryEnabled, false);
     assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 62.5);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("?latency=0.2 boots with a numeric hint in the context and Stats", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    globalThis.window.location = { search: "?latency=0.2" };
+    const booted = await bootWorkbench({ skipBoot: true });
+    booted.player.prepareAudio();
+
+    assert.equal(booted.player.getState().latencyHint, 0.2);
+    assert.equal(booted.player.getAudioDiagnostics().latencyHint, 0.2);
+    assert.equal(harness.audioState.ctx.latencyHint, 0.2);
+
+    booted.diagnostics.show();
+    assert.equal(
+      globalThis.document.querySelector('[data-metric="latency:mode"]').textContent,
+      "0.2",
+    );
+    booted.diagnostics.hide();
   } finally {
     harness.restoreGlobals();
   }

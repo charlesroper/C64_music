@@ -362,6 +362,33 @@ test("player defaults to the playback latency hint", async () => {
   assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
 });
 
+test("player passes debug latency hints to the AudioContext", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+
+  for (const hint of ["playback", "balanced", "interactive", 0.1, 0.2]) {
+    let received = null;
+    const player = createWorkbenchPlayer({
+      wasm: instance.exports,
+      wasmModule,
+      rawSources: { "wizball.asm": wizballSource },
+      latencyHint: hint,
+      createAudioContext: (options) => {
+        received = options;
+        return {
+          sampleRate: 48000,
+          state: "running",
+          destination: {},
+          resume: () => Promise.resolve(),
+        };
+      },
+    });
+
+    player.play();
+    assert.equal(received.latencyHint, hint);
+    assert.equal(player.getAudioDiagnostics().latencyHint, hint);
+  }
+});
+
 test("player defaults to 62.5Hz telemetry and accepts 30Hz", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const defaultPlayer = createWorkbenchPlayer({

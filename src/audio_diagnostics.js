@@ -257,7 +257,10 @@ function buildValues(diagnostics) {
       diagnostics.telemetryEnabled === false
         ? "OFF"
         : `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
-    "latency:mode": diagnostics.latencyHint || "-",
+    "latency:mode":
+      diagnostics.latencyHint !== undefined && diagnostics.latencyHint !== null
+        ? String(diagnostics.latencyHint)
+        : "-",
     "latency:base": formatLatency(diagnostics.baseLatency),
     "latency:out": formatLatency(diagnostics.outputLatency),
     "process:p50": formatMs(diagnostics.p50Us),

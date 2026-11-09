@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { createC64ScreenRenderer } from "./c64_screen.js";
+import { resolveLatencyHint } from "./latency_hint.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
 import { resolveTelemetryHz, TELEMETRY_HZ_DEFAULT, TELEMETRY_HZ_LOW } from "./telemetry_rate.js";
@@ -201,7 +202,7 @@ export function createWorkbenchView({
     // Dormant NTSC plumbing: the engine and player support remain; the UI switch is retired.
     videoNtsc: false,
     digiBoost: 1.3,
-    latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
+    latencyHint: resolveLatencyHint(latencyHint),
     telemetryHz: initialTelemetryHz,
     baseTelemetryHz: initialTelemetryHz,
     lowPower: false,

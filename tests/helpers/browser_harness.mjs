@@ -319,6 +319,7 @@ export function createBrowserHarness({
       this.sampleRate = hardwareSampleRate;
       this.state = "suspended";
       this.destination = { isDestination: true };
+      this.latencyHint = opts?.latencyHint;
       audioState.ctx = this;
     }
 

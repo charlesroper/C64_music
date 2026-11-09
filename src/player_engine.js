@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
+import { resolveLatencyHint } from "./latency_hint.js";
 import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
 import { resolveTelemetryHz, telemetryDividerForHz } from "./telemetry_rate.js";
@@ -286,7 +287,7 @@ export function createWorkbenchPlayer({
     muteMask: 0,
     soloVoice: -1,
     sampleRate: 48000,
-    latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
+    latencyHint: resolveLatencyHint(latencyHint),
     telemetryHz: initialTelemetryHz,
     telemetryEnabled: telemetryEnabled !== false,
     telemetryLockedOff: Boolean(telemetryLockedOff),
