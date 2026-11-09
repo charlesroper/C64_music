@@ -141,7 +141,7 @@ export function scrollToSourceLine(
     );
     smoothScrollSourceViewer(viewer, targetTop, { instant });
   } else if (el && typeof el.scrollIntoView === "function") {
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.scrollIntoView({ block: "center", behavior: instant ? "auto" : "smooth" });
   }
 }
 
@@ -738,7 +738,7 @@ export function createWorkbenchView({
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
         state.lastFollowedLine = targetLine.lineNo;
-        scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
+        scrollFollowLine(targetLine.lineNo);
       }
     }
   }
@@ -1180,7 +1180,7 @@ export function createWorkbenchView({
       const targetLine = activeLines.find((al) => al.cls === targetCls);
       if (targetLine && targetLine.lineNo !== state.lastFollowedLine) {
         state.lastFollowedLine = targetLine.lineNo;
-        scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
+        scrollFollowLine(targetLine.lineNo);
       }
     }
   }
@@ -1304,13 +1304,25 @@ export function createWorkbenchView({
     }
   }
 
+  function scrollFollowLine(lineNo) {
+    scrollToSourceLine(lineNo, { doc, getEl, instant: state.lowPower });
+  }
+
+  function applyLowPowerChrome(enabled) {
+    doc.body?.classList.toggle("low-power", enabled);
+    const chkLowPower = getEl("chk-low-power");
+    if (chkLowPower) chkLowPower.checked = enabled;
+    const lowPowerValue = getEl("low-power-value");
+    if (lowPowerValue) lowPowerValue.textContent = enabled ? "ON" : "OFF";
+    const chkCrt = getEl("chk-crt-scanlines");
+    if (chkCrt) chkCrt.disabled = enabled;
+  }
+
   function setLowPower(enabled) {
     const next = Boolean(enabled);
     if (state.lowPower === next) return;
     state.lowPower = next;
-    doc.body?.classList.toggle("low-power", next);
-    const valueEl = getEl("low-power-value");
-    if (valueEl) valueEl.textContent = next ? "ON" : "OFF";
+    applyLowPowerChrome(next);
     if (next) {
       state.telemetryHz = TELEMETRY_HZ_LOW;
       cancelViewerSmoothScroll();
@@ -1565,7 +1577,7 @@ export function createWorkbenchView({
           const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
           if (targetLine) {
             state.lastFollowedLine = targetLine.lineNo;
-            scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
+            scrollFollowLine(targetLine.lineNo);
           }
         }
       });
@@ -1587,11 +1599,7 @@ export function createWorkbenchView({
         crtOverlay.classList.toggle("hidden", !chkC.checked);
       }
 
-      const chkLP = getEl("chk-low-power");
-      if (chkLP) chkLP.checked = state.lowPower;
-      const lpValue = getEl("low-power-value");
-      if (lpValue) lpValue.textContent = state.lowPower ? "ON" : "OFF";
-      doc.body?.classList.toggle("low-power", state.lowPower);
+      applyLowPowerChrome(state.lowPower);
 
       const sDigi = getEl("slider-digi-boost");
       if (sDigi) {

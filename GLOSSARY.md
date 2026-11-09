@@ -65,7 +65,7 @@ The presentation loop guard that bypasses C64 monitor pixel transfers, oscillosc
 _Avoid_: Tick stopper, frame skipper
 
 **Low Power Mode**:
-An opt-in presentation mode that caps workbench rendering at 30fps, stops smooth source scrolling, disables sparkle and scanlines, and lowers telemetry to 30Hz while leaving the Engine Core and audio path unchanged.
+An opt-in presentation mode that caps workbench rendering at 30fps, stops smooth source scrolling, disables sparkle and scanlines and lowers telemetry to 30Hz while leaving the Engine Core and audio path unchanged.
 _Avoid_: performance mode, eco mode
 
 **Seam**:

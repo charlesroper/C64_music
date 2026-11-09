@@ -1326,6 +1326,11 @@ test("Opt-in low power mode caps rendering and restores the base telemetry rate"
     assert.ok(globalThis.document.body.classList.contains("low-power"));
     assert.equal(harness.elementsById.get("low-power-value").textContent, "ON");
     assert.equal(player.getState().telemetryHz, 30);
+    assert.equal(
+      harness.elementsById.get("chk-crt-scanlines").disabled,
+      true,
+      "Scanline control must be disabled while low power is on",
+    );
 
     const brandLogo = globalThis.document.querySelector(".brand-logo");
     brandLogo.click();
@@ -1334,14 +1339,32 @@ test("Opt-in low power mode caps rendering and restores the base telemetry rate"
     for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
       harness.stepAnimationFrame(timestamp);
     }
-    const frame = view.getFrameDiagnostics();
-    assert.equal(frame.frameCalls, 4, "30fps cap must render four of seven frames at 16ms");
+    const lowPowerFrames = view.getFrameDiagnostics();
+    assert.equal(
+      lowPowerFrames.frameCalls,
+      4,
+      "30fps cap must render four of seven frames at 16ms",
+    );
 
     chkLowPower.checked = false;
     chkLowPower.dispatchEvent("change");
     assert.ok(!globalThis.document.body.classList.contains("low-power"));
     assert.equal(harness.elementsById.get("low-power-value").textContent, "OFF");
     assert.equal(player.getState().telemetryHz, 62.5);
+    assert.equal(
+      harness.elementsById.get("chk-crt-scanlines").disabled,
+      false,
+      "Scanline control must be enabled again",
+    );
+
+    for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
+      harness.stepAnimationFrame(timestamp);
+    }
+    assert.equal(
+      view.getFrameDiagnostics().frameCalls,
+      lowPowerFrames.frameCalls + 7,
+      "Disabling low power must restore the 60fps cadence",
+    );
 
     brandLogo.click();
     assert.ok(brandLogo.classList.contains("sparkle-active"), "Sparkle must return");
