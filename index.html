@@ -154,7 +154,7 @@
             <span class="hw-label" id="low-power-label">LOW POWER</span>
             <label
               class="hw-toggle"
-              title="Caps workbench rendering at 30fps, stops smooth source scrolling and disables sparkle and scanlines. Audio is unchanged."
+              title="Hides the workbench, stops telemetry and pauses rendering while the music plays. Audio is unchanged."
             >
               <input type="checkbox" id="chk-low-power" aria-labelledby="low-power-label">
               <span class="hw-toggle-switch" aria-hidden="true"></span>
@@ -566,6 +566,37 @@
           <div class="sid-hex-cells" id="sid-hex-cells"></div>
         </div>
       </main>
+
+      <!-- ==================== MUSIC-ONLY MINIMAL BAR ==================== -->
+      <section class="music-only-bar" id="music-only-bar" aria-label="Music-only controls">
+        <select
+          id="select-mini-track"
+          class="mini-track-select"
+          aria-label="Track selector"
+        ></select>
+        <button
+          type="button"
+          id="btn-mini-play"
+          class="mini-btn mini-btn--play"
+          title="Play / pause"
+        >
+          <span id="mini-play-label">PLAY</span>
+        </button>
+        <button type="button" id="btn-mini-restart" class="mini-btn" title="Restart current track">
+          RESTART
+        </button>
+        <button type="button" id="btn-mini-stats" class="mini-btn" title="Show audio diagnostics">
+          STATS
+        </button>
+        <button
+          type="button"
+          id="btn-mini-full-ui"
+          class="mini-btn"
+          title="Return to the full workbench"
+        >
+          FULL UI
+        </button>
+      </section>
     </div>
 
     <!-- ==================== C64 BOOT SEQUENCE ==================== -->

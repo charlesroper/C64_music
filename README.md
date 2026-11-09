@@ -111,13 +111,15 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * This is a debug flag. It does not enable the LOW POWER switch.
 * Run `npm run check:minimal-render` to verify the layout at 360px and 390px. It launches Chromium 153, asserts hidden panels and checks horizontal overflow.
 
-### Low power mode
+### Music-only mode
 
-* Toggle **LOW POWER** near **AUDIO MODE**. It is off by default and is never enabled automatically.
-* Caps workbench rendering at 30fps and updates the C64 monitor and scopes at that rate.
-* Stops smooth source auto-scroll while playing. The followed line highlight remains.
-* Disables logo sparkle and CRT scanlines.
-* Uses 30Hz telemetry while on and restores the base rate when off.
+* Toggle **LOW POWER** near **AUDIO MODE**. It is off by default, never enabled automatically and not persisted across reloads.
+* The mode hides the full workbench and shows a minimal bar with play and pause, restart, a grouped track selector, Stats and `FULL UI`.
+* The track selector lists every game and tune. Choosing one autoplays it.
+* The workbench render loop stops and telemetry snapshots stop. Audio diagnostics continue.
+* Opening Stats enables telemetry while the panel is visible. Closing Stats stops it again while the mode stays on. `?telemetry=off` still wins over the Stats resume path.
+* `FULL UI` restores the workbench, the render loop and telemetry.
+* The current SID chip and drum boost settings are preserved while their controls are hidden.
 * Leaves the Engine Core, SID emulation and audio worklet path unchanged.
 
 ## Edit and reassemble music live
@@ -160,7 +162,7 @@ The test suite uses the built-in Node.js test runner (`node:test`) with zero ext
 npm test
 ```
 
-The test runner executes 102 automated checks across 12 test files:
+The test runner executes 104 automated checks across 12 test files:
 
 * `tests/engine_core.test.mjs`: Tests the Engine Core message protocol. It loads assembled bytecode (`mem` and `symbols`), passes the extra `arkanoid.asm` payload for `arkadrum.asm` tracks, renders stereo blocks and checks playback controls, hardware options, key injection, telemetry and sample-rate updates. It also checks that track loads freeze the clock at frame 0 without pre-rendering audio, apply queued commands in order after loading and scale fast-forward to three extra frames per 2048 samples across 128-frame and 2048-frame blocks. It verifies that disabled telemetry skips snapshot construction and posting.
 * `tests/c64_screen.test.mjs`: Checks the shared PETSCII screen rasteriser used by the workbench CRT monitor and the Boot Sequence. It verifies border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
@@ -171,7 +173,7 @@ The test runner executes 102 automated checks across 12 test files:
 * `tests/issue_close_guard.test.mjs`: Checks that `npm run issue:close` blocks issue closure when any definition-of-done or acceptance-criteria checkbox is unchecked or missing.
 * `tests/repo_rules.test.mjs`: Checks CalVer monotonicity in `scripts/bump_version.mjs`, clean-tree and remote preflight guards in `scripts/deploy.mjs`, zero literal em-dashes (U+2014), SHA-256 checksums for all seven historical files, test-count synchronisation between `README.md` and `NARRATIVE.md`, harness-agnostic search rules in `AGENTS.md` and version synchronisation across all seven release locations.
 * `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to check that MOS 6581 oscillator pitches match the hardware datasheet formula at 44.1kHz PAL, 48kHz PAL and 48kHz NTSC. It sweeps all 73 tracks and sound effects for alternating-current (AC) oscillation without clipping or DC lock. It also tests `$D418` drum synthesis in `arkadrum.asm`, pause and mute controls, catalogue metadata, game loader adapters (`GAME_LOADERS`), on-demand assembly and track session descriptors.
-* `tests/spa_boot_and_play.test.mjs`: Boots the single-page application in a shared browser harness (`tests/helpers/browser_harness.mjs`). It tests the Boot Sequence handoff, SID and audio mode switches, the retired PAL/NTSC control, low power mode, minimal render mode and its paused loop, telemetry enable and disable, the `?telemetry=off` hard override, latency hint parsing and numeric Stats, the Stats for Nerds overlay button, the grouped Stats layout, Stats health colours and legend, Stats `OFF`, Stats help mode, label/value pairing, main-thread frame timing peaks, workbench render pause and resume, `AudioContext` gesture unlock, playback queued during asset downloads, live assembly error handling, unsaved edit protection on track switch, keyboard shortcut isolation when modals are open, drum program-counter tracking, `$0000` gutter rendering, symbol jump and source search, cached source HTML reuse and idle render-loop suspension when paused or hidden.
+* `tests/spa_boot_and_play.test.mjs`: Boots the single-page application in a shared browser harness (`tests/helpers/browser_harness.mjs`). It tests the Boot Sequence handoff, SID and audio mode switches, the retired PAL/NTSC control, music-only mode, its minimal bar and track selector, render pause, telemetry stop and Stats resume, minimal render mode and its paused loop, telemetry enable and disable, the `?telemetry=off` hard override, latency hint parsing and numeric Stats, the Stats for Nerds overlay button, the grouped Stats layout, Stats health colours and legend, Stats `OFF`, Stats help mode, label/value pairing, main-thread frame timing peaks, workbench render pause and resume, `AudioContext` gesture unlock, playback queued during asset downloads, live assembly error handling, unsaved edit protection on track switch, keyboard shortcut isolation when modals are open, drum program-counter tracking, `$0000` gutter rendering, symbol jump and source search, cached source HTML reuse and idle render-loop suspension when paused or hidden.
 * `tests/mobile_ui_layout.test.mjs`: Tests CSS breakpoints across desktop, laptop (1024x768, 1100x700) and mobile (375x812) viewports. It checks vertical scrolling, minimum touch targets (36px on transport buttons, hardware switches and modal buttons, 34px on key buttons), mobile tab switching, minimal render panel hiding, 256-glyph C64 character ROM decoding, startup toggle state, voice follow chips, responsive `#sid-group-*` register stacking, `tabular-nums` telemetry widths and smooth source scrolling.
 * `tests/narrative.test.mjs`: Tests `src/markdown.js`, checks that every quotation in [NARRATIVE.md](NARRATIVE.md) matches Galway's source files verbatim and verifies cited line numbers and equates against the assembly sources.
 

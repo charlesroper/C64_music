@@ -205,7 +205,8 @@ export function createWorkbenchView({
     latencyHint: resolveLatencyHint(latencyHint),
     telemetryHz: initialTelemetryHz,
     baseTelemetryHz: initialTelemetryHz,
-    lowPower: false,
+    musicOnly: false,
+    statsVisible: false,
     renderMinimal: Boolean(renderMinimal),
     diagnostics: null,
 
@@ -1197,12 +1198,16 @@ export function createWorkbenchView({
     const btnPlay = getEl("btn-play");
     const playIcon = getEl("play-icon");
     const playLabel = getEl("play-label");
+    const miniPlay = getEl("btn-mini-play");
+    const miniPlayLabel = getEl("mini-play-label");
     const led = getEl("status-led");
 
     if (playing) {
       if (btnPlay) btnPlay.classList.add("playing");
       if (playIcon) playIcon.innerHTML = "&#10074;&#10074;";
       if (playLabel) playLabel.textContent = "PAUSE";
+      if (miniPlay) miniPlay.classList.add("playing");
+      if (miniPlayLabel) miniPlayLabel.textContent = "PAUSE";
       if (led) {
         led.classList.remove("ready");
         led.classList.add("playing");
@@ -1211,11 +1216,31 @@ export function createWorkbenchView({
       if (btnPlay) btnPlay.classList.remove("playing");
       if (playIcon) playIcon.innerHTML = "&#9654;";
       if (playLabel) playLabel.textContent = "PLAY";
+      if (miniPlay) miniPlay.classList.remove("playing");
+      if (miniPlayLabel) miniPlayLabel.textContent = "PLAY";
       if (led) {
         led.classList.remove("playing");
         led.classList.add("ready");
       }
     }
+  }
+
+  function renderMiniTrackSelect() {
+    const select = getEl("select-mini-track");
+    if (!select) return;
+    select.innerHTML = "";
+    for (const game of GAME_FILES) {
+      const group = doc.createElement("optgroup");
+      group.label = game.title;
+      for (const track of game.tracks) {
+        const option = doc.createElement("option");
+        option.value = `${game.id}|${track.id}`;
+        option.textContent = track.name;
+        group.appendChild(option);
+      }
+      select.appendChild(group);
+    }
+    select.value = `${state.activeGameId}|${state.activeTrackId}`;
   }
 
   function renderSession(session) {
@@ -1230,6 +1255,7 @@ export function createWorkbenchView({
     renderGameList();
     renderTrackList();
     renderGameMetaCard(game);
+    renderMiniTrackSelect();
 
     const targetFile = getSessionSourceFile(session, state.followVoice);
     const viewer = getEl("source-viewer");
@@ -1278,6 +1304,7 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
+    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
     syncTelemetryRate();
     updateDrmChipState();
     renderGameList();
@@ -1285,8 +1312,12 @@ export function createWorkbenchView({
 
   function setDiagnostics(diagnostics) {
     state.diagnostics = diagnostics || null;
+    state.statsVisible = Boolean(diagnostics?.isVisible());
     const btnStats = getEl("btn-stats-nerds");
-    if (btnStats) btnStats.classList.toggle("active", Boolean(diagnostics?.isVisible()));
+    if (btnStats) btnStats.classList.toggle("active", state.statsVisible);
+    const btnMiniStats = getEl("btn-mini-stats");
+    if (btnMiniStats) btnMiniStats.classList.toggle("active", state.statsVisible);
+    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
   }
 
   function syncLatencyMode() {
@@ -1311,15 +1342,15 @@ export function createWorkbenchView({
   }
 
   function scrollFollowLine(lineNo) {
-    scrollToSourceLine(lineNo, { doc, getEl, instant: state.lowPower });
+    scrollToSourceLine(lineNo, { doc, getEl, instant: state.musicOnly });
   }
 
-  function applyLowPowerChrome(enabled) {
-    doc.body?.classList.toggle("low-power", enabled);
-    const chkLowPower = getEl("chk-low-power");
-    if (chkLowPower) chkLowPower.checked = enabled;
-    const lowPowerValue = getEl("low-power-value");
-    if (lowPowerValue) lowPowerValue.textContent = enabled ? "ON" : "OFF";
+  function applyMusicOnlyChrome(enabled) {
+    doc.body?.classList.toggle("music-only", enabled);
+    const chkMusicOnly = getEl("chk-low-power");
+    if (chkMusicOnly) chkMusicOnly.checked = enabled;
+    const musicOnlyValue = getEl("low-power-value");
+    if (musicOnlyValue) musicOnlyValue.textContent = enabled ? "ON" : "OFF";
     const chkCrt = getEl("chk-crt-scanlines");
     if (chkCrt) chkCrt.disabled = enabled;
   }
@@ -1328,22 +1359,27 @@ export function createWorkbenchView({
     doc.body?.classList.toggle("render-minimal", enabled);
   }
 
-  function setLowPower(enabled) {
+  function setStatsVisible(visible) {
+    state.statsVisible = Boolean(visible);
+    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
+  }
+
+  function setMusicOnly(enabled) {
     const next = Boolean(enabled);
-    if (state.lowPower === next) return;
-    state.lowPower = next;
-    applyLowPowerChrome(next);
+    if (state.musicOnly === next) return;
+    state.musicOnly = next;
+    applyMusicOnlyChrome(next);
     if (next) {
-      state.telemetryHz = TELEMETRY_HZ_LOW;
+      state.player?.setTelemetryEnabled(state.statsVisible);
       cancelViewerSmoothScroll();
       const brandLogo = doc.querySelector ? doc.querySelector(".brand-logo") : null;
       brandLogo?.classList.remove("sparkle-active");
     } else {
-      state.telemetryHz = state.baseTelemetryHz;
+      state.player?.setTelemetryEnabled(true);
+      lastFrameTimestamp = 0;
+      resetTelemetryCaches();
+      scheduleRenderFrame();
     }
-    syncTelemetryRate();
-    lastFrameTimestamp = 0;
-    resetTelemetryCaches();
   }
 
   function setAssets(newAssets) {
@@ -1457,18 +1493,53 @@ export function createWorkbenchView({
     if (chkTelemetry) {
       addListener(chkTelemetry, "change", (e) => {
         state.baseTelemetryHz = e.target.checked ? TELEMETRY_HZ_DEFAULT : TELEMETRY_HZ_LOW;
-        if (!state.lowPower) {
-          state.telemetryHz = state.baseTelemetryHz;
-          syncTelemetryRate();
-        }
+        state.telemetryHz = state.baseTelemetryHz;
+        syncTelemetryRate();
       });
     }
 
-    const chkLowPower = getEl("chk-low-power");
-    if (chkLowPower) {
-      addListener(chkLowPower, "change", (e) => {
-        setLowPower(e.target.checked);
+    const chkMusicOnly = getEl("chk-low-power");
+    if (chkMusicOnly) {
+      addListener(chkMusicOnly, "change", (e) => {
+        setMusicOnly(e.target.checked);
       });
+    }
+
+    const btnMiniPlay = getEl("btn-mini-play");
+    if (btnMiniPlay) {
+      addListener(btnMiniPlay, "click", () => {
+        if (!state.player) return;
+        setPlaying(!state.player.getState().isPlaying);
+      });
+    }
+
+    const btnMiniRestart = getEl("btn-mini-restart");
+    if (btnMiniRestart) {
+      addListener(btnMiniRestart, "click", () => {
+        selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
+      });
+    }
+
+    const selectMiniTrack = getEl("select-mini-track");
+    if (selectMiniTrack) {
+      addListener(selectMiniTrack, "change", (e) => {
+        const [gameId, trackId] = String(e.target.value || "").split("|");
+        if (gameId && trackId) selectGameAndTrack(gameId, trackId, true);
+      });
+    }
+
+    const btnMiniStats = getEl("btn-mini-stats");
+    if (btnMiniStats) {
+      addListener(btnMiniStats, "click", () => {
+        if (!state.diagnostics) return;
+        const visible = state.diagnostics.toggle();
+        btnMiniStats.classList.toggle("active", visible);
+      });
+    }
+
+    const btnMiniFullUi = getEl("btn-mini-full-ui");
+    if (btnMiniFullUi) {
+      addListener(btnMiniFullUi, "click", () => setMusicOnly(false));
     }
 
     const sliderDigi = getEl("slider-digi-boost");
@@ -1609,7 +1680,7 @@ export function createWorkbenchView({
         crtOverlay.classList.toggle("hidden", !chkC.checked);
       }
 
-      applyLowPowerChrome(state.lowPower);
+      applyMusicOnlyChrome(state.musicOnly);
       applyRenderMinimalChrome(state.renderMinimal);
 
       const sDigi = getEl("slider-digi-boost");
@@ -1764,7 +1835,7 @@ export function createWorkbenchView({
     if (brandLogo) {
       let sparkleTimer = null;
       const triggerSparkle = () => {
-        if (state.lowPower) return;
+        if (state.musicOnly) return;
         brandLogo.classList.remove("sparkle-active");
         void brandLogo.offsetWidth;
         brandLogo.classList.add("sparkle-active");
@@ -1873,7 +1944,6 @@ export function createWorkbenchView({
   let renderingPaused = false;
   let lastFrameTimestamp = 0;
   const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
-  const MIN_LOW_POWER_FRAME_INTERVAL_MS = 1000 / 30 - 1; // 30fps low power cap
   const FRAME_SAMPLE_SIZE = 60;
   const frameSamples = new Float64Array(FRAME_SAMPLE_SIZE);
   let frameSampleIndex = 0;
@@ -1909,7 +1979,9 @@ export function createWorkbenchView({
   }
 
   function isRenderLoopActive() {
-    return !isDestroyed && !renderingPaused && !state.renderMinimal && !doc?.hidden;
+    return (
+      !isDestroyed && !renderingPaused && !state.musicOnly && !state.renderMinimal && !doc?.hidden
+    );
   }
 
   function scheduleRenderFrame() {
@@ -1924,9 +1996,7 @@ export function createWorkbenchView({
     scheduleRenderFrame();
 
     if (typeof timestamp === "number") {
-      const minFrameInterval = state.lowPower
-        ? MIN_LOW_POWER_FRAME_INTERVAL_MS
-        : MIN_FRAME_INTERVAL_MS;
+      const minFrameInterval = MIN_FRAME_INTERVAL_MS;
       if (lastFrameTimestamp && timestamp - lastFrameTimestamp < minFrameInterval) {
         return;
       }
@@ -2021,6 +2091,7 @@ export function createWorkbenchView({
     setPlaying,
     setPlayer,
     setDiagnostics,
+    setStatsVisible,
     setAssets,
     setRenderingPaused,
     selectGameAndTrack,

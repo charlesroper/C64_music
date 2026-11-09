@@ -190,6 +190,7 @@ export async function bootWorkbench(options = {}) {
     player,
     window: win,
     getFrameDiagnostics: view.getFrameDiagnostics,
+    onVisibilityChange: (visible) => view.setStatsVisible(visible),
   });
   view.setDiagnostics(diagnostics);
 
