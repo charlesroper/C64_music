@@ -46,6 +46,39 @@ function createProcessor(port, options = {}) {
   });
 }
 
+function createWorkletHarness({ addModule = () => Promise.resolve(), state = "running" } = {}) {
+  const nodes = [];
+  const fakeContext = {
+    sampleRate: 48000,
+    state,
+    destination: {},
+    audioWorklet: { addModule },
+    resume: () => Promise.resolve(),
+    close: () => Promise.resolve(),
+  };
+
+  class FakeAudioWorkletNode {
+    constructor(context, name, options) {
+      this.context = context;
+      this.name = name;
+      this.options = options;
+      this.port = {
+        messages: [],
+        onmessage: null,
+        postMessage: (message) => this.port.messages.push(message),
+      };
+      this.destination = null;
+      nodes.push(this);
+    }
+
+    connect(destination) {
+      this.destination = destination;
+    }
+  }
+
+  return { nodes, fakeContext, FakeAudioWorkletNode };
+}
+
 function loadWizball(port) {
   port.onmessage({
     data: {
@@ -362,32 +395,7 @@ test("player defaults to 62.5Hz telemetry and accepts 30Hz", async () => {
 
 test("player forwards telemetry enable and disable to the worklet", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
-  const nodes = [];
-  const fakeContext = {
-    sampleRate: 48000,
-    state: "running",
-    destination: {},
-    audioWorklet: {
-      addModule: () => Promise.resolve(),
-    },
-    resume: () => Promise.resolve(),
-  };
-
-  class FakeAudioWorkletNode {
-    constructor(context, name, options) {
-      this.context = context;
-      this.name = name;
-      this.options = options;
-      this.port = {
-        messages: [],
-        onmessage: null,
-        postMessage: (message) => this.port.messages.push(message),
-      };
-      nodes.push(this);
-    }
-
-    connect() {}
-  }
+  const { nodes, fakeContext, FakeAudioWorkletNode } = createWorkletHarness();
 
   const previousNode = globalThis.AudioWorkletNode;
   globalThis.AudioWorkletNode = FakeAudioWorkletNode;
@@ -515,41 +523,14 @@ test("player soft-restarts the audio context when latency mode changes", async (
 
 test("player queues play until the worklet is ready and then dispatches the active track", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
-  const nodes = [];
   let resolveModule = null;
   const moduleReady = new Promise((resolve) => {
     resolveModule = resolve;
   });
-
-  const fakeContext = {
-    sampleRate: 48000,
+  const { nodes, fakeContext, FakeAudioWorkletNode } = createWorkletHarness({
+    addModule: () => moduleReady,
     state: "suspended",
-    destination: {},
-    audioWorklet: {
-      addModule: () => moduleReady,
-    },
-    resume: () => Promise.resolve(),
-    close: () => Promise.resolve(),
-  };
-
-  class FakeAudioWorkletNode {
-    constructor(context, name, options) {
-      this.context = context;
-      this.name = name;
-      this.options = options;
-      this.port = {
-        messages: [],
-        onmessage: null,
-        postMessage: (message) => this.port.messages.push(message),
-      };
-      this.destination = null;
-      nodes.push(this);
-    }
-
-    connect(destination) {
-      this.destination = destination;
-    }
-  }
+  });
 
   const previousNode = globalThis.AudioWorkletNode;
   globalThis.AudioWorkletNode = FakeAudioWorkletNode;
