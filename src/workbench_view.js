@@ -202,6 +202,8 @@ export function createWorkbenchView({
     digiBoost: 1.3,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
     telemetryHz: initialTelemetryHz,
+    baseTelemetryHz: initialTelemetryHz,
+    lowPower: false,
     diagnostics: null,
 
     muteMask: 0,
@@ -736,7 +738,7 @@ export function createWorkbenchView({
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
         state.lastFollowedLine = targetLine.lineNo;
-        scrollToSourceLine(targetLine.lineNo, { doc, getEl });
+        scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
       }
     }
   }
@@ -1178,7 +1180,7 @@ export function createWorkbenchView({
       const targetLine = activeLines.find((al) => al.cls === targetCls);
       if (targetLine && targetLine.lineNo !== state.lastFollowedLine) {
         state.lastFollowedLine = targetLine.lineNo;
-        scrollToSourceLine(targetLine.lineNo, { doc, getEl });
+        scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
       }
     }
   }
@@ -1302,6 +1304,26 @@ export function createWorkbenchView({
     }
   }
 
+  function setLowPower(enabled) {
+    const next = Boolean(enabled);
+    if (state.lowPower === next) return;
+    state.lowPower = next;
+    doc.body?.classList.toggle("low-power", next);
+    const valueEl = getEl("low-power-value");
+    if (valueEl) valueEl.textContent = next ? "ON" : "OFF";
+    if (next) {
+      state.telemetryHz = TELEMETRY_HZ_LOW;
+      cancelViewerSmoothScroll();
+      const brandLogo = doc.querySelector ? doc.querySelector(".brand-logo") : null;
+      brandLogo?.classList.remove("sparkle-active");
+    } else {
+      state.telemetryHz = state.baseTelemetryHz;
+    }
+    syncTelemetryRate();
+    lastFrameTimestamp = 0;
+    resetTelemetryCaches();
+  }
+
   function setAssets(newAssets) {
     if (newAssets.directivesText) {
       state.directivesText = newAssets.directivesText;
@@ -1412,8 +1434,18 @@ export function createWorkbenchView({
     const chkTelemetry = getEl("chk-telemetry-high");
     if (chkTelemetry) {
       addListener(chkTelemetry, "change", (e) => {
-        state.telemetryHz = e.target.checked ? TELEMETRY_HZ_DEFAULT : TELEMETRY_HZ_LOW;
-        syncTelemetryRate();
+        state.baseTelemetryHz = e.target.checked ? TELEMETRY_HZ_DEFAULT : TELEMETRY_HZ_LOW;
+        if (!state.lowPower) {
+          state.telemetryHz = state.baseTelemetryHz;
+          syncTelemetryRate();
+        }
+      });
+    }
+
+    const chkLowPower = getEl("chk-low-power");
+    if (chkLowPower) {
+      addListener(chkLowPower, "change", (e) => {
+        setLowPower(e.target.checked);
       });
     }
 
@@ -1533,7 +1565,7 @@ export function createWorkbenchView({
           const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
           if (targetLine) {
             state.lastFollowedLine = targetLine.lineNo;
-            scrollToSourceLine(targetLine.lineNo, { doc, getEl });
+            scrollToSourceLine(targetLine.lineNo, { doc, getEl, instant: state.lowPower });
           }
         }
       });
@@ -1554,6 +1586,12 @@ export function createWorkbenchView({
       if (chkC && crtOverlay) {
         crtOverlay.classList.toggle("hidden", !chkC.checked);
       }
+
+      const chkLP = getEl("chk-low-power");
+      if (chkLP) chkLP.checked = state.lowPower;
+      const lpValue = getEl("low-power-value");
+      if (lpValue) lpValue.textContent = state.lowPower ? "ON" : "OFF";
+      doc.body?.classList.toggle("low-power", state.lowPower);
 
       const sDigi = getEl("slider-digi-boost");
       if (sDigi) {
@@ -1707,6 +1745,7 @@ export function createWorkbenchView({
     if (brandLogo) {
       let sparkleTimer = null;
       const triggerSparkle = () => {
+        if (state.lowPower) return;
         brandLogo.classList.remove("sparkle-active");
         void brandLogo.offsetWidth;
         brandLogo.classList.add("sparkle-active");
@@ -1815,6 +1854,7 @@ export function createWorkbenchView({
   let renderingPaused = false;
   let lastFrameTimestamp = 0;
   const MIN_FRAME_INTERVAL_MS = 1000 / 60 - 1; // 60fps throttle target
+  const MIN_LOW_POWER_FRAME_INTERVAL_MS = 1000 / 30 - 1; // 30fps low power cap
   const FRAME_SAMPLE_SIZE = 60;
   const frameSamples = new Float64Array(FRAME_SAMPLE_SIZE);
   let frameSampleIndex = 0;
@@ -1863,7 +1903,10 @@ export function createWorkbenchView({
     }
 
     if (typeof timestamp === "number") {
-      if (lastFrameTimestamp && timestamp - lastFrameTimestamp < MIN_FRAME_INTERVAL_MS) {
+      const minFrameInterval = state.lowPower
+        ? MIN_LOW_POWER_FRAME_INTERVAL_MS
+        : MIN_FRAME_INTERVAL_MS;
+      if (lastFrameTimestamp && timestamp - lastFrameTimestamp < minFrameInterval) {
         return;
       }
       lastFrameTimestamp = timestamp;

@@ -735,6 +735,10 @@ button.active {
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55);
 }
 
+body.low-power .crt-overlay {
+  display: none;
+}
+
 .hud-guide-overlay {
   position: absolute;
   inset: 0;

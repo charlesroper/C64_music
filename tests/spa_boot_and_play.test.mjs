@@ -1303,6 +1303,54 @@ test("Workbench View pauses and resumes rendering for boot presentation", () => 
   }
 });
 
+test("Opt-in low power mode caps rendering and restores the base telemetry rate", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    const chkLowPower = harness.elementsById.get("chk-low-power");
+    assert.ok(chkLowPower, "Low power toggle must exist");
+    assert.equal(chkLowPower.checked, false, "Low power must be off by default");
+    assert.equal(harness.elementsById.get("low-power-value").textContent, "OFF");
+    assert.ok(!globalThis.document.body.classList.contains("low-power"));
+
+    player.play();
+    chkLowPower.checked = true;
+    chkLowPower.dispatchEvent("change");
+
+    assert.ok(globalThis.document.body.classList.contains("low-power"));
+    assert.equal(harness.elementsById.get("low-power-value").textContent, "ON");
+    assert.equal(player.getState().telemetryHz, 30);
+
+    const brandLogo = globalThis.document.querySelector(".brand-logo");
+    brandLogo.click();
+    assert.ok(!brandLogo.classList.contains("sparkle-active"), "Sparkle must be off");
+
+    for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
+      harness.stepAnimationFrame(timestamp);
+    }
+    const frame = view.getFrameDiagnostics();
+    assert.equal(frame.frameCalls, 4, "30fps cap must render four of seven frames at 16ms");
+
+    chkLowPower.checked = false;
+    chkLowPower.dispatchEvent("change");
+    assert.ok(!globalThis.document.body.classList.contains("low-power"));
+    assert.equal(harness.elementsById.get("low-power-value").textContent, "OFF");
+    assert.equal(player.getState().telemetryHz, 62.5);
+
+    brandLogo.click();
+    assert.ok(brandLogo.classList.contains("sparkle-active"), "Sparkle must return");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
 test("idle render loop skips canvas repaints and DOM writes when paused or hidden, resuming on visibility", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();
