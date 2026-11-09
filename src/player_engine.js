@@ -313,6 +313,10 @@ export function createWorkbenchPlayer({
 
   getAssembled(state.activeGameId);
 
+  function sendTelemetryEnabled(target = transport) {
+    target.send({ type: "setTelemetryEnabled", enabled: state.telemetryEnabled });
+  }
+
   function captureSessionPeaks(diagnostics) {
     if (!diagnostics) return;
     hasDiagnostics = true;
@@ -377,10 +381,7 @@ export function createWorkbenchPlayer({
           type: "setTelemetryDivider",
           divider: telemetryDividerForHz(state.telemetryHz),
         });
-        workletTransport.send({
-          type: "setTelemetryEnabled",
-          enabled: state.telemetryEnabled,
-        });
+        sendTelemetryEnabled(workletTransport);
         workletTransport.send({ type: state.isPlaying ? "play" : "pause" });
         transport = workletTransport;
         state.audioBackend = "worklet";
@@ -389,10 +390,7 @@ export function createWorkbenchPlayer({
       onError(error) {
         state.workletError = String(error?.message || error);
         inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
-        inThreadTransport.send({
-          type: "setTelemetryEnabled",
-          enabled: state.telemetryEnabled,
-        });
+        sendTelemetryEnabled(inThreadTransport);
         if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
         inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
         inThreadTransport.send({ type: state.isPlaying ? "play" : "pause" });
@@ -474,7 +472,7 @@ export function createWorkbenchPlayer({
     await closeAudioContext();
 
     inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
-    inThreadTransport.send({ type: "setTelemetryEnabled", enabled: state.telemetryEnabled });
+    sendTelemetryEnabled(inThreadTransport);
     if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
     inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
     inThreadTransport.send({ type: wasPlaying ? "play" : "pause" });
@@ -507,7 +505,7 @@ export function createWorkbenchPlayer({
   function setTelemetryEnabled(enabled) {
     const next = state.telemetryLockedOff ? false : Boolean(enabled);
     state.telemetryEnabled = next;
-    transport.send({ type: "setTelemetryEnabled", enabled: next });
+    sendTelemetryEnabled(transport);
     return next;
   }
 
