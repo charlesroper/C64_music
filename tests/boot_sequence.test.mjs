@@ -142,6 +142,9 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
       !overlay.classList.contains("hidden"),
       "The overlay must stay visible during the fade",
     );
+    const frame = harness.elementsById.get("boot-frame");
+    assert.equal(frame.style.width, "384px", "The collapsed frame must stay at monitor width");
+    assert.equal(frame.style.height, "272px", "The collapsed frame must stay at monitor height");
     assert.equal(globalThis.document.body.dataset.bootState, undefined);
 
     clock.advance(BOOT_FADE_MS);

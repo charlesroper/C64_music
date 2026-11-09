@@ -298,10 +298,12 @@ export function createBootSequence({
     if (targetRect && typeof frame.animate === "function") {
       const start = frame.getBoundingClientRect();
       frame.style.position = "fixed";
-      frame.style.left = `${start.left}px`;
-      frame.style.top = `${start.top}px`;
-      frame.style.width = `${start.width}px`;
-      frame.style.height = `${start.height}px`;
+      // Keep the base state at the monitor rect. The keyframes animate from the
+      // start rect, then the frame rests here while the overlay fades.
+      frame.style.left = `${targetRect.left}px`;
+      frame.style.top = `${targetRect.top}px`;
+      frame.style.width = `${targetRect.width}px`;
+      frame.style.height = `${targetRect.height}px`;
       frame.style.margin = "0";
       const animation = frame.animate(
         [
