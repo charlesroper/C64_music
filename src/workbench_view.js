@@ -1905,13 +1905,13 @@ export function createWorkbenchView({
   }
 
   function renderFrameLoop(timestamp) {
-    if (isDestroyed) return;
+    if (isDestroyed || state.renderMinimal) return;
 
     if (win && typeof win.requestAnimationFrame === "function") {
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
 
-    if (renderingPaused || state.renderMinimal) return;
+    if (renderingPaused) return;
 
     if (doc?.hidden) {
       return;

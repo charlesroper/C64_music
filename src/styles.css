@@ -739,24 +739,6 @@ body.low-power .crt-overlay {
   display: none;
 }
 
-/* Debug-only minimal render (?render=minimal). */
-body.render-minimal .workbench-grid {
-  grid-template-columns: minmax(0, 720px);
-  grid-template-rows: auto;
-  justify-content: center;
-  align-content: start;
-}
-
-body.render-minimal .panel-left {
-  display: flex;
-}
-
-body.render-minimal .panel-center,
-body.render-minimal .panel-right,
-body.render-minimal .mobile-view-tabs {
-  display: none;
-}
-
 .hud-guide-overlay {
   position: absolute;
   inset: 0;
@@ -2773,4 +2755,26 @@ html[data-boot-mode="immediate"] .boot-sequence {
   .diag-group {
     gap: 1px 8px;
   }
+}
+
+/* Debug-only minimal render (?render=minimal). */
+body.render-minimal .workbench-grid {
+  grid-template-columns: minmax(0, 720px);
+  grid-template-rows: auto;
+  justify-content: center;
+  align-content: start;
+}
+
+body.render-minimal .workbench-grid .panel-left {
+  display: flex;
+}
+
+body.render-minimal .workbench-grid .panel-center,
+body.render-minimal .workbench-grid .panel-right,
+body.render-minimal .workbench-grid .sid-hex-strip {
+  display: none;
+}
+
+body.render-minimal .mobile-view-tabs {
+  display: none;
 }

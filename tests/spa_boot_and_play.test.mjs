@@ -567,7 +567,7 @@ test("?telemetry=off boots with snapshots disabled and locked", async () => {
     assert.equal(
       booted.player.setTelemetryEnabled(true),
       false,
-      "The capture override must not be re-enabled by Stats or music-only",
+      "The capture override must not be re-enabled",
     );
     assert.equal(booted.player.getState().telemetryEnabled, false);
     assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 62.5);
@@ -585,7 +585,7 @@ test("?render=minimal boots with the minimal render class and paused loop", asyn
     assert.ok(globalThis.document.body.classList.contains("render-minimal"));
     assert.ok(
       !globalThis.document.body.classList.contains("low-power"),
-      "Minimal render must not enter music-only mode",
+      "Minimal render must not enable low power mode",
     );
 
     for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
@@ -1535,7 +1535,7 @@ test("Opt-in low power mode caps rendering and restores the base telemetry rate"
   }
 });
 
-test("Minimal render hides the centre and right panels and pauses rendering", () => {
+test("Minimal render marks the body and pauses the workbench render loop", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();
   const view = createWorkbenchView({
@@ -1549,7 +1549,7 @@ test("Minimal render hides the centre and right panels and pauses rendering", ()
     assert.ok(globalThis.document.body.classList.contains("render-minimal"));
     assert.ok(
       !globalThis.document.body.classList.contains("low-power"),
-      "Minimal render must not enter music-only mode",
+      "Minimal render must not enable low power mode",
     );
 
     player.play();

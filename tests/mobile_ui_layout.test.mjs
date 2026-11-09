@@ -756,8 +756,9 @@ test("minimal render CSS hides centre and right panels at phone width", () => {
   const phone = { width: 375, height: 812 };
 
   for (const selector of [
-    "body.render-minimal .panel-center",
-    "body.render-minimal .panel-right",
+    "body.render-minimal .workbench-grid .panel-center",
+    "body.render-minimal .workbench-grid .panel-right",
+    "body.render-minimal .workbench-grid .sid-hex-strip",
     "body.render-minimal .mobile-view-tabs",
   ]) {
     assert.equal(
@@ -771,7 +772,8 @@ test("minimal render CSS hides centre and right panels at phone width", () => {
   assert.equal(grid["grid-template-columns"], "minmax(0, 720px)");
   assert.equal(grid["justify-content"], "center");
   assert.equal(
-    computeStyleForSelector(rules, "body.render-minimal .panel-left", phone).display,
+    computeStyleForSelector(rules, "body.render-minimal .workbench-grid .panel-left", phone)
+      .display,
     "flex",
     "The track list panel must stay visible in minimal render mode",
   );

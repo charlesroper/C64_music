@@ -263,7 +263,7 @@ Martin Galway uploaded his original assembly files to GitHub in April and May 20
 * **Workbench view interface.** The presentation layer sits behind `createWorkbenchView` in `src/workbench_view.js` with a small surface (`renderSession`, `renderTelemetry`, `renderSource`, `getFrameDiagnostics`, `setPlaying`, `setRenderingPaused`), element lookup behind a registry and zero side effects on module import, while UI test suites drive the view using fake player adapters. Tests cover the boot-overlay rendering pause and resume.
 * **Stats help mode and health colours.** Tests cover the help toggle, accessible name and `aria-expanded` state, all six group descriptions, all 38 metric descriptions, scroll reset, hide and reopen, and compact mode restoration. Health tests cover normal, under-pressure and bad values, the three-state legend, the 12.8ms Firefox output buffer as bad and neutral cumulative totals.
 * **Telemetry enable and disable.** Tests cover the Player Engine state, worklet enable and disable messages, snapshots stopping while audio diagnostics continue, snapshots resuming on enable, the `?telemetry=off` hard override and Stats showing `OFF`.
-* **Minimal render.** Tests cover the `?render=minimal` flag, the `render-minimal` body class, the paused workbench render loop, transport and track switching, the absence of the music-only class and phone-width CSS panel hiding.
+* **Minimal render.** Tests cover the `?render=minimal` flag, the `render-minimal` body class, the paused workbench render loop, transport and track switching, the absence of the low-power class and phone-width CSS panel hiding.
 * **Low power mode.** Tests cover the default-off switch, the 30fps render cap, telemetry reduction and restore, and sparkle suppression.
 * **Assembler source index.** Assembled source artefacts provide a bound `sourceIndex` exposing `lineForAddress(addr)`, `lineForSymbol(name)` and `findLines(query)`, replacing regular expression scans and backwards address loops in the view with direct index queries.
 * **Track session descriptors.** Calling `player.selectTrack()` yields a structured `TrackSession` descriptor defining the active game, tune, primary source file, drum sequencer availability and Morse banner states, removing all game identifier branching from the presentation layer.
@@ -612,7 +612,7 @@ Tests cover the worklet gate, Player Engine state, the locked override, Stats `O
 
 ### 9 November 2026: minimal render isolates presentation work
 
-The Firefox isolation matrix needed a way to remove presentation work without entering a product mode. The workbench can now be loaded with `?render=minimal`. The flag hides the centre and right panels, collapses the grid to one column, hides the mobile tabs and pauses the workbench render loop. The transport and track list stay usable, and the music-only state is not applied.
+The Firefox audio isolation captures needed a way to remove presentation work without entering a product mode. The workbench can now be loaded with `?render=minimal`. The flag hides the centre and right panels, including the SID register strip, collapses the grid to one column, hides the mobile tabs and pauses the workbench render loop. The transport and track list stay usable. The LOW POWER switch stays off, and music-only mode remains separate.
 
 The paused loop covers the boot handoff: boot completion clears its own pause flag but the minimal render guard still stops frames. The CSS keeps the track list visible even when a mobile tab would normally hide it.
 
