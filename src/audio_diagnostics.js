@@ -7,7 +7,7 @@
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
 const HELP_INTRO =
-  "A window is about one second. Window values reset every window. Peak values stay until reload. Use peak when a spike has already passed.";
+  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed.";
 
 const GROUPS = [
   {
@@ -91,9 +91,17 @@ const GROUPS = [
     title: "TELEMETRY",
     description: "Health of the screen and scope update stream.",
     items: [
-      ["dropsTotal", "drops total", "UI snapshots dropped since page load. Audio is unaffected."],
-      ["dropsWindow", "drops window", "UI snapshots dropped in the current window."],
-      ["dropsPeak", "drops peak", "Worst dropped-snapshot count in a window since page load."],
+      [
+        "dropsTotal",
+        "drops total",
+        "Telemetry snapshots dropped since page load. Audio is unaffected.",
+      ],
+      ["dropsWindow", "drops window", "Telemetry snapshots dropped in the current window."],
+      [
+        "dropsPeak",
+        "drops peak",
+        "Worst dropped telemetry snapshot count in a window since page load.",
+      ],
       ["volume", "volume", "Current output gain. 1.00 is full volume."],
       ["playing", "playing", "Whether playback is requested."],
     ],
@@ -274,11 +282,14 @@ export function createAudioDiagnosticsOverlay({
   doc.body.appendChild(element);
 
   function setHelp(open) {
-    helpOpen = Boolean(open);
+    const next = Boolean(open);
+    if (helpOpen === next) return;
+    helpOpen = next;
     element.classList.toggle("is-help", helpOpen);
+    if (helpOpen) element.scrollTop = 0;
     helpButton.textContent = helpOpen ? "×" : "?";
     helpButton.setAttribute("aria-label", helpOpen ? "Close stats explanation" : "Explain stats");
-    helpButton.setAttribute("aria-expanded", helpOpen ? "true" : "false");
+    helpButton.setAttribute("aria-expanded", String(helpOpen));
   }
 
   helpButton.addEventListener("click", () => setHelp(!helpOpen));

@@ -272,6 +272,9 @@ test("Stats groups metrics and keeps each label with its value", () => {
       6,
       "Every group must have a help description",
     );
+    for (const description of globalThis.document.querySelectorAll(".diag-group-description")) {
+      assert.ok(description.textContent.length > 0, "Every group description must have text");
+    }
     assert.match(
       globalThis.document.querySelector(".diag-help-intro").textContent,
       /window is about one second/i,
@@ -331,6 +334,15 @@ test("Stats help mode expands descriptions and closes back to compact", () => {
     assert.equal(button.getAttribute("aria-label"), "Close stats explanation");
     assert.equal(button.getAttribute("aria-expanded"), "true");
     assert.equal(button.textContent, "×");
+
+    overlay.element.scrollTop = 480;
+    button.click();
+    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.equal(button.getAttribute("aria-expanded"), "false");
+
+    button.click();
+    assert.equal(overlay.element.scrollTop, 0, "Reopening help must return to the introduction");
+    assert.ok(overlay.element.classList.contains("is-help"));
 
     overlay.hide();
     assert.ok(!overlay.element.classList.contains("is-help"));

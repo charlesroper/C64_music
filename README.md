@@ -77,7 +77,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * A **window** is 375 `process()` calls, about one second. Window values reset.
 * A **peak** is the worst value since page load. Peaks survive window resets and audio-context restarts.
 * **Late** means a callback finished over the 2.67ms budget. **Missed** means the browser skipped a whole 128-frame block.
-* **Drops** means a UI snapshot was dropped because no telemetry buffer was free. Audio is unaffected.
+* **Drops** means a telemetry snapshot was dropped because no telemetry buffer was free. Audio is unaffected.
 * The Process group reports window max and session peak for audio render, telemetry pack, message post, gain application and main-thread frame work.
 * The Deadlines group reports late blocks and missed quanta as cumulative totals, current-window counts and session peaks.
 * The Telemetry group reports cumulative, windowed and peak telemetry drops.

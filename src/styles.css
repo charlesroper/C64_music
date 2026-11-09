@@ -2498,8 +2498,8 @@ html[data-boot-mode="immediate"] .boot-sequence {
 
 .diag-help-toggle {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 1px solid var(--border-bright);
   background: transparent;
@@ -2509,6 +2509,7 @@ html[data-boot-mode="immediate"] .boot-sequence {
   line-height: 1;
   cursor: pointer;
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .diag-help-toggle:hover {
