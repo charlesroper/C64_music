@@ -1304,7 +1304,7 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
-    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
+    applyTelemetryPolicy();
     syncTelemetryRate();
     updateDrmChipState();
     renderGameList();
@@ -1313,11 +1313,8 @@ export function createWorkbenchView({
   function setDiagnostics(diagnostics) {
     state.diagnostics = diagnostics || null;
     state.statsVisible = Boolean(diagnostics?.isVisible());
-    const btnStats = getEl("btn-stats-nerds");
-    if (btnStats) btnStats.classList.toggle("active", state.statsVisible);
-    const btnMiniStats = getEl("btn-mini-stats");
-    if (btnMiniStats) btnMiniStats.classList.toggle("active", state.statsVisible);
-    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
+    applyTelemetryPolicy();
+    syncStatsButtons();
   }
 
   function syncLatencyMode() {
@@ -1361,6 +1358,19 @@ export function createWorkbenchView({
 
   function setStatsVisible(visible) {
     state.statsVisible = Boolean(visible);
+    applyTelemetryPolicy();
+    syncStatsButtons();
+  }
+
+  function syncStatsButtons() {
+    const active = Boolean(state.diagnostics?.isVisible());
+    for (const id of ["btn-stats-nerds", "btn-mini-stats"]) {
+      const button = getEl(id);
+      if (button) button.classList.toggle("active", active);
+    }
+  }
+
+  function applyTelemetryPolicy() {
     if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
   }
 
@@ -1370,12 +1380,14 @@ export function createWorkbenchView({
     state.musicOnly = next;
     applyMusicOnlyChrome(next);
     if (next) {
-      state.player?.setTelemetryEnabled(state.statsVisible);
+      applyTelemetryPolicy();
+      syncStatsButtons();
       cancelViewerSmoothScroll();
       const brandLogo = doc.querySelector ? doc.querySelector(".brand-logo") : null;
       brandLogo?.classList.remove("sparkle-active");
     } else {
       state.player?.setTelemetryEnabled(true);
+      syncStatsButtons();
       lastFrameTimestamp = 0;
       resetTelemetryCaches();
       scheduleRenderFrame();
@@ -1532,8 +1544,7 @@ export function createWorkbenchView({
     if (btnMiniStats) {
       addListener(btnMiniStats, "click", () => {
         if (!state.diagnostics) return;
-        const visible = state.diagnostics.toggle();
-        btnMiniStats.classList.toggle("active", visible);
+        state.diagnostics.toggle();
       });
     }
 

@@ -1532,12 +1532,21 @@ test("Music-only mode pauses rendering, stops telemetry and restores the full UI
     assert.ok(!globalThis.document.body.classList.contains("music-only"));
 
     player.play();
+    const chkSid = harness.elementsById.get("chk-sid-8580");
+    chkSid.checked = true;
+    chkSid.dispatchEvent("change");
+    const sliderDigi = harness.elementsById.get("slider-digi-boost");
+    sliderDigi.value = "2.0";
+    sliderDigi.dispatchEvent("input");
+
     chkMusicOnly.checked = true;
     chkMusicOnly.dispatchEvent("change");
 
     assert.ok(globalThis.document.body.classList.contains("music-only"));
     assert.equal(harness.elementsById.get("low-power-value").textContent, "ON");
     assert.equal(player.getState().telemetryEnabled, false);
+    assert.equal(player.getState().sidModel8580, true, "SID chip choice must survive");
+    assert.equal(player.getState().digiBoost, 2, "Drum boost must survive");
     assert.equal(
       harness.elementsById.get("chk-crt-scanlines").disabled,
       true,
@@ -1633,6 +1642,47 @@ test("Music-only bar switches tracks and toggles Stats telemetry", () => {
     harness.elementsById.get("btn-mini-full-ui").click();
     assert.ok(!globalThis.document.body.classList.contains("music-only"));
     assert.equal(player.getState().telemetryEnabled, true);
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("Music-only Stats cannot re-enable a locked telemetry override", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer({ telemetryEnabled: false, telemetryLockedOff: true });
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  let statsVisible = false;
+  const diagnostics = {
+    isVisible: () => statsVisible,
+    toggle: () => {
+      statsVisible = !statsVisible;
+      view.setStatsVisible(statsVisible);
+      return statsVisible;
+    },
+  };
+  view.setDiagnostics(diagnostics);
+
+  try {
+    const chkMusicOnly = harness.elementsById.get("chk-low-power");
+    chkMusicOnly.checked = true;
+    chkMusicOnly.dispatchEvent("change");
+    assert.equal(player.getState().telemetryEnabled, false);
+
+    const miniStats = harness.elementsById.get("btn-mini-stats");
+    miniStats.click();
+    assert.equal(statsVisible, true);
+    assert.ok(miniStats.classList.contains("active"));
+    assert.equal(player.getState().telemetryEnabled, false);
+
+    miniStats.click();
+    assert.equal(statsVisible, false);
+    assert.ok(!miniStats.classList.contains("active"));
+    assert.equal(player.getState().telemetryEnabled, false);
   } finally {
     view.destroy();
     harness.restoreGlobals();

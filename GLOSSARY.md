@@ -65,7 +65,7 @@ The presentation loop guard that bypasses C64 monitor pixel transfers, oscillosc
 _Avoid_: Tick stopper, frame skipper
 
 **Music Only**:
-An opt-in mode entered from the LOW POWER switch. It hides the workbench, shows a minimal transport bar, pauses the render loop and stops telemetry snapshots while audio diagnostics continue. Stats resumes snapshots while open. Leaving restores the workbench and telemetry.
+An opt-in mode entered from the LOW POWER switch. It hides the workbench, shows a minimal transport bar, pauses the render loop and stops telemetry snapshots while audio diagnostics continue. Stats resumes snapshots while open unless `?telemetry=off` locked them. Leaving restores the workbench and telemetry.
 _Avoid_: low power mode, performance mode, eco mode
 
 **Seam**:

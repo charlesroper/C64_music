@@ -778,3 +778,37 @@ test("minimal render CSS hides centre and right panels at phone width", () => {
     "The track list panel must stay visible in minimal render mode",
   );
 });
+
+test("music-only CSS hides the workbench and shows the minimal bar at phone width", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const phone = { width: 375, height: 812 };
+
+  for (const selector of [
+    "body.music-only .top-bar",
+    "body.music-only .mobile-view-tabs",
+    "body.music-only .workbench-grid",
+    "body.music-only .modal-backdrop",
+  ]) {
+    assert.equal(
+      computeStyleForSelector(rules, selector, phone).display,
+      "none",
+      `${selector} must be hidden in music-only mode`,
+    );
+  }
+
+  const bar = computeStyleForSelector(rules, "body.music-only .music-only-bar", phone);
+  assert.equal(bar.display, "grid");
+  assert.equal(bar["grid-template-columns"], "repeat(4, minmax(0, 1fr))");
+
+  const track = computeStyleForSelector(rules, ".mini-track-select", phone);
+  assert.equal(track["grid-column"], "1 / -1");
+  assert.equal(track["min-height"], "40px");
+
+  assert.equal(
+    computeStyleForSelector(rules, "body.music-only .audio-diagnostics:not(.is-help)", phone)
+      .bottom,
+    "calc(var(--music-only-bar-height) + env(safe-area-inset-bottom) + 8px)",
+    "The compact Stats overlay must clear the minimal bar",
+  );
+});
