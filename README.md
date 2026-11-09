@@ -105,8 +105,10 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 
 * Append `?render=minimal` for isolation captures.
 * The flag hides the centre and right workbench panels, including the SID register strip, hides the mobile tabs, pauses the render loop and leaves the transport and track list available.
+* The CSS collapses the workbench to one centred column.
 * Audio playback and track selection are unchanged.
 * This is a debug flag. It does not enable the LOW POWER switch.
+* Run `npm run check:minimal-render` to verify the layout at 360px and 390px. It launches Chromium 153, asserts hidden panels and checks horizontal overflow.
 
 ### Low power mode
 
