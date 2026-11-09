@@ -632,4 +632,4 @@ The latency URL accepted only `interactive`. The Firefox isolation matrix needs 
 
 A latency hint policy now accepts those five values and falls back to `playback` for anything else. The chosen hint reaches the `AudioContext` constructor and appears in Stats, including numeric values. The Audio Mode switch stays limited to `playback` and `interactive`, and no permanent latency UI is added.
 
-Tests cover parsing, fallback, context creation, URL boot and Stats display. The suite rose to 102 checks across 12 files. Commit [ece3c5d](https://github.com/charlesroper/C64_music/commit/ece3c5d) and issue [#64](https://github.com/charlesroper/C64_music/issues/64) carry the change.
+Tests cover parsing, fallback, context creation, URL boot and Stats display. The suite rose to 102 checks across 12 files. Commit [ece3c5d](https://github.com/charlesroper/C64_music/commit/ece3c5d), follow-up [34d57dc](https://github.com/charlesroper/C64_music/commit/34d57dc) and issue [#64](https://github.com/charlesroper/C64_music/issues/64) carry the change.
