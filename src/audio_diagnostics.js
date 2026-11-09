@@ -9,6 +9,18 @@ import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 const HELP_INTRO =
   "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed.";
 
+const HEALTH = {
+  NORMAL: "normal",
+  PRESSURE: "pressure",
+  BAD: "bad",
+};
+
+const HEALTH_LABELS = [
+  [HEALTH.NORMAL, "normal"],
+  [HEALTH.PRESSURE, "under pressure"],
+  [HEALTH.BAD, "bad"],
+];
+
 const GROUPS = [
   {
     id: "context",
@@ -142,6 +154,79 @@ function formatEvents(events) {
     .join(" -> ");
 }
 
+function classifyMs(microseconds, normalMaxMs, pressureMaxMs) {
+  if (!Number.isFinite(microseconds)) return null;
+  return classifyMilliseconds(microseconds / 1000, normalMaxMs, pressureMaxMs);
+}
+
+function classifyMilliseconds(milliseconds, normalMaxMs, pressureMaxMs) {
+  if (!Number.isFinite(milliseconds)) return null;
+  if (milliseconds < normalMaxMs) return HEALTH.NORMAL;
+  if (milliseconds <= pressureMaxMs) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyCount(value, pressureMax) {
+  if (!Number.isFinite(value)) return null;
+  if (value <= 0) return HEALTH.NORMAL;
+  if (value <= pressureMax) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyBadAny(value) {
+  if (!Number.isFinite(value)) return null;
+  return value > 0 ? HEALTH.BAD : HEALTH.NORMAL;
+}
+
+function classifyLatency(seconds) {
+  if (!Number.isFinite(seconds)) return null;
+  const milliseconds = seconds * 1000;
+  if (milliseconds >= 30) return HEALTH.NORMAL;
+  if (milliseconds >= 15) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyContext(state) {
+  if (state === "running") return HEALTH.NORMAL;
+  if (state === "suspended") return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyBackend(backend) {
+  if (backend === "worklet") return HEALTH.NORMAL;
+  if (backend === "in-thread") return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function buildHealth(diagnostics) {
+  return {
+    "context:backend": classifyBackend(diagnostics.backend),
+    "context:ctx": classifyContext(diagnostics.contextState),
+    "latency:out": classifyLatency(diagnostics.outputLatency),
+    "process:p50": classifyMs(diagnostics.p50Us, 0.5, 1.5),
+    "process:p95": classifyMs(diagnostics.p95Us, 1, 2.67),
+    "process:p99": classifyMs(diagnostics.p99Us, 1.5, 2.67),
+    "process:max": classifyMs(diagnostics.maxUs, 2.67, 5),
+    "process:peak": classifyMs(diagnostics.processPeakUs, 5, 10),
+    "process:packMax": classifyMs(diagnostics.packTelemetryMaxUs, 0.5, 2),
+    "process:packPeak": classifyMs(diagnostics.packTelemetryPeakUs, 1, 4),
+    "process:postMax": classifyMs(diagnostics.postMessageMaxUs, 0.5, 2),
+    "process:postPeak": classifyMs(diagnostics.postMessagePeakUs, 1, 4),
+    "process:gainMax": classifyMs(diagnostics.applyGainMaxUs, 0.25, 1),
+    "process:gainPeak": classifyMs(diagnostics.applyGainPeakUs, 0.25, 1),
+    "process:frameP50": classifyMilliseconds(diagnostics.frameP50Ms, 4, 8),
+    "process:frameP95": classifyMilliseconds(diagnostics.frameP95Ms, 8, 16),
+    "process:frameMax": classifyMilliseconds(diagnostics.frameMaxMs, 16, 33),
+    "process:framePeak": classifyMilliseconds(diagnostics.framePeakMs, 33, 50),
+    "deadlines:lateWindow": classifyCount(diagnostics.lateWindow, 2),
+    "deadlines:latePeak": classifyCount(diagnostics.latePeakWindow, 5),
+    "deadlines:missedWindow": classifyBadAny(diagnostics.missedWindow),
+    "deadlines:missedPeak": classifyBadAny(diagnostics.missedPeakWindow),
+    "telemetry:dropsWindow": classifyCount(diagnostics.telemetryDropWindow, 3),
+    "telemetry:dropsPeak": classifyCount(diagnostics.telemetryDropPeakWindow, 5),
+  };
+}
+
 function buildValues(diagnostics) {
   const processCalls = diagnostics.processCalls;
   const lateWindow = diagnostics.lateWindow ?? 0;
@@ -225,6 +310,17 @@ function createDiagnosticsLayout(doc) {
   intro.textContent = HELP_INTRO;
   body.appendChild(intro);
 
+  const legend = doc.createElement("div");
+  legend.classList.add("diag-health-legend");
+  for (const [health, label] of HEALTH_LABELS) {
+    const item = doc.createElement("span");
+    item.classList.add("diag-health-legend-item", `diag-health-legend-item--${health}`);
+    item.dataset.health = health;
+    item.textContent = label;
+    legend.appendChild(item);
+  }
+  body.appendChild(legend);
+
   const valueNodes = new Map();
   for (const group of GROUPS) {
     const groupEl = doc.createElement("div");
@@ -303,10 +399,18 @@ export function createAudioDiagnosticsOverlay({
   function refresh() {
     const diagnostics = player.getAudioDiagnostics() || {};
     const frameDiagnostics = getFrameDiagnostics?.() || {};
-    const values = buildValues({ ...diagnostics, ...frameDiagnostics });
+    const combined = { ...diagnostics, ...frameDiagnostics };
+    const values = buildValues(combined);
+    const health = buildHealth(combined);
     for (const [key, node] of valueNodes) {
       const next = values[key] ?? "-";
       if (node.textContent !== next) node.textContent = next;
+      const state = health[key];
+      if (state) {
+        if (node.dataset.health !== state) node.dataset.health = state;
+      } else if (node.dataset.health !== undefined) {
+        delete node.dataset.health;
+      }
     }
   }
 

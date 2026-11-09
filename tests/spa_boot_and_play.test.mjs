@@ -313,6 +313,103 @@ test("Stats groups metrics and keeps each label with its value", () => {
   }
 });
 
+test("Stats colour-codes values by health", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: {
+      getAudioDiagnostics: () => ({
+        backend: "worklet",
+        contextState: "running",
+        outputLatency: 0.0128,
+        processCalls: 375,
+        p50Us: 30,
+        p95Us: 1020,
+        p99Us: 1600,
+        maxUs: 3000,
+        processPeakUs: 37000,
+        packTelemetryMaxUs: 100,
+        packTelemetryPeakUs: 2000,
+        postMessageMaxUs: 20,
+        postMessagePeakUs: 37000,
+        applyGainMaxUs: 5,
+        applyGainPeakUs: 50,
+        lateWindow: 2,
+        latePeakWindow: 11,
+        missedWindow: 0,
+        missedPeakWindow: 0,
+        telemetryDropWindow: 0,
+        telemetryDropPeakWindow: 13,
+      }),
+    },
+    window: globalThis.window,
+    getFrameDiagnostics: () => ({
+      frameP50Ms: 4,
+      frameP95Ms: 17,
+      frameMaxMs: 59,
+      framePeakMs: 92,
+    }),
+  });
+
+  try {
+    const health = (metric) =>
+      globalThis.document.querySelector(`[data-metric="${metric}"]`)?.dataset.health;
+
+    assert.equal(health("context:backend"), "normal");
+    assert.equal(health("context:ctx"), "normal");
+    assert.equal(health("latency:out"), "bad", "12.8ms output buffer is bad");
+    assert.equal(health("process:p50"), "normal");
+    assert.equal(health("process:p95"), "pressure", "1.02ms is under pressure");
+    assert.equal(health("process:p99"), "pressure", "1.60ms is under pressure");
+    assert.equal(health("process:max"), "pressure", "3ms is under pressure");
+    assert.equal(health("process:peak"), "bad", "37ms peak is bad");
+    assert.equal(health("process:packPeak"), "pressure");
+    assert.equal(health("process:postPeak"), "bad");
+    assert.equal(health("process:gainPeak"), "normal");
+    assert.equal(health("process:frameP50"), "pressure");
+    assert.equal(health("process:frameP95"), "bad");
+    assert.equal(health("process:frameMax"), "bad");
+    assert.equal(health("process:framePeak"), "bad");
+    assert.equal(health("deadlines:lateWindow"), "pressure");
+    assert.equal(health("deadlines:latePeak"), "bad");
+    assert.equal(health("deadlines:missedWindow"), "normal");
+    assert.equal(health("telemetry:dropsWindow"), "normal");
+    assert.equal(health("telemetry:dropsPeak"), "bad");
+    assert.equal(health("process:budget"), undefined, "Unlisted values stay neutral");
+    assert.equal(health("process:renderPeak"), undefined, "Unlisted values stay neutral");
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats help mode includes a health legend", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({}) },
+    window: globalThis.window,
+  });
+
+  try {
+    const legend = globalThis.document.querySelector(".diag-health-legend");
+    assert.ok(legend, "Stats must include a health legend");
+    const items = globalThis.document.querySelectorAll(".diag-health-legend-item");
+    assert.equal(items.length, 3, "Legend must list three health states");
+    assert.deepEqual(
+      items.map((item) => item.textContent),
+      ["normal", "under pressure", "bad"],
+    );
+    assert.deepEqual(
+      items.map((item) => item.dataset.health),
+      ["normal", "pressure", "bad"],
+    );
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
 test("Stats help mode expands descriptions and closes back to compact", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const overlay = createAudioDiagnosticsOverlay({

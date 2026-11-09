@@ -2468,6 +2468,9 @@ html[data-boot-mode="immediate"] .boot-sequence {
 
 /* Opt-in audio diagnostics overlay (?audioDebug=1). */
 .audio-diagnostics {
+  --diag-health-normal: var(--accent-green);
+  --diag-health-pressure: var(--accent-yellow);
+  --diag-health-bad: #ff6b6b;
   position: fixed;
   left: 8px;
   bottom: 8px;
@@ -2587,6 +2590,29 @@ html[data-boot-mode="immediate"] .boot-sequence {
   font-variant-numeric: tabular-nums;
 }
 
+.diag-value[data-health="normal"] {
+  color: var(--diag-health-normal);
+}
+
+.diag-value[data-health="pressure"] {
+  color: var(--diag-health-pressure);
+}
+
+.diag-value[data-health="bad"] {
+  color: var(--diag-health-bad);
+}
+
+.diag-value[data-health]::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
 .diag-group--events .diag-item {
   flex-basis: 100%;
   display: flex;
@@ -2613,6 +2639,45 @@ html[data-boot-mode="immediate"] .boot-sequence {
 .diag-help-intro {
   border-left: 2px solid var(--border-bright);
   padding-left: 6px;
+}
+
+.diag-health-legend {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding-left: 6px;
+}
+
+.audio-diagnostics.is-help .diag-health-legend {
+  display: flex;
+}
+
+.diag-health-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.diag-health-legend-item::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.diag-health-legend-item--normal {
+  color: var(--diag-health-normal);
+}
+
+.diag-health-legend-item--pressure {
+  color: var(--diag-health-pressure);
+}
+
+.diag-health-legend-item--bad {
+  color: var(--diag-health-bad);
 }
 
 .diag-group-description {
