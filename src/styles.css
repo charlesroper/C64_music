@@ -2496,17 +2496,27 @@ html[data-boot-mode="immediate"] .boot-sequence {
   gap: 8px;
 }
 
+.diag-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
 .diag-help-toggle {
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 1px solid var(--border-bright);
-  background: transparent;
+  border: 1px solid rgba(56, 226, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(56, 226, 255, 0.08);
   color: var(--accent-cyan);
-  font-family: monospace;
-  font-size: 16px;
+  font-family: var(--font-mono);
+  font-size: 18px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   pointer-events: auto;
   touch-action: manipulation;
@@ -2514,6 +2524,7 @@ html[data-boot-mode="immediate"] .boot-sequence {
 
 .diag-help-toggle:hover {
   border-color: var(--accent-cyan);
+  background: rgba(56, 226, 255, 0.16);
 }
 
 .diag-help-toggle:focus-visible {
@@ -2618,6 +2629,8 @@ html[data-boot-mode="immediate"] .boot-sequence {
   left: 50%;
   width: min(560px, calc(100vw - 16px));
   max-width: none;
+  padding: 0;
+  gap: 0;
   transform: translateX(-50%);
   overflow-y: auto;
   background: rgba(0, 0, 0, 0.96);
@@ -2627,9 +2640,17 @@ html[data-boot-mode="immediate"] .boot-sequence {
 .audio-diagnostics.is-help .diag-header {
   position: sticky;
   top: 0;
-  z-index: 1;
-  padding-bottom: 4px;
-  background: rgba(0, 0, 0, 0.96);
+  z-index: 2;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(56, 226, 255, 0.16);
+  background: rgba(4, 8, 12, 0.62);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.audio-diagnostics.is-help .diag-body {
+  padding: 10px 12px 12px;
+  gap: 7px;
 }
 
 .audio-diagnostics.is-help .diag-help-intro,

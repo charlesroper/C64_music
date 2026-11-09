@@ -216,10 +216,14 @@ function createDiagnosticsLayout(doc) {
 
   element.appendChild(header);
 
+  const body = doc.createElement("div");
+  body.classList.add("diag-body");
+  element.appendChild(body);
+
   const intro = doc.createElement("p");
   intro.classList.add("diag-help-intro");
   intro.textContent = HELP_INTRO;
-  element.appendChild(intro);
+  body.appendChild(intro);
 
   const valueNodes = new Map();
   for (const group of GROUPS) {
@@ -260,7 +264,7 @@ function createDiagnosticsLayout(doc) {
       valueNodes.set(`${group.id}:${key}`, valueEl);
     }
 
-    element.appendChild(groupEl);
+    body.appendChild(groupEl);
   }
 
   return { element, valueNodes, helpButton };

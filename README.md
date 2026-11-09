@@ -71,7 +71,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 
 * Click **STATS FOR NERDS** in the header to show or hide the live audio and main-thread frame timing overlay.
 * Append `?audioDebug=1` to the URL to open the same overlay on load.
-* Click **?** in the overlay title row to expand a scrollable plain-English guide. Every metric gains a description under its value. Click **×** to return to the compact overlay.
+* Click **?** in the overlay title row to expand a scrollable plain-English guide. Every metric gains a description under its value. The expanded guide has a flush, frosted title bar and a circular help button. Click **×** to return to the compact overlay.
 * The overlay groups Context, Latency, Process, Deadlines, Telemetry and Events. Each group has its own colour and left border. Text titles remain, so colour is not the only cue.
 * Each metric is one label and value unit. Whole units wrap on narrow screens, so a value never drops below its label.
 * A **window** is 375 `process()` calls, about one second. Window values reset.
