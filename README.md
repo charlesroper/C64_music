@@ -106,7 +106,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * Append `?render=minimal` for isolation captures.
 * The flag hides the centre and right workbench panels, pauses the render loop and leaves the transport and track list available.
 * Audio playback and track selection are unchanged.
-* This is a debug flag, not the music-only low power mode.
+* This is a debug flag. It does not enable the LOW POWER switch.
 
 ### Low power mode
 
