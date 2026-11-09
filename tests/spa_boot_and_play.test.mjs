@@ -576,6 +576,31 @@ test("?telemetry=off boots with snapshots disabled and locked", async () => {
   }
 });
 
+test("?render=minimal boots with the minimal render class and paused loop", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    globalThis.window.location = { search: "?render=minimal" };
+    const booted = await bootWorkbench({ skipBoot: true });
+
+    assert.ok(globalThis.document.body.classList.contains("render-minimal"));
+    assert.ok(
+      !globalThis.document.body.classList.contains("low-power"),
+      "Minimal render must not enter music-only mode",
+    );
+
+    for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
+      harness.stepAnimationFrame(timestamp);
+    }
+    assert.equal(
+      booted.view.getFrameDiagnostics().frameCalls,
+      0,
+      "The boot handoff must not resume the loop in minimal render mode",
+    );
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlocks AudioContext inside the tap gesture and starts audio when ready", async () => {
   const harness = createBrowserHarness({
     hardwareSampleRate: 48000,
@@ -1504,6 +1529,47 @@ test("Opt-in low power mode caps rendering and restores the base telemetry rate"
 
     brandLogo.click();
     assert.ok(brandLogo.classList.contains("sparkle-active"), "Sparkle must return");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
+test("Minimal render hides the centre and right panels and pauses rendering", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+    renderMinimal: true,
+  });
+
+  try {
+    assert.ok(globalThis.document.body.classList.contains("render-minimal"));
+    assert.ok(
+      !globalThis.document.body.classList.contains("low-power"),
+      "Minimal render must not enter music-only mode",
+    );
+
+    player.play();
+    for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
+      harness.stepAnimationFrame(timestamp);
+    }
+    assert.equal(
+      view.getFrameDiagnostics().frameCalls,
+      0,
+      "Minimal render must pause the workbench render loop",
+    );
+
+    const before = view.state.activeTrackId;
+    harness.elementsById.get("btn-next").click();
+    assert.notEqual(
+      view.state.activeTrackId,
+      before,
+      "Track switching must remain usable in minimal render mode",
+    );
+    assert.equal(player.getState().isPlaying, true, "Track switching must keep playback");
   } finally {
     view.destroy();
     harness.restoreGlobals();

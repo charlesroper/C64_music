@@ -25,6 +25,7 @@ export async function bootWorkbench(options = {}) {
   const telemetryHz = resolveTelemetryHz(telemetryParam);
   const telemetryEnabled = resolveTelemetryEnabled(telemetryParam);
   const telemetryLockedOff = !telemetryEnabled;
+  const renderMinimal = params.get("render") === "minimal";
   const reducedMotion =
     options.reducedMotion === true ||
     Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -122,6 +123,7 @@ export async function bootWorkbench(options = {}) {
     player: null,
     latencyHint,
     telemetryHz,
+    renderMinimal,
     onFirstInteraction: handleFirstInteraction,
   });
   view.setRenderingPaused(bootActive);

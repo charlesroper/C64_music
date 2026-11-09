@@ -177,6 +177,7 @@ export function createWorkbenchView({
   elements = null,
   latencyHint = "playback",
   telemetryHz = 62.5,
+  renderMinimal = false,
   onFirstInteraction = null,
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
@@ -204,6 +205,7 @@ export function createWorkbenchView({
     telemetryHz: initialTelemetryHz,
     baseTelemetryHz: initialTelemetryHz,
     lowPower: false,
+    renderMinimal: Boolean(renderMinimal),
     diagnostics: null,
 
     muteMask: 0,
@@ -1318,6 +1320,10 @@ export function createWorkbenchView({
     if (chkCrt) chkCrt.disabled = enabled;
   }
 
+  function applyRenderMinimalChrome(enabled) {
+    doc.body?.classList.toggle("render-minimal", enabled);
+  }
+
   function setLowPower(enabled) {
     const next = Boolean(enabled);
     if (state.lowPower === next) return;
@@ -1600,6 +1606,7 @@ export function createWorkbenchView({
       }
 
       applyLowPowerChrome(state.lowPower);
+      applyRenderMinimalChrome(state.renderMinimal);
 
       const sDigi = getEl("slider-digi-boost");
       if (sDigi) {
@@ -1904,7 +1911,7 @@ export function createWorkbenchView({
       rafId = win.requestAnimationFrame(renderFrameLoop);
     }
 
-    if (renderingPaused) return;
+    if (renderingPaused || state.renderMinimal) return;
 
     if (doc?.hidden) {
       return;
