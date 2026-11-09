@@ -21,6 +21,50 @@ const HEALTH_LABELS = [
   [HEALTH.BAD, "bad"],
 ];
 
+function classifyMs(microseconds, normalMaxMs, pressureMaxMs) {
+  if (!Number.isFinite(microseconds)) return null;
+  return classifyMilliseconds(microseconds / 1000, normalMaxMs, pressureMaxMs);
+}
+
+function classifyMilliseconds(milliseconds, normalMaxMs, pressureMaxMs) {
+  if (!Number.isFinite(milliseconds)) return null;
+  if (milliseconds < normalMaxMs) return HEALTH.NORMAL;
+  if (milliseconds <= pressureMaxMs) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyCount(value, pressureMax) {
+  if (!Number.isFinite(value)) return null;
+  if (value <= 0) return HEALTH.NORMAL;
+  if (value <= pressureMax) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyAnyPositiveAsBad(value) {
+  if (!Number.isFinite(value)) return null;
+  return value > 0 ? HEALTH.BAD : HEALTH.NORMAL;
+}
+
+function classifyLatency(seconds) {
+  if (!Number.isFinite(seconds)) return null;
+  const milliseconds = seconds * 1000;
+  if (milliseconds >= 30) return HEALTH.NORMAL;
+  if (milliseconds >= 15) return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyContext(state) {
+  if (state === "running") return HEALTH.NORMAL;
+  if (state === "suspended") return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
+function classifyBackend(backend) {
+  if (backend === "worklet") return HEALTH.NORMAL;
+  if (backend === "in-thread") return HEALTH.PRESSURE;
+  return HEALTH.BAD;
+}
+
 const GROUPS = [
   {
     id: "context",
@@ -36,6 +80,10 @@ const GROUPS = [
         "How often screen and scope updates arrive. OFF means snapshots are stopped.",
       ],
     ],
+    health: {
+      backend: (diagnostics) => classifyBackend(diagnostics.backend),
+      ctx: (diagnostics) => classifyContext(diagnostics.contextState),
+    },
   },
   {
     id: "latency",
@@ -50,6 +98,9 @@ const GROUPS = [
         "Browser-reported output buffer. Firefox is about 10ms; Chromium about 192ms.",
       ],
     ],
+    health: {
+      out: (diagnostics) => classifyLatency(diagnostics.outputLatency),
+    },
   },
   {
     id: "process",
@@ -84,6 +135,23 @@ const GROUPS = [
       ["framePeak", "frame peak", "Slowest rendered frame since page load."],
       ["frameCalls", "frames", "Rendered frames in the current frame window. 60 means full."],
     ],
+    health: {
+      p50: (diagnostics) => classifyMs(diagnostics.p50Us, 0.5, 1.5),
+      p95: (diagnostics) => classifyMs(diagnostics.p95Us, 1, 2.67),
+      p99: (diagnostics) => classifyMs(diagnostics.p99Us, 1.5, 2.67),
+      max: (diagnostics) => classifyMs(diagnostics.maxUs, 2.67, 5),
+      peak: (diagnostics) => classifyMs(diagnostics.processPeakUs, 5, 10),
+      packMax: (diagnostics) => classifyMs(diagnostics.packTelemetryMaxUs, 0.5, 2),
+      packPeak: (diagnostics) => classifyMs(diagnostics.packTelemetryPeakUs, 1, 4),
+      postMax: (diagnostics) => classifyMs(diagnostics.postMessageMaxUs, 0.5, 2),
+      postPeak: (diagnostics) => classifyMs(diagnostics.postMessagePeakUs, 1, 4),
+      gainMax: (diagnostics) => classifyMs(diagnostics.applyGainMaxUs, 0.25, 1),
+      gainPeak: (diagnostics) => classifyMs(diagnostics.applyGainPeakUs, 0.25, 1),
+      frameP50: (diagnostics) => classifyMilliseconds(diagnostics.frameP50Ms, 4, 8),
+      frameP95: (diagnostics) => classifyMilliseconds(diagnostics.frameP95Ms, 8, 16),
+      frameMax: (diagnostics) => classifyMilliseconds(diagnostics.frameMaxMs, 16, 33),
+      framePeak: (diagnostics) => classifyMilliseconds(diagnostics.framePeakMs, 33, 50),
+    },
   },
   {
     id: "deadlines",
@@ -101,6 +169,12 @@ const GROUPS = [
       ["missedWindow", "missed window", "Whole audio blocks skipped in the current window."],
       ["missedPeak", "missed peak", "Worst skipped-block count in a window since page load."],
     ],
+    health: {
+      lateWindow: (diagnostics) => classifyCount(diagnostics.lateWindow, 2),
+      latePeak: (diagnostics) => classifyCount(diagnostics.latePeakWindow, 5),
+      missedWindow: (diagnostics) => classifyAnyPositiveAsBad(diagnostics.missedWindow),
+      missedPeak: (diagnostics) => classifyAnyPositiveAsBad(diagnostics.missedPeakWindow),
+    },
   },
   {
     id: "telemetry",
@@ -121,6 +195,10 @@ const GROUPS = [
       ["volume", "volume", "Current output gain. 1.00 is full volume."],
       ["playing", "playing", "Whether playback is requested."],
     ],
+    health: {
+      dropsWindow: (diagnostics) => classifyCount(diagnostics.telemetryDropWindow, 3),
+      dropsPeak: (diagnostics) => classifyCount(diagnostics.telemetryDropPeakWindow, 5),
+    },
   },
   {
     id: "events",
@@ -158,77 +236,14 @@ function formatEvents(events) {
     .join(" -> ");
 }
 
-function classifyMs(microseconds, normalMaxMs, pressureMaxMs) {
-  if (!Number.isFinite(microseconds)) return null;
-  return classifyMilliseconds(microseconds / 1000, normalMaxMs, pressureMaxMs);
-}
-
-function classifyMilliseconds(milliseconds, normalMaxMs, pressureMaxMs) {
-  if (!Number.isFinite(milliseconds)) return null;
-  if (milliseconds < normalMaxMs) return HEALTH.NORMAL;
-  if (milliseconds <= pressureMaxMs) return HEALTH.PRESSURE;
-  return HEALTH.BAD;
-}
-
-function classifyCount(value, pressureMax) {
-  if (!Number.isFinite(value)) return null;
-  if (value <= 0) return HEALTH.NORMAL;
-  if (value <= pressureMax) return HEALTH.PRESSURE;
-  return HEALTH.BAD;
-}
-
-function classifyBadAny(value) {
-  if (!Number.isFinite(value)) return null;
-  return value > 0 ? HEALTH.BAD : HEALTH.NORMAL;
-}
-
-function classifyLatency(seconds) {
-  if (!Number.isFinite(seconds)) return null;
-  const milliseconds = seconds * 1000;
-  if (milliseconds >= 30) return HEALTH.NORMAL;
-  if (milliseconds >= 15) return HEALTH.PRESSURE;
-  return HEALTH.BAD;
-}
-
-function classifyContext(state) {
-  if (state === "running") return HEALTH.NORMAL;
-  if (state === "suspended") return HEALTH.PRESSURE;
-  return HEALTH.BAD;
-}
-
-function classifyBackend(backend) {
-  if (backend === "worklet") return HEALTH.NORMAL;
-  if (backend === "in-thread") return HEALTH.PRESSURE;
-  return HEALTH.BAD;
-}
-
 function buildHealth(diagnostics) {
-  return {
-    "context:backend": classifyBackend(diagnostics.backend),
-    "context:ctx": classifyContext(diagnostics.contextState),
-    "latency:out": classifyLatency(diagnostics.outputLatency),
-    "process:p50": classifyMs(diagnostics.p50Us, 0.5, 1.5),
-    "process:p95": classifyMs(diagnostics.p95Us, 1, 2.67),
-    "process:p99": classifyMs(diagnostics.p99Us, 1.5, 2.67),
-    "process:max": classifyMs(diagnostics.maxUs, 2.67, 5),
-    "process:peak": classifyMs(diagnostics.processPeakUs, 5, 10),
-    "process:packMax": classifyMs(diagnostics.packTelemetryMaxUs, 0.5, 2),
-    "process:packPeak": classifyMs(diagnostics.packTelemetryPeakUs, 1, 4),
-    "process:postMax": classifyMs(diagnostics.postMessageMaxUs, 0.5, 2),
-    "process:postPeak": classifyMs(diagnostics.postMessagePeakUs, 1, 4),
-    "process:gainMax": classifyMs(diagnostics.applyGainMaxUs, 0.25, 1),
-    "process:gainPeak": classifyMs(diagnostics.applyGainPeakUs, 0.25, 1),
-    "process:frameP50": classifyMilliseconds(diagnostics.frameP50Ms, 4, 8),
-    "process:frameP95": classifyMilliseconds(diagnostics.frameP95Ms, 8, 16),
-    "process:frameMax": classifyMilliseconds(diagnostics.frameMaxMs, 16, 33),
-    "process:framePeak": classifyMilliseconds(diagnostics.framePeakMs, 33, 50),
-    "deadlines:lateWindow": classifyCount(diagnostics.lateWindow, 2),
-    "deadlines:latePeak": classifyCount(diagnostics.latePeakWindow, 5),
-    "deadlines:missedWindow": classifyBadAny(diagnostics.missedWindow),
-    "deadlines:missedPeak": classifyBadAny(diagnostics.missedPeakWindow),
-    "telemetry:dropsWindow": classifyCount(diagnostics.telemetryDropWindow, 3),
-    "telemetry:dropsPeak": classifyCount(diagnostics.telemetryDropPeakWindow, 5),
-  };
+  const health = {};
+  for (const group of GROUPS) {
+    for (const [key, classify] of Object.entries(group.health || {})) {
+      health[`${group.id}:${key}`] = classify(diagnostics);
+    }
+  }
+  return health;
 }
 
 function buildValues(diagnostics) {
@@ -321,7 +336,7 @@ function createDiagnosticsLayout(doc) {
   legend.classList.add("diag-health-legend");
   for (const [health, label] of HEALTH_LABELS) {
     const item = doc.createElement("span");
-    item.classList.add("diag-health-legend-item", `diag-health-legend-item--${health}`);
+    item.classList.add("diag-health-legend-item");
     item.dataset.health = health;
     item.textContent = label;
     legend.appendChild(item);

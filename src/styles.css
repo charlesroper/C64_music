@@ -2590,27 +2590,36 @@ html[data-boot-mode="immediate"] .boot-sequence {
   font-variant-numeric: tabular-nums;
 }
 
-.diag-value[data-health="normal"] {
-  color: var(--diag-health-normal);
+[data-health="normal"] {
+  --diag-health-color: var(--diag-health-normal);
 }
 
-.diag-value[data-health="pressure"] {
-  color: var(--diag-health-pressure);
+[data-health="pressure"] {
+  --diag-health-color: var(--diag-health-pressure);
 }
 
-.diag-value[data-health="bad"] {
-  color: var(--diag-health-bad);
+[data-health="bad"] {
+  --diag-health-color: var(--diag-health-bad);
 }
 
-.diag-value[data-health]::before {
+.diag-value[data-health],
+.diag-health-legend-item[data-health] {
+  color: var(--diag-health-color);
+}
+
+.diag-value[data-health]::before,
+.diag-health-legend-item[data-health]::before {
   content: "";
   display: inline-block;
   width: 5px;
   height: 5px;
-  margin-right: 4px;
   border-radius: 50%;
   background: currentColor;
   vertical-align: middle;
+}
+
+.diag-value[data-health]::before {
+  margin-right: 4px;
 }
 
 .diag-group--events .diag-item {
@@ -2658,26 +2667,6 @@ html[data-boot-mode="immediate"] .boot-sequence {
   gap: 4px;
   color: var(--text-muted);
   font-size: 9px;
-}
-
-.diag-health-legend-item::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.diag-health-legend-item--normal {
-  color: var(--diag-health-normal);
-}
-
-.diag-health-legend-item--pressure {
-  color: var(--diag-health-pressure);
-}
-
-.diag-health-legend-item--bad {
-  color: var(--diag-health-bad);
 }
 
 .diag-group-description {
