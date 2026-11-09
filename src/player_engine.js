@@ -313,7 +313,7 @@ export function createWorkbenchPlayer({
 
   getAssembled(state.activeGameId);
 
-  function sendTelemetryEnabled(target = transport) {
+  function sendTelemetryEnabled(target) {
     target.send({ type: "setTelemetryEnabled", enabled: state.telemetryEnabled });
   }
 

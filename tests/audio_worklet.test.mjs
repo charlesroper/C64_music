@@ -458,6 +458,44 @@ test("player keeps a locked telemetry-off override off", async () => {
   assert.equal(player.getState().telemetryEnabled, false);
 });
 
+test("in-thread transport stops advancing telemetry when disabled", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+  });
+
+  player.selectTrack("wizball.asm", "wiz-title", { autoPlay: true });
+  const left = new Float32Array(2048);
+  const right = new Float32Array(2048);
+  player.pullAudioBlock(left, right);
+  player.pullAudioBlock(left, right);
+  const before = player.getTelemetry().frameCount;
+
+  player.pullAudioBlock(left, right);
+  player.pullAudioBlock(left, right);
+  assert.ok(player.getTelemetry().frameCount > before, "Enabled telemetry must advance");
+
+  player.setTelemetryEnabled(false);
+  const disabled = player.getTelemetry().frameCount;
+  player.pullAudioBlock(left, right);
+  player.pullAudioBlock(left, right);
+  assert.equal(
+    player.getTelemetry().frameCount,
+    disabled,
+    "Disabled telemetry must not advance the snapshot",
+  );
+
+  player.setTelemetryEnabled(true);
+  player.pullAudioBlock(left, right);
+  player.pullAudioBlock(left, right);
+  assert.ok(
+    player.getTelemetry().frameCount > disabled,
+    "Re-enabled telemetry must advance the snapshot",
+  );
+});
+
 test("player soft-restarts the audio context when latency mode changes", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const contexts = [];

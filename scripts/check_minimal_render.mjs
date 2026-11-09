@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -7,10 +8,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_CHROME =
   "/root/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell";
-const WIDTHS = (process.env.CHECK_WIDTHS || "360,390")
-  .split(",")
-  .map((value) => Number(value.trim()))
-  .filter((value) => Number.isFinite(value) && value > 0);
+const WIDTHS = [360, 390];
 
 const MIME_TYPES = {
   ".asm": "text/plain",
@@ -26,11 +24,12 @@ const MIME_TYPES = {
 
 function findChrome() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (existsSync(DEFAULT_CHROME)) return DEFAULT_CHROME;
   for (const command of ["chromium", "chromium-browser", "google-chrome"]) {
     const found = spawnSync("which", [command], { encoding: "utf8" });
     if (found.status === 0 && found.stdout.trim()) return found.stdout.trim();
   }
-  return DEFAULT_CHROME;
+  throw new Error("Chromium 153 not found. Set CHROME_PATH to the headless shell.");
 }
 
 function createStaticServer() {
@@ -77,6 +76,7 @@ function startChrome(chromePath) {
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
+      child.kill("SIGTERM");
       reject(new Error("Chromium did not report a DevTools endpoint within 10 seconds."));
     }, 10000);
 
@@ -144,11 +144,14 @@ async function evaluate(send, expression) {
 async function waitForMinimalRender(send) {
   const deadline = Date.now() + 10000;
   while (Date.now() < deadline) {
-    const ready = await evaluate(send, "document.body.classList.contains('render-minimal')");
+    const ready = await evaluate(
+      send,
+      "document.body.classList.contains('render-minimal') && document.querySelectorAll('.track-list .track-item').length > 0",
+    );
     if (ready) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error("The render-minimal body class did not appear within 10 seconds.");
+  throw new Error("Minimal render or the track list did not appear within 10 seconds.");
 }
 
 function assertMinimalLayout(width, layout) {
@@ -160,6 +163,10 @@ function assertMinimalLayout(width, layout) {
     if (layout[selector] !== "none") failures.push(`${selector} display was ${layout[selector]}`);
   }
   if (layout.left !== "flex") failures.push(`left display was ${layout.left}`);
+  if (layout.trackList === "none" || layout.trackList === "missing") {
+    failures.push(`track list display was ${layout.trackList}`);
+  }
+  if (!(layout.trackCount > 0)) failures.push(`track list had ${layout.trackCount} rows`);
   if (layout.scrollWidth > layout.innerWidth) {
     failures.push(`scroll width ${layout.scrollWidth} exceeded viewport ${layout.innerWidth}`);
   }
@@ -197,6 +204,8 @@ async function checkWidth({ debugBase, appUrl, width }) {
           right: display(".panel-right"),
           sid: display(".sid-hex-strip"),
           left: display(".panel-left"),
+          trackList: display(".track-list"),
+          trackCount: document.querySelectorAll(".track-list .track-item").length,
           tabs: display(".mobile-view-tabs"),
           innerWidth: window.innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
@@ -219,15 +228,16 @@ async function main() {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = server.address().port;
   const appUrl = `http://127.0.0.1:${port}/?skipBoot=1&render=minimal`;
-  const chrome = await startChrome(chromePath);
+  let chrome = null;
 
   try {
+    chrome = await startChrome(chromePath);
     const debugBase = `http://127.0.0.1:${new URL(chrome.websocketUrl).port}`;
     for (const width of WIDTHS) {
       await checkWidth({ debugBase, appUrl, width });
     }
   } finally {
-    chrome.child.kill("SIGTERM");
+    if (chrome) chrome.child.kill("SIGTERM");
     server.close();
   }
 }

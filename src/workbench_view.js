@@ -1908,7 +1908,7 @@ export function createWorkbenchView({
   }
 
   function isRenderLoopActive() {
-    return !isDestroyed && !renderingPaused && !state.renderMinimal;
+    return !isDestroyed && !renderingPaused && !state.renderMinimal && !doc?.hidden;
   }
 
   function scheduleRenderFrame() {
@@ -1919,7 +1919,7 @@ export function createWorkbenchView({
 
   function renderFrameLoop(timestamp) {
     rafId = null;
-    if (!isRenderLoopActive() || doc?.hidden) return;
+    if (!isRenderLoopActive()) return;
     scheduleRenderFrame();
 
     if (typeof timestamp === "number") {
@@ -1958,7 +1958,7 @@ export function createWorkbenchView({
   }
 
   function handleVisibilityChange() {
-    if (doc.hidden || !isRenderLoopActive()) return;
+    if (!isRenderLoopActive()) return;
     resetTelemetryCaches();
     if (state.player) {
       const tel = state.player.getTelemetry();
