@@ -29,12 +29,13 @@ function getTrack(gameId, trackId) {
   return game.tracks.find((track) => track.id === trackId) || game.tracks[0];
 }
 
-async function createTestCore() {
+async function createTestCore(options = {}) {
   const { instance } = await WebAssembly.instantiate(wasmBytes, {});
   const messages = [];
   const core = createEngineCore({
     wasm: instance.exports,
     postMessage: (message) => messages.push(message),
+    ...options,
   });
   return { core, wasm: instance.exports, messages };
 }
@@ -100,6 +101,27 @@ test("engine core loads raw assembled bytecode, renders audio, and reports telem
     maximum = Math.max(maximum, peak(block));
   }
   assert.ok(maximum > 0.01, "Resumed core must render audio again");
+});
+
+test("engine core skips telemetry construction when the transport disables it", async () => {
+  let enabled = false;
+  const { core, messages } = await createTestCore({
+    shouldEmitTelemetry: () => enabled,
+  });
+
+  core.onmessage({ data: { type: "init", sampleRate: 48000 } });
+  loadTrack(core, "wizball.asm", "wiz-title", { autoPlay: true });
+
+  const block = new Float32Array(2048);
+  const other = new Float32Array(2048);
+  for (let i = 0; i < 8; i++) {
+    core.renderAudio(block, other);
+  }
+  assert.equal(messages.length, 0, "Disabled telemetry must not build or post snapshots");
+
+  enabled = true;
+  core.onmessage({ data: { type: "requestTelemetry" } });
+  assert.equal(messages.at(-1).type, "telemetry");
 });
 
 test("engine core loads an arkanoid bytecode payload for arkadrum drum tracks", async () => {

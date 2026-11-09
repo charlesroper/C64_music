@@ -415,6 +415,15 @@ test("player forwards telemetry enable and disable to the worklet", async () => 
     );
     assert.equal(message.enabled, false);
 
+    node.port.messages.length = 0;
+    player.getTelemetry();
+    player.getRamView();
+    assert.equal(
+      node.port.messages.filter((candidate) => candidate.type === "requestTelemetry").length,
+      0,
+      "Disabled telemetry must not request snapshots from the worklet",
+    );
+
     assert.equal(player.setTelemetryEnabled(true), true);
     assert.equal(player.getState().telemetryEnabled, true);
     assert.equal(player.getAudioDiagnostics().telemetryEnabled, true);

@@ -30,8 +30,9 @@ function createInThreadTransport({ wasm, telemetryEnabled = true }) {
   let enabled = telemetryEnabled !== false;
   const core = createEngineCore({
     wasm,
+    shouldEmitTelemetry: () => enabled,
     postMessage(message) {
-      if (message.type !== "telemetry" || enabled) latestTelemetry = message.snapshot;
+      if (message.type === "telemetry" && enabled) latestTelemetry = message.snapshot;
     },
   });
 
@@ -322,12 +323,14 @@ export function createWorkbenchPlayer({
   }
 
   function getTelemetry() {
+    if (!state.telemetryEnabled) return lastTelemetry;
     const snapshot = transport.requestTelemetry();
     if (snapshot) lastTelemetry = snapshot;
     return lastTelemetry;
   }
 
   function getRamView() {
+    if (!state.telemetryEnabled) return lastTelemetry?.ram ?? null;
     const snapshot = transport.requestTelemetry();
     return snapshot ? snapshot.ram : null;
   }

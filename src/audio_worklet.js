@@ -88,6 +88,7 @@ export function createC64ProcessorClass(BaseProcessor) {
             wasm: instance.exports,
             sampleRate,
             telemetryInterval: TELEMETRY_INTERVAL,
+            shouldEmitTelemetry: () => this.telemetryEnabled,
             postMessage: (message) => {
               if (message.type === "telemetry") {
                 if (!this.telemetryEnabled) {
