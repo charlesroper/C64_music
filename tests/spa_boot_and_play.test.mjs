@@ -47,6 +47,7 @@ test("debug latency hints parse with playback fallback", () => {
   assert.equal(resolveLatencyHint("interactive"), "interactive");
   assert.equal(resolveLatencyHint("0.1"), 0.1);
   assert.equal(resolveLatencyHint("0.2"), 0.2);
+  assert.equal(resolveLatencyHint("0.10"), "playback");
   assert.equal(resolveLatencyHint("0.3"), "playback");
   assert.equal(resolveLatencyHint("bogus"), "playback");
   assert.equal(resolveLatencyHint(undefined), "playback");
