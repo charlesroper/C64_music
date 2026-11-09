@@ -591,3 +591,11 @@ The workbench rendered at up to 60fps and could animate the source viewer while 
 Low power caps the workbench and scopes at 30fps, stops smooth source auto-scroll while playing, removes logo sparkle and CRT scanlines and lowers telemetry to 30Hz. Turning it off restores the base telemetry rate and effects. The Engine Core, SID emulation and audio worklet path are untouched. It is never enabled automatically.
 
 Tests cover the default-off switch, the 30fps frame cap and 60fps restore, telemetry rate and restore, sparkle suppression and scanline control. Chromium recorded 62 monitor draws per second off, 30 on and 62 restored. `late window` stayed at 5/375 for the first two samples and fell to 2/375 after restore, `late peak` stayed at 5, the slowest audio callback stayed around 5 to 6ms and `frame peak` stayed at 28.60ms. WebKit confirmed the toggle, telemetry rate, scanline state and sparkle state. The suite rose to 86 checks across 12 files. Commit [f2fd2c0](https://github.com/charlesroper/C64_music/commit/f2fd2c0) and issue [#54](https://github.com/charlesroper/C64_music/issues/54) carry the change.
+
+### 9 November 2026: Stats values show their health
+
+Every Stats value used the same text colour. A 37ms process peak, a 92ms frame peak and a 12.8ms output buffer looked like ordinary readings unless the listener knew the thresholds. The overlay now colours each value green for normal, amber for under pressure and red for bad. A dot before the value repeats the state, so colour is not the only cue. Group titles keep their existing category colours and the help guide gains a three-state legend.
+
+Thresholds cover callback percentiles, session peaks, telemetry pack and post times, gain ramps, main-thread frame work, deadline counts, telemetry drops, output latency, context state and audio backend. Cumulative totals stay neutral because they mix old and current events. Values without a defined threshold also stay neutral.
+
+Tests assert the three states, the legend, the Firefox 12.8ms output buffer as bad and neutral cumulative totals. The suite rose to 88 checks across 12 files. Commit [a5d1a70](https://github.com/charlesroper/C64_music/commit/a5d1a70) and issue [#57](https://github.com/charlesroper/C64_music/issues/57) carry the change.
