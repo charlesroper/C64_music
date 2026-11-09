@@ -625,3 +625,11 @@ Tests cover the flag, the `render-minimal` body class, the paused loop, track sw
 The minimal render phone-width check was a one-off manual run. `npm run check:minimal-render` now launches the pinned Chromium 153 headless shell at 360px and 390px, opens `?render=minimal`, and asserts the centre panel, right panel, SID strip and mobile tabs are hidden, the track list has rows and `scrollWidth` does not exceed `innerWidth`.
 
 The script starts a local static server and uses the DevTools protocol, with no new dependencies. The browser verification guide records the command and expected output. Tests also cover the same state in the harness. The suite is 98 checks across 12 files. Commit [02d0dd8](https://github.com/charlesroper/C64_music/commit/02d0dd8) and issue [#72](https://github.com/charlesroper/C64_music/issues/72) carry the change.
+
+### 9 November 2026: debug latency hints reach the context
+
+The latency URL accepted only `interactive`. The Firefox isolation matrix needs `playback`, `balanced`, `interactive`, `0.1` and `0.2`, and the value has to reach the AudioContext without adding another switch to the header.
+
+A latency hint policy now accepts those five values and falls back to `playback` for anything else. The chosen hint reaches the AudioContext constructor and appears in Stats, including numeric values. The Audio Mode switch stays limited to playback and interactive, and no permanent latency UI is added.
+
+Tests cover parsing, fallback, context creation, URL boot and Stats display. The suite rose to 102 checks across 12 files. Commit [ece3c5d](https://github.com/charlesroper/C64_music/commit/ece3c5d) and issue [#64](https://github.com/charlesroper/C64_music/issues/64) carry the change.
