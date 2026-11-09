@@ -30,7 +30,11 @@ const GROUPS = [
       ["backend", "backend", "Audio engine in use. Worklet is normal playback."],
       ["ctx", "ctx", "Browser audio state. Running means sound can play."],
       ["rate", "rate", "Audio sample rate in Hz."],
-      ["telemetry", "telemetry", "How often screen and scope updates arrive."],
+      [
+        "telemetry",
+        "telemetry",
+        "How often screen and scope updates arrive. OFF means snapshots are stopped.",
+      ],
     ],
   },
   {
@@ -234,7 +238,10 @@ function buildValues(diagnostics) {
     "context:backend": diagnostics.backend || "-",
     "context:ctx": diagnostics.contextState || "-",
     "context:rate": diagnostics.sampleRate || "-",
-    "context:telemetry": `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
+    "context:telemetry":
+      diagnostics.telemetryEnabled === false
+        ? "OFF"
+        : `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
     "latency:mode": diagnostics.latencyHint || "-",
     "latency:base": formatLatency(diagnostics.baseLatency),
     "latency:out": formatLatency(diagnostics.outputLatency),

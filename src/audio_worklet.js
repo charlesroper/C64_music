@@ -32,6 +32,7 @@ export function createC64ProcessorClass(BaseProcessor) {
       this.ready = false;
       this.pending = [];
       this.telemetryDivider = Number(processorOptions.telemetryDivider) || TELEMETRY_DIVIDER;
+      this.telemetryEnabled = processorOptions.telemetryEnabled !== false;
       this.telemetryCounter = 0;
       this.forceTelemetry = false;
       this.telemetryPool = [];
@@ -89,6 +90,10 @@ export function createC64ProcessorClass(BaseProcessor) {
             telemetryInterval: TELEMETRY_INTERVAL,
             postMessage: (message) => {
               if (message.type === "telemetry") {
+                if (!this.telemetryEnabled) {
+                  this.forceTelemetry = false;
+                  return;
+                }
                 if (this.forceTelemetry) {
                   this.forceTelemetry = false;
                   this.sendTelemetry(message.snapshot);
@@ -131,6 +136,12 @@ export function createC64ProcessorClass(BaseProcessor) {
         this.telemetryCounter = 0;
         return;
       }
+      if (message.type === "setTelemetryEnabled") {
+        this.telemetryEnabled = Boolean(message.enabled);
+        this.telemetryCounter = 0;
+        this.forceTelemetry = false;
+        return;
+      }
       if (message.type === "play") {
         this.playRequested = true;
         this.targetGain = 1;
@@ -143,12 +154,12 @@ export function createC64ProcessorClass(BaseProcessor) {
           return;
         }
       } else if (message.type === "loadTrack") {
-        this.forceTelemetry = true;
+        this.forceTelemetry = this.telemetryEnabled;
         this.playRequested = Boolean(message.autoPlay);
         this.targetGain = this.playRequested ? 1 : 0;
         this.pendingPause = false;
       } else if (message.type === "requestTelemetry") {
-        this.forceTelemetry = true;
+        this.forceTelemetry = this.telemetryEnabled;
       }
       this.forward(message);
     }
@@ -162,6 +173,7 @@ export function createC64ProcessorClass(BaseProcessor) {
     }
 
     sendTelemetry(snapshot) {
+      if (!this.telemetryEnabled) return;
       const buffer = this.telemetryPool.pop();
       if (!buffer) {
         this.diagnostics.telemetryDrops++;

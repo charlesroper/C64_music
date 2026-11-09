@@ -10,6 +10,10 @@ export function resolveTelemetryHz(value) {
   return Number(value) === TELEMETRY_HZ_LOW ? TELEMETRY_HZ_LOW : TELEMETRY_HZ_DEFAULT;
 }
 
+export function resolveTelemetryEnabled(value) {
+  return String(value ?? "").toLowerCase() !== "off";
+}
+
 export function telemetryDividerForHz(value) {
   return resolveTelemetryHz(value) === TELEMETRY_HZ_LOW ? 2 : 1;
 }

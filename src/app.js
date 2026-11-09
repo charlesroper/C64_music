@@ -6,7 +6,7 @@ import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createBootSequence } from "./boot_sequence.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
-import { resolveTelemetryHz } from "./telemetry_rate.js";
+import { resolveTelemetryEnabled, resolveTelemetryHz } from "./telemetry_rate.js";
 import {
   cancelViewerSmoothScroll,
   createWorkbenchView,
@@ -21,7 +21,10 @@ export async function bootWorkbench(options = {}) {
 
   const params = new URLSearchParams(win?.location?.search || "");
   const latencyHint = params.get("latency") === "interactive" ? "interactive" : "playback";
-  const telemetryHz = resolveTelemetryHz(params.get("telemetry"));
+  const telemetryParam = params.get("telemetry");
+  const telemetryHz = resolveTelemetryHz(telemetryParam);
+  const telemetryEnabled = resolveTelemetryEnabled(telemetryParam);
+  const telemetryLockedOff = !telemetryEnabled;
   const reducedMotion =
     options.reducedMotion === true ||
     Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -150,6 +153,8 @@ export async function bootWorkbench(options = {}) {
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
     latencyHint,
     telemetryHz,
+    telemetryEnabled,
+    telemetryLockedOff,
     rawSources,
     createAudioContext: (opts) => {
       if (preUnlockedAudioCtx && (!opts || opts.latencyHint === preUnlockedLatencyHint)) {

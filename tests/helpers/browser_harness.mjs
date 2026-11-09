@@ -653,6 +653,8 @@ export function createFakePlayer(options = {}) {
     digiBoost: 1.3,
     latencyHint: "playback",
     telemetryHz: 62.5,
+    telemetryEnabled: options.telemetryEnabled !== false,
+    telemetryLockedOff: Boolean(options.telemetryLockedOff),
     muteMask: 0,
     soloVoice: -1,
   };
@@ -719,6 +721,11 @@ export function createFakePlayer(options = {}) {
       state.telemetryHz = resolveTelemetryHz(hz);
       options.onTelemetryHz?.(state.telemetryHz);
       return state.telemetryHz;
+    },
+    setTelemetryEnabled(enabled) {
+      state.telemetryEnabled = state.telemetryLockedOff ? false : Boolean(enabled);
+      options.onTelemetryEnabled?.(state.telemetryEnabled);
+      return state.telemetryEnabled;
     },
     injectKey(code) {
       options.onInjectKey?.(code);

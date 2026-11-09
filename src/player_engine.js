@@ -25,18 +25,23 @@ export {
   writeWord,
 } from "./engine_core.js";
 
-function createInThreadTransport({ wasm }) {
+function createInThreadTransport({ wasm, telemetryEnabled = true }) {
   let latestTelemetry = null;
+  let enabled = telemetryEnabled !== false;
   const core = createEngineCore({
     wasm,
     postMessage(message) {
-      if (message.type === "telemetry") latestTelemetry = message.snapshot;
+      if (message.type !== "telemetry" || enabled) latestTelemetry = message.snapshot;
     },
   });
 
   return {
     kind: "in-thread",
     send(message) {
+      if (message?.type === "setTelemetryEnabled") {
+        enabled = Boolean(message.enabled);
+        return;
+      }
       core.onmessage({ data: message });
     },
     renderAudio(outL, outR) {
@@ -55,6 +60,7 @@ function createWorkletTransport({
   workletUrl,
   sampleRate,
   telemetryDivider,
+  telemetryEnabled = true,
   onReady,
   onTelemetry,
   onError,
@@ -79,7 +85,7 @@ function createWorkletTransport({
         numberOfInputs: 0,
         numberOfOutputs: 1,
         outputChannelCount: [2],
-        processorOptions: { wasmModule, sampleRate, telemetryDivider },
+        processorOptions: { wasmModule, sampleRate, telemetryDivider, telemetryEnabled },
       });
       node.port.onmessage = (event) => {
         const message = event.data;
@@ -198,6 +204,8 @@ export function createWorkbenchPlayer({
   createAssemblyWorker = createDefaultAssemblyWorker,
   latencyHint = "playback",
   telemetryHz = 62.5,
+  telemetryEnabled = true,
+  telemetryLockedOff = false,
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
@@ -279,6 +287,8 @@ export function createWorkbenchPlayer({
     sampleRate: 48000,
     latencyHint: latencyHint === "interactive" ? "interactive" : "playback",
     telemetryHz: initialTelemetryHz,
+    telemetryEnabled: telemetryEnabled !== false,
+    telemetryLockedOff: Boolean(telemetryLockedOff),
     audioCtx: null,
     currentSession: null,
     audioBackend: null,
@@ -286,7 +296,10 @@ export function createWorkbenchPlayer({
     workletError: null,
   };
 
-  const inThreadTransport = createInThreadTransport({ wasm });
+  const inThreadTransport = createInThreadTransport({
+    wasm,
+    telemetryEnabled: state.telemetryEnabled,
+  });
   let transport = inThreadTransport;
   let lastTelemetry = null;
   let lastLoadMessage = null;
@@ -329,6 +342,8 @@ export function createWorkbenchPlayer({
       sampleRate: state.sampleRate,
       latencyHint: state.latencyHint,
       telemetryHz: state.telemetryHz,
+      telemetryEnabled: state.telemetryEnabled,
+      telemetryLockedOff: state.telemetryLockedOff,
       baseLatency: ctx?.baseLatency ?? null,
       outputLatency: ctx?.outputLatency ?? null,
       contextEvents: contextEvents.slice(),
@@ -347,6 +362,7 @@ export function createWorkbenchPlayer({
       workletUrl,
       sampleRate: state.sampleRate,
       telemetryDivider: telemetryDividerForHz(state.telemetryHz),
+      telemetryEnabled: state.telemetryEnabled,
       onTelemetry(snapshot) {
         lastTelemetry = snapshot;
       },
@@ -358,6 +374,10 @@ export function createWorkbenchPlayer({
           type: "setTelemetryDivider",
           divider: telemetryDividerForHz(state.telemetryHz),
         });
+        workletTransport.send({
+          type: "setTelemetryEnabled",
+          enabled: state.telemetryEnabled,
+        });
         workletTransport.send({ type: state.isPlaying ? "play" : "pause" });
         transport = workletTransport;
         state.audioBackend = "worklet";
@@ -366,6 +386,10 @@ export function createWorkbenchPlayer({
       onError(error) {
         state.workletError = String(error?.message || error);
         inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
+        inThreadTransport.send({
+          type: "setTelemetryEnabled",
+          enabled: state.telemetryEnabled,
+        });
         if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
         inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
         inThreadTransport.send({ type: state.isPlaying ? "play" : "pause" });
@@ -447,6 +471,7 @@ export function createWorkbenchPlayer({
     await closeAudioContext();
 
     inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
+    inThreadTransport.send({ type: "setTelemetryEnabled", enabled: state.telemetryEnabled });
     if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
     inThreadTransport.send({ type: "setHardwareOptions", options: lastHardwareOptions });
     inThreadTransport.send({ type: wasPlaying ? "play" : "pause" });
@@ -473,6 +498,13 @@ export function createWorkbenchPlayer({
     const next = resolveTelemetryHz(hz);
     state.telemetryHz = next;
     transport.send({ type: "setTelemetryDivider", divider: telemetryDividerForHz(next) });
+    return next;
+  }
+
+  function setTelemetryEnabled(enabled) {
+    const next = state.telemetryLockedOff ? false : Boolean(enabled);
+    state.telemetryEnabled = next;
+    transport.send({ type: "setTelemetryEnabled", enabled: next });
     return next;
   }
 
@@ -587,6 +619,7 @@ export function createWorkbenchPlayer({
     setHardwareOptions,
     setLatencyMode,
     setTelemetryHz,
+    setTelemetryEnabled,
     updateSource,
     getRamView,
     getRawSource: (gameId) => sources[gameId],

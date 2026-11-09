@@ -206,6 +206,24 @@ test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
   }
 });
 
+test("Stats shows OFF when telemetry snapshots are disabled", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: {
+      getAudioDiagnostics: () => ({ telemetryHz: 62.5, telemetryEnabled: false }),
+    },
+    window: globalThis.window,
+  });
+  try {
+    const value = globalThis.document.querySelector('[data-metric="context:telemetry"]');
+    assert.equal(value.textContent, "OFF");
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
 test("Stats groups metrics and keeps each label with its value", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const overlay = createAudioDiagnosticsOverlay({
@@ -532,6 +550,27 @@ test("?telemetry=30 boots the workbench at 30Hz", async () => {
     assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 30);
     assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
     assert.equal(harness.elementsById.get("chk-telemetry-high").checked, false);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("?telemetry=off boots with snapshots disabled and locked", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    globalThis.window.location = { search: "?telemetry=off" };
+    const booted = await bootWorkbench({ skipBoot: true });
+
+    assert.equal(booted.player.getState().telemetryEnabled, false);
+    assert.equal(booted.player.getState().telemetryLockedOff, true);
+    assert.equal(booted.player.getAudioDiagnostics().telemetryEnabled, false);
+    assert.equal(
+      booted.player.setTelemetryEnabled(true),
+      false,
+      "The capture override must not be re-enabled by Stats or music-only",
+    );
+    assert.equal(booted.player.getState().telemetryEnabled, false);
+    assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 62.5);
   } finally {
     harness.restoreGlobals();
   }
