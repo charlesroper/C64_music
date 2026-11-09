@@ -1234,7 +1234,10 @@ export function createWorkbenchView({
     const viewer = getEl("source-viewer");
     const viewerEmpty = !viewer || (viewer.children && viewer.children.length === 0);
 
-    if (prevGameId !== game.id || state.currentSourceFile !== targetFile || viewerEmpty) {
+    if (
+      !state.renderMinimal &&
+      (prevGameId !== game.id || state.currentSourceFile !== targetFile || viewerEmpty)
+    ) {
       renderSource(targetFile);
     }
 
@@ -1953,7 +1956,7 @@ export function createWorkbenchView({
   }
 
   function handleVisibilityChange() {
-    if (doc.hidden || renderingPaused) return;
+    if (doc.hidden || renderingPaused || state.renderMinimal) return;
     resetTelemetryCaches();
     if (state.player) {
       const tel = state.player.getTelemetry();

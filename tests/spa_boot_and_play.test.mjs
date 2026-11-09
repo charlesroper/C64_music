@@ -1538,19 +1538,28 @@ test("Opt-in low power mode caps rendering and restores the base telemetry rate"
 test("Minimal render marks the body and pauses the workbench render loop", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();
-  const view = createWorkbenchView({
-    document: globalThis.document,
-    elements: harness.elementsById,
-    player,
-    renderMinimal: true,
-  });
+  const originalRaf = globalThis.window.requestAnimationFrame;
+  let rafCalls = 0;
+  globalThis.window.requestAnimationFrame = (callback) => {
+    rafCalls++;
+    return originalRaf(callback);
+  };
+  let view = null;
 
   try {
+    view = createWorkbenchView({
+      document: globalThis.document,
+      elements: harness.elementsById,
+      player,
+      renderMinimal: true,
+    });
+
     assert.ok(globalThis.document.body.classList.contains("render-minimal"));
     assert.ok(
       !globalThis.document.body.classList.contains("low-power"),
       "Minimal render must not enable low power mode",
     );
+    assert.equal(rafCalls, 1, "Minimal render must schedule the initial frame only");
 
     player.play();
     for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
@@ -1561,6 +1570,7 @@ test("Minimal render marks the body and pauses the workbench render loop", () =>
       0,
       "Minimal render must pause the workbench render loop",
     );
+    assert.equal(rafCalls, 1, "Minimal render must not schedule another frame");
 
     const before = view.state.activeTrackId;
     harness.elementsById.get("btn-next").click();
@@ -1570,8 +1580,32 @@ test("Minimal render marks the body and pauses the workbench render loop", () =>
       "Track switching must remain usable in minimal render mode",
     );
     assert.equal(player.getState().isPlaying, true, "Track switching must keep playback");
+    assert.equal(
+      harness.elementsById.get("source-viewer").children.length,
+      0,
+      "Track switching must not render the hidden source viewer",
+    );
+
+    harness.elementsById.get("btn-play").click();
+    assert.equal(player.getState().isPlaying, false, "Pause must remain usable");
+    assert.equal(view.getFrameDiagnostics().frameCalls, 0, "Pause must not resume the loop");
+
+    const originalGetTelemetry = player.getTelemetry.bind(player);
+    let telemetryReads = 0;
+    player.getTelemetry = () => {
+      telemetryReads++;
+      return originalGetTelemetry();
+    };
+    globalThis.document.hidden = false;
+    globalThis.document.dispatchEvent("visibilitychange");
+    assert.equal(
+      telemetryReads,
+      0,
+      "A visibility change must not render hidden telemetry in minimal render mode",
+    );
   } finally {
-    view.destroy();
+    globalThis.window.requestAnimationFrame = originalRaf;
+    view?.destroy();
     harness.restoreGlobals();
   }
 });
