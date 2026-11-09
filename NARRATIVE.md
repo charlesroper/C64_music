@@ -600,3 +600,11 @@ Every Stats value used the same text colour. A 37ms process peak, a 92ms frame p
 Thresholds cover callback percentiles, session peaks, telemetry pack and post times, gain ramps, main-thread frame work, deadline counts, telemetry drops, output latency, context state and audio backend. Cumulative totals stay neutral because they mix old and current events. Values without a defined threshold also stay neutral.
 
 Tests assert the three states, the legend, the Firefox 12.8ms output buffer as bad and neutral cumulative totals. The suite rose to 88 checks across 12 files. Commit [a5d1a70](https://github.com/charlesroper/C64_music/commit/a5d1a70) and issue [#57](https://github.com/charlesroper/C64_music/issues/57) carry the change.
+
+### 9 November 2026: telemetry can be stopped at the source
+
+Telemetry snapshots ran whenever audio played. The low power mode lowered the rate to 30Hz but still sent snapshots, so there was no way to remove the audio-thread handoff for a music-only mode or an isolation capture.
+
+The Player Engine now has an explicit telemetry enable and disable path. The AudioWorklet Processor drops outgoing snapshots while disabled, keeps audio diagnostics flowing and keeps the existing buffer pool. Stats shows `OFF` for the telemetry rate. `?telemetry=off` starts with snapshots disabled and locked, so opening Stats cannot re-enable them. The default 62.5Hz rate and `?telemetry=30` are unchanged.
+
+Tests cover the worklet gate, Player Engine state, the locked override, Stats `OFF` and URL parsing. The suite rose to 93 checks across 12 files. Commit [132ac8d](https://github.com/charlesroper/C64_music/commit/132ac8d) and issue [#62](https://github.com/charlesroper/C64_music/issues/62) carry the change.
