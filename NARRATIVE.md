@@ -683,3 +683,11 @@ The README, the audio latency guide, the browser guide and Section 5 are correct
 Interactive audio gave the closer source follow, but it popped on the test device. A first-run crackle is worse than a delay that one switch can fix, so the default now follows the reliable path.
 
 New listeners boot in `PLAYBACK`. A stored `INTERACTIVE` choice still boots interactive, and the URL overrides keep their one-load precedence. The decision is recorded in [ADR 0009](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0009-playback-default.md). README, GLOSSARY, the audio latency guide and the browser verification guide now describe playback as the default. The explainer and Stats help copy follow in the later tickets. Historical entries stay. The suite rose to 98 checks across 12 files. Commit [0a67c05](https://github.com/charlesroper/C64_music/commit/0a67c05) and issue [#78](https://github.com/charlesroper/C64_music/issues/78) carry the change.
+
+### 10 November 2026: Stats help links the audio delay guide
+
+The expanded Stats help was plain text, and its intro still sent readers to the README for a Firefox Nightly buffer setting. That claim was stale: the buffer preference works in Firefox Beta and Nightly, and playback is now the default.
+
+Help items can now carry an optional link. The latency mode help links **Audio delay help** to the audio latency guide, and uses the same plain language as the Audio Mode explainer: interactive responds sooner but can crackle on slower devices, playback waits about 0.2 seconds and is the default, and Firefox uses its own setting. The intro now points to the help link instead of the README.
+
+README, the audio latency guide, the browser verification guide and the Firefox research note now cross-link each other. The research note short answer drops the interactive-default and Nightly-only claims. Historical entries stay unchanged. Targeted Stats tests and the lint check pass. Commit [e6bd1a3](https://github.com/charlesroper/C64_music/commit/e6bd1a3) and issue [#80](https://github.com/charlesroper/C64_music/issues/80) carry the change.
