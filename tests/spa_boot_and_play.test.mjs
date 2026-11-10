@@ -268,6 +268,7 @@ test("SID help popover uses the shared module and drum boost still works", () =>
     sidToggle.checked = true;
     sidToggle.dispatchEvent("change");
     assert.equal(player.getState().sidModel8580, true);
+    assert.equal(harness.elementsById.get("sid-model-value").textContent, "8580");
 
     const slider = harness.elementsById.get("slider-digi-boost");
     assert.equal(slider.value, "1.3", "Drum boost must keep its default range value");
