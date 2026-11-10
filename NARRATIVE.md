@@ -688,7 +688,7 @@ New listeners boot in `PLAYBACK`. A stored `INTERACTIVE` choice still boots inte
 
 The help panels opened as a centred card at every width. They now become a bottom sheet on phones and anchor near their trigger on wider screens, with viewport clamping and recalculation on resize or scroll. Reduced-motion preferences skip the opening fade.
 
-Browser checks cover 360px, 390px, 820px, 1280x600 and 1440x900. Headless Chromium 153 kept every panel inside the viewport, placed the phone sheet 12px from the bottom, found no horizontal overflow and passed keyboard, Escape, outside dismissal, reduced-motion and one-panel-at-a-time checks. The suite rose to 104 checks across 12 files. Issue [#84](https://github.com/charlesroper/C64_music/issues/84) carries the change.
+Browser checks cover 360px, 390px, 820px, 1280x600 and 1440x900. Headless Chromium 153 kept every panel inside the viewport, placed the phone sheet 12px from the bottom, found no horizontal overflow and passed keyboard, Escape, outside dismissal, reduced-motion and one-panel-at-a-time checks. The suite rose to 104 checks across 12 files. Commit [9b50542](https://github.com/charlesroper/C64_music/commit/9b50542) and issue [#84](https://github.com/charlesroper/C64_music/issues/84) carry the change.
 
 ### 10 November 2026: SID chip help moves into a popover
 
