@@ -114,7 +114,7 @@ If you need low latency, Chromium `INTERACTIVE` gives about 16ms, with pops on l
 
 ## Related documentation
 
-- `README.md` gives the short setup steps.
-- `docs/agents/browser-verification.md` gives the test procedure.
-- `docs/research/firefox-audioworklet-tail.md` records the browser research and the empirical result.
-- `docs/research/firefox-audiocontext-latencyhint.md` records the sourced `latencyHint`, MediaTrackGraph and Android threshold research.
+- [README.md](../README.md) gives the short setup steps and the current playback default.
+- [Browser Verification](agents/browser-verification.md) gives the test procedure and expected measurements.
+- [Firefox AudioWorklet tail research](research/firefox-audioworklet-tail.md) records the browser research and the empirical result.
+- [Firefox latencyHint research](research/firefox-audiocontext-latencyhint.md) records the sourced `latencyHint`, MediaTrackGraph and Android threshold research.

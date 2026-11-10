@@ -1,16 +1,16 @@
 # Firefox `AudioContext` `latencyHint` and `media.cubeb_latency_mtg_frames` Research Thread
-> Captured 10 November 2026. Answer 2 supersedes the Nightly-only claim in the short answer. Links point to Firefox source, Bugzilla, MDN and specification discussions.
+> Captured 10 November 2026. Answer 2 corrects the original Nightly-only claim. The short answer below reflects that correction. Links point to Firefox source, Bugzilla, MDN and specification discussions.
 
 ## Question 1
 
 Here's some output. The question I have is why does firefox not honour latency hint if larger frame buffer is available? Research. Look on discussions and tickets and anywhere else answers can be found. Make sure all claims can be verified with a URL. Knowledge needs to be sourced.
 
-**Short answer:** Firefox treats both as internal, not supported controls, and ignores the standard hint on this audio path. Only Nightly lets you override the internal one.
+**Short answer:** Firefox treats both as internal, not supported controls, and ignores the standard hint on this audio path. Firefox Beta and Nightly expose the internal override through `about:config`. Stable hides the `about:config` name, but the same editor may open at `chrome://geckoview/content/config.xhtml`.
 
 **Why `media.cubeb_latency_mtg_frames` is hidden**
 
 - It is an `about:config` preference, not a web API. Firefox hides internal tuning knobs because they are not contracts: the name, unit or behaviour can change between builds.
-- On Android, only Firefox Nightly exposes `about:config`. Stable and Beta remove it entirely, so the workaround is Nightly-only.
+- On Android, Firefox Beta and Nightly expose `about:config`. Stable hides the `about:config` name, but the same editor may open at `chrome://geckoview/content/config.xhtml`. That route is unsupported and can change between builds.
 - It sets the MediaTrackGraph audio batch size (`mtg` = MediaTrackGraph, `frames` = slices of sound). The default path chose a small batch, which reports about 11ms `out` on the test device and pops there.
 - `4096` frames raised `out` to about 190ms and removed the pops. `2048` did nothing measurable. That is empirical, not guaranteed.
 
@@ -21,7 +21,7 @@ Here's some output. The question I have is why does firefox not honour latency h
 - Firefox ignores the hint here. Passing `playback` or `interactive` changes nothing in `out`; see the research note's Bug 2020377 reference. So the app cannot request a larger buffer through the standard API on Firefox.
 - The buffer size that matters is decided below Web Audio, in Firefox's MediaTrackGraph and Cubeb layers. The hidden preference reaches that layer; `latencyHint` does not.
 
-So the app defaults to interactive because Chromium honours the hint and the lower delay helps the source follow. Firefox users get clean playback only with Nightly plus the 4096-frame preference, or by using Chromium in playback mode.
+So the app defaults to playback because Chromium honours the hint and clean audio matters more than delay. Firefox users get clean playback with Firefox Beta or Nightly plus the 4096-frame preference, or by using Chromium in playback mode.
 
 ## Answer 1
 
@@ -129,3 +129,9 @@ Yes, `about:config` can be accessed directly on **Firefox Beta for Android**–t
   .aboutConfigEnabled(Config.channel.isBeta || Config.channel.isNightlyOrDebug)
   ```
 - **Accessible via internal URI on Stable/Release:** Even on Stable, the preference editor is not removed; [`nsAboutRedirector.cpp` (lines 20, 106–113, 287–290)](https://searchfox.org/firefox-main/source/docshell/base/nsAboutRedirector.cpp) only blocks the `about:config` alias when `general.aboutConfig.enable` is `false`, so navigating directly to `chrome://geckoview/content/config.xhtml` opens the exact same configuration UI on Release builds ([Reddit `r/firefox` workaround thread](https://www.reddit.com/r/firefox/comments/1il7672/youtube_audio_errors_on_firefox_android/), [AskVG guide](https://www.askvg.com/how-to-access-about-config-page-in-firefox-on-mobile-phones/)).
+
+## Related documentation
+
+- [README.md](../../README.md) gives setup and the current playback default.
+- [Audio delay and clean playback](../audio-latency.md) explains the buffer trade-off and the Firefox steps in plain English.
+- [Browser Verification](../agents/browser-verification.md) gives the test procedure and expected measurements.

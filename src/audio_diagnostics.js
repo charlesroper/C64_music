@@ -7,7 +7,10 @@
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
 const HELP_INTRO =
-  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The README explains the Firefox Nightly buffer setting.";
+  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The latency help links to the Audio delay help guide.";
+
+const AUDIO_DELAY_HELP_URL =
+  "https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md";
 
 const HEALTH = {
   NORMAL: "normal",
@@ -89,12 +92,13 @@ const GROUPS = [
     id: "latency",
     title: "LATENCY",
     description:
-      "Output delay and buffer hints. A larger buffer is safer but adds delay. Chromium playback and Firefox Nightly with a 4096-frame buffer are the clean options in testing.",
+      "Output delay and buffer hints. A larger buffer is safer but adds delay. Chromium playback and Firefox with a 4096-frame buffer are the clean options in testing.",
     items: [
       [
         "mode",
         "mode",
-        "Browser buffer hint. Interactive is the default and lowers delay, but can pop on low-end devices. Playback uses a larger buffer and is safer. Firefox ignores this hint.",
+        "Interactive responds sooner but can crackle on slower devices. Playback waits about 0.2 seconds and is the default. Firefox uses its own setting.",
+        { href: AUDIO_DELAY_HELP_URL, text: "Audio delay help" },
       ],
       ["base", "base", "Browser-reported base latency. Firefox usually reports 0ms."],
       [
@@ -363,7 +367,7 @@ function createDiagnosticsLayout(doc) {
     groupDescription.textContent = group.description;
     groupEl.appendChild(groupDescription);
 
-    for (const [key, label, help] of group.items) {
+    for (const [key, label, help, link] of group.items) {
       const item = doc.createElement("span");
       item.classList.add("diag-item");
 
@@ -378,7 +382,16 @@ function createDiagnosticsLayout(doc) {
 
       const helpEl = doc.createElement("span");
       helpEl.classList.add("diag-help");
-      helpEl.textContent = help;
+      helpEl.textContent = link ? `${help} ` : help;
+      if (link) {
+        const linkEl = doc.createElement("a");
+        linkEl.classList.add("diag-help-link");
+        linkEl.setAttribute("href", link.href);
+        linkEl.setAttribute("target", "_blank");
+        linkEl.setAttribute("rel", "noopener noreferrer");
+        linkEl.textContent = link.text;
+        helpEl.appendChild(linkEl);
+      }
 
       item.appendChild(labelEl);
       item.appendChild(valueEl);
