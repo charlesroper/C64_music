@@ -252,7 +252,7 @@ test("Audio Mode explainer states the trade-off and links the guide", () => {
 
   assert.match(hint, /Playback is the default\./);
   assert.match(hint, /waits about 0\.2 seconds/);
-  assert.match(hint, /audio stays clean/);
+  assert.match(hint, /clean audio/);
   assert.match(hint, /Interactive responds sooner/);
   assert.match(hint, /can crackle on slower devices/);
   assert.match(hint, /Firefox uses its own setting\./);
@@ -277,6 +277,8 @@ test("Audio Mode explainer states the trade-off and links the guide", () => {
   assert.match(group, /aria-describedby="latency-mode-hint"/);
 
   assert.match(css, /\.hw-hint-link[^{]*\{[^}]*text-decoration:\s*underline/);
+  assert.match(css, /\.hw-hint-link\s*\{[^}]*font:\s*inherit/);
+  assert.doesNotMatch(css, /\.hw-hint-link\s*\{[^}]*display:\s*block/);
   assert.match(css, /\.hw-hint-link:focus-visible[^{]*\{[^}]*outline:/);
 });
 

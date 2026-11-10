@@ -686,9 +686,9 @@ New listeners boot in `PLAYBACK`. A stored `INTERACTIVE` choice still boots inte
 
 ### 10 November 2026: Audio Mode explainer rewritten
 
-The hint said playback was safest and quoted milliseconds without context. It now says playback is the default, waits about 0.2 seconds so the audio stays clean, interactive responds sooner but can crackle on slower devices, and Firefox uses its own setting. An **Audio delay help** link goes to the audio latency guide.
+The hint said playback was safest and quoted milliseconds without context. It now says playback is the default, waits about 0.2 seconds for clean audio, interactive responds sooner but can crackle on slower devices, and Firefox uses its own setting. An **Audio delay help** link goes to the audio latency guide.
 
-The link sits outside the toggle label, so following it cannot change the mode. Headless Chromium 153 measured the hint at 38px, three lines, at 360px and 390px. The SID chip explainer and drum boost control are unchanged. README describes the new copy and link. The suite rose to 99 checks at this step, and 101 after the Stats help work. Commit [9d3ebd3](https://github.com/charlesroper/C64_music/commit/9d3ebd3) and issue [#79](https://github.com/charlesroper/C64_music/issues/79) carry the change.
+The link sits outside the toggle label, so following it cannot change the mode, and runs inline with the hint at the same font size. Headless Chromium 153 measured the hint at 38px, three lines, at 360px and 390px. The SID chip explainer and drum boost control are unchanged. README describes the new copy and link. The suite rose to 99 checks at this step, and 101 after the Stats help work. Commit [9d3ebd3](https://github.com/charlesroper/C64_music/commit/9d3ebd3) and issue [#79](https://github.com/charlesroper/C64_music/issues/79) carry the change.
 
 ### 10 November 2026: Stats help links the audio delay guide
 

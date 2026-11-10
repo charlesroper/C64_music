@@ -423,9 +423,7 @@ button.active {
 }
 
 .hw-hint-link {
-  display: block;
-  width: 160px;
-  margin-top: 2px;
+  font: inherit;
 }
 
 .hw-hint-link:focus-visible,
@@ -2053,10 +2051,6 @@ button.active {
   .hw-hint {
     width: auto;
     font-size: 9px;
-  }
-
-  .hw-hint-link {
-    width: auto;
   }
 
   #hw-group-digi {
