@@ -415,13 +415,21 @@ button.active {
   color: var(--text-muted);
 }
 
-.hw-hint-link {
+.hw-hint-link,
+.diag-help-link {
   color: var(--accent-cyan);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.hw-hint-link:focus-visible {
+.hw-hint-link {
+  display: block;
+  width: 160px;
+  margin-top: 2px;
+}
+
+.hw-hint-link:focus-visible,
+.diag-help-link:focus-visible {
   outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
@@ -2047,9 +2055,8 @@ button.active {
     font-size: 9px;
   }
 
-  /* The plain-language trade-off needs three lines at 360px and 390px. */
-  #latency-mode-hint {
-    font-size: 8px;
+  .hw-hint-link {
+    width: auto;
   }
 
   #hw-group-digi {

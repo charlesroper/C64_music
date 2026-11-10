@@ -181,7 +181,7 @@ The test suite uses the built-in Node.js test runner (`node:test`) with zero ext
 npm test
 ```
 
-The test runner executes 98 automated checks across 12 test files:
+The test runner executes 101 automated checks across 12 test files:
 
 * `tests/engine_core.test.mjs`: Tests the Engine Core message protocol. It loads assembled bytecode (`mem` and `symbols`), passes the extra `arkanoid.asm` payload for `arkadrum.asm` tracks, renders stereo blocks and checks playback controls, hardware options, key injection, telemetry and sample-rate updates. It also checks that track loads freeze the clock at frame 0 without pre-rendering audio, apply queued commands in order after loading and scale fast-forward to three extra frames per 2048 samples across 128-frame and 2048-frame blocks.
 * `tests/c64_screen.test.mjs`: Checks the shared PETSCII screen rasteriser used by the workbench CRT monitor and the Boot Sequence. It verifies border colours, glyph rows, colour RAM, screen placement and ImageData reuse.

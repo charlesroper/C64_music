@@ -2,7 +2,7 @@
 
 How to check the workbench in a browser on this development machine. The machine is Debian under PRoot on Android, so browser support depends on the engine build, not only on the app.
 
-This page is the single source of truth. [README.md](../../README.md), [NARRATIVE.md](../../NARRATIVE.md), and the ADRs point here instead of repeating the matrix. The [audio latency guide](../audio-latency.md) explains the listener-facing trade-off, and the [Firefox latencyHint research](../research/firefox-audiocontext-latencyhint.md) records the source links.
+This page is the single source of truth. [README.md](../../README.md), [NARRATIVE.md](../../NARRATIVE.md) and the ADRs point here instead of repeating the matrix. The [audio latency guide](../audio-latency.md) explains the listener-facing trade-off, and the [Firefox latencyHint research](../research/firefox-audiocontext-latencyhint.md) records the source links.
 
 ## Engine matrix
 

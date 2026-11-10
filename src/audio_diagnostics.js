@@ -7,7 +7,7 @@
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
 const HELP_INTRO =
-  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The latency help links to the Audio delay help guide.";
+  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The Audio delay help link explains the Firefox buffer setting.";
 
 const AUDIO_DELAY_HELP_URL =
   "https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md";
@@ -104,7 +104,7 @@ const GROUPS = [
       [
         "out",
         "out",
-        "Total delay before you hear sound, not the callback buffer. Chromium playback is about 192ms, Chromium interactive about 16ms, Firefox default about 11ms. Low values can pop. Firefox Nightly with a 4096-frame buffer is about 190ms and clean.",
+        "Total delay before you hear sound, not the callback buffer. Chromium playback is about 192ms, Chromium interactive about 16ms, Firefox default about 11ms. Low values can pop. Firefox with a 4096-frame buffer is about 190ms and clean.",
       ],
     ],
     health: {

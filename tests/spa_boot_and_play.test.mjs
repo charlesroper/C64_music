@@ -223,11 +223,11 @@ test("SID explainer and drum boost are unchanged hardware copy", () => {
     assert.match(sidHint.textContent, /8580/);
     assert.match(sidHint.textContent, /1982/);
     assert.match(sidHint.textContent, /1987/);
-    assert.equal(
-      harness.elementsById.get("slider-digi-boost").value,
-      "1.3",
-      "Drum boost must keep its default range value",
-    );
+    const slider = harness.elementsById.get("slider-digi-boost");
+    assert.equal(slider.value, "1.3", "Drum boost must keep its default range value");
+    slider.value = "2.0";
+    slider.dispatchEvent("input");
+    assert.equal(player.getState().digiBoost, 2, "Drum boost must still reach the player");
 
     view.destroy();
   } finally {
@@ -276,8 +276,8 @@ test("Audio Mode explainer states the trade-off and links the guide", () => {
 
   assert.match(group, /aria-describedby="latency-mode-hint"/);
 
-  assert.match(css, /\.hw-hint-link\s*\{[^}]*text-decoration:\s*underline/);
-  assert.match(css, /\.hw-hint-link:focus-visible\s*\{[^}]*outline:/);
+  assert.match(css, /\.hw-hint-link[^{]*\{[^}]*text-decoration:\s*underline/);
+  assert.match(css, /\.hw-hint-link:focus-visible[^{]*\{[^}]*outline:/);
 });
 
 test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
