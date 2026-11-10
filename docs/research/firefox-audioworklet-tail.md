@@ -169,6 +169,26 @@ Secondary checks: on a test build where `media.cubeb_latency_mtg_frames` can be 
 
 The evidence cannot distinguish the output path from the telemetry stall. It also cannot distinguish a steady-state underrun from a startup or track-load spike. A timestamped event log that pairs each audible pop with the nearest process, postMessage and frame peaks would settle the question. Until then, telemetry off and the minimal app worklet are the two experiments that matter most.
 
+## 11. Empirical update, 10 November 2026
+
+This section records app-local measurements, not primary-source claims. The test device was a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build.
+
+| Browser and mode | Reported `out` | Result |
+| --- | --- | --- |
+| Chromium playback | about 192ms | clean |
+| Chromium interactive | about 16ms | pops |
+| Firefox default | about 11ms | pops |
+| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
+| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+
+The 2048-frame preference did not change the reported `out` or stop the pops on the test device. The 4096-frame preference raised `out` to about 190ms and stopped the pops. This is consistent with crossing into a larger buffer path rather than merely increasing the MediaTrackGraph batch.
+
+With the 4096-frame buffer, Stats still reported `late total 87`, `late peak 6`, `process peak 11.00ms`, `render peak 11.00ms`, `post peak 10.00ms` and `missed 0`. The late blocks were not audible because the large buffer absorbed them. A late block is not the same as an audible pop.
+
+The preference is only available in Firefox Nightly on Android. Firefox stable and Beta do not expose `about:config`. The app cannot set the preference.
+
+Two other results shaped the conclusion. Running the AI agent on the test device increased late blocks, so CPU contention matters. An in-thread engine benchmark rendered 120 seconds of Wizball in 45,000 blocks with a p99 of 0.071ms, a maximum of 2.93ms, one block over 2.67ms and none over 6ms. The engine compute is not the tail. The buffer size is the dominant cause.
+
 ## References
 
 * Web Audio API, W3C Recommendation: https://www.w3.org/TR/webaudio/.

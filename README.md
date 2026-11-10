@@ -84,6 +84,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * The Deadlines group reports late blocks and missed quanta as cumulative totals, current-window counts and session peaks.
 * The Telemetry group reports cumulative, windowed and peak telemetry drops.
 * When telemetry snapshots are stopped, the Context group shows `OFF` for the telemetry rate.
+* `out` is total output delay, not the callback buffer. A small buffer can pop on low-end devices. See [Audio delay and clean playback](docs/audio-latency.md).
 
 ### Telemetry rate
 
@@ -97,10 +98,43 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 ### Audio mode
 
 * Toggle **AUDIO MODE** between `PLAYBACK` and `INTERACTIVE`.
-* `PLAYBACK` is the stable default. `INTERACTIVE` asks the browser for a lower-latency `AudioContext`.
+* `PLAYBACK` is the stable default. On Chromium it uses a large buffer, reports about 192ms and played cleanly in testing.
+* `INTERACTIVE` asks Chromium for a lower-latency `AudioContext`. It reports about 16ms and can pop on low-end devices.
 * Changing mode closes and recreates the audio context and reloads the current track, so audio stops briefly.
+* Firefox ignores both hints. Use the Firefox Nightly buffer setting below.
 * Append `?latency=interactive` to start in interactive mode.
 * Debug captures also accept `?latency=balanced`, `?latency=0.1` and `?latency=0.2`. Invalid values fall back to `playback`. The Audio Mode switch remains limited to `playback` and `interactive`, and shows `PLAYBACK` for debug hints while Stats shows the actual value.
+
+### Audio delay and clean playback
+
+[Audio delay and clean playback](docs/audio-latency.md) explains buffers and the Firefox setting in plain English.
+
+Measurements in testing are below.
+
+| Browser and mode | `out` | Result |
+| --- | --- | --- |
+| Chromium playback | about 192ms | clean |
+| Chromium interactive | about 16ms | pops |
+| Firefox default | about 11ms | pops |
+| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
+| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+
+* **Chromium:** keep **AUDIO MODE** on `PLAYBACK`. Use `INTERACTIVE` only if low latency matters more than the pops.
+* **Firefox stable and Beta:** Android does not expose `about:config`. Use Chromium playback or install Firefox Nightly.
+
+**Firefox Nightly:**
+
+1. Open `about:config`.
+2. Tap **+**.
+3. Add `media.cubeb_latency_mtg_frames` as a **Number**.
+4. Set `4096`.
+5. Force-stop Nightly and reopen it.
+6. Confirm Stats shows `out` around 190ms.
+
+* A value of `2048` did not help on the test device. `out` stayed around 11ms and the pops remained.
+* **What the setting means:** `media.cubeb_latency_mtg_frames` is Firefox's MediaTrackGraph audio batch size. `mtg` means MediaTrackGraph. The value is in frames, not milliseconds. At 48kHz, 4096 frames is about 85ms of sound. Stats can report `out` around 190ms because the phone adds more buffering.
+* Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build. A faster device may play cleanly with a smaller buffer.
+* Clean playback carries a delay of about 190ms. The source viewer follow leads the sound by roughly the same amount.
 
 ### Minimal render
 

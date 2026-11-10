@@ -68,6 +68,34 @@ _Avoid_: Tick stopper, frame skipper
 An opt-in mode entered from the LOW POWER switch. It hides the workbench, shows a minimal transport bar, pauses the render loop and stops telemetry snapshots while audio diagnostics continue. Stats resumes snapshots while open unless `?telemetry=off` locked them. Leaving restores the workbench and telemetry.
 _Avoid_: low power mode, performance mode, eco mode
 
+**Output Latency**:
+The total delay between the app producing a sound and the speaker playing it, reported as `out` in Stats. It includes browser and device buffering.
+_Avoid_: Buffer size, callback time
+
+**Callback Buffer**:
+The queue of audio the browser keeps ready so the audio thread can recover from a short delay without an audible gap. A small buffer lowers delay but can pop. A large buffer is safer but delayed.
+_Avoid_: Output latency, cache
+
+**MediaTrackGraph**:
+Firefox's internal graph that schedules Web Audio work. Its abbreviation `mtg` appears in the `media.cubeb_latency_mtg_frames` preference.
+_Avoid_: Mixer, audio graph
+
+**Cubeb**:
+Firefox's audio backend, the layer that talks to Android audio.
+_Avoid_: Audio driver, sound API
+
+**Audio Frame**:
+One slice of audio. At 48kHz, 48 frames last 1ms and 128 frames last about 2.67ms.
+_Avoid_: Sample, packet
+
+**Playback Mode**:
+Chromium's large-buffer audio mode. It reported about 192ms output latency and clean playback in testing.
+_Avoid_: High latency mode, safe mode
+
+**Interactive Mode**:
+Chromium's lower-latency audio mode. It reported about 16ms output latency and popped in testing. Firefox ignores the hint.
+_Avoid_: Low latency mode, fast mode
+
 **Seam**:
 A place where program behaviour can be altered without editing code in that place (from Michael Feathers). In this repository, it is the interface location where two modules meet, such as `createWorkbenchView` accepting a player implementation so automated UI test suites can drive presentation using `createFakePlayer` without compiling WebAssembly or initializing Web Audio.
 _Avoid_: Boundary, abstraction layer, hook

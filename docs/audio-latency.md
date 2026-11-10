@@ -1,0 +1,106 @@
+# Audio delay and clean playback
+
+This page explains why audio sometimes pops and how to make playback clean in Chromium and Firefox on Android. It assumes no prior knowledge of audio buffers.
+
+## What the buffer does
+
+Audio plays in small slices. The browser keeps a queue of slices ready so the audio thread can recover from a short delay. That queue is the buffer.
+
+A small buffer gives low delay. The phone must refill it often. If the phone is late, the queue empties and you hear a pop.
+
+A large buffer gives the phone more time. The queue is less likely to empty. The trade-off is that you hear the sound later.
+
+## What `out` means in Stats
+
+`out` is the total delay between the app producing a sound and the speaker playing it. It includes the browser buffer and the phone audio pipeline.
+
+`out` is not the callback buffer size. A 4096-frame Firefox batch is about 85ms of audio, but Stats can report `out` around 190ms because the phone adds more buffering.
+
+## Measured results
+
+Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build. A faster device may play cleanly with a smaller buffer.
+
+| Browser and mode | `out` | Result |
+| --- | --- | --- |
+| Chromium playback | about 192ms | clean |
+| Chromium interactive | about 16ms | pops |
+| Firefox default | about 11ms | pops |
+| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
+| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+
+The pattern is consistent. On the test device, about 190ms is clean and about 11ms to 16ms pops, in both browsers.
+
+## Chromium
+
+Keep **AUDIO MODE** on `PLAYBACK`. It uses a large buffer, reports about 192ms and played cleanly in testing.
+
+`INTERACTIVE` lowers the delay to about 16ms. It popped on the test device. Use it only if low latency matters more to you than the pops.
+
+Switching Audio Mode restarts the current track.
+
+## Firefox
+
+Firefox stable and Beta on Android do not expose `about:config`. This workaround requires **Firefox Nightly**.
+
+1. Install Firefox Nightly.
+2. Open `about:config`.
+3. Tap the **+** button.
+4. Add `media.cubeb_latency_mtg_frames` as a **Number**.
+5. Set the value to `4096`.
+6. Force-stop Nightly and reopen it.
+7. Open the app and Stats. Confirm `out` is around 190ms.
+8. Play for two minutes and listen for pops.
+
+A value of `2048` did not help in testing. `out` stayed around 11ms and the pops remained.
+
+After you add the preference, search for `mtg` in `about:config` to confirm it is there.
+
+## What the setting means
+
+`media.cubeb_latency_mtg_frames` is Firefox's internal audio batch size.
+
+| Part | Meaning |
+| --- | --- |
+| `media` | Firefox's media system. |
+| `cubeb` | Firefox's audio backend. The layer that talks to Android audio. |
+| `latency` | Delay. How long sound waits before it is played. |
+| `mtg` | MediaTrackGraph. Firefox's internal audio graph that schedules Web Audio work. |
+| `frames` | Slices of sound, not milliseconds. |
+
+At 48kHz:
+
+- 48 frames last 1ms.
+- 128 frames last about 2.67ms. That is one Web Audio quantum.
+- 2048 frames last about 43ms.
+- 4096 frames last about 85ms.
+
+The preference is hidden by default. Firefox does not list it until you add it.
+
+The app cannot set this preference. It is a browser setting.
+
+## Why late blocks are not always audible
+
+Stats calls a callback late when it takes longer than 2.67ms. With a small buffer, a late callback can empty the queue and pop. With a large buffer, the phone has time to recover.
+
+That is why a clean 4096-frame run can still show late blocks. In testing, the 4096-frame run showed `late total 87` and `late peak 6`, with no audible pops. The late counter measures missed headroom, not whether you heard a pop.
+
+## The trade-off
+
+Clean playback on the test device needs a large buffer. The cost is about 190ms of output delay.
+
+That delay is noticeable when the source viewer follows a voice. The highlight leads the sound by roughly the same amount. For music listening, clean playback is usually the better choice.
+
+If you need low latency, Chromium `INTERACTIVE` gives about 16ms, with pops on low-end devices. Firefox default is about 11ms, also with pops.
+
+## If pops continue
+
+- Close CPU-heavy apps before listening.
+- Disable battery saver.
+- Try Chromium `PLAYBACK` to confirm the app path is clean.
+- If Firefox Nightly with `4096` still pops, the device cannot keep up with a smaller buffer.
+
+## Related documentation
+
+- `README.md` gives the short setup steps.
+- `docs/agents/browser-verification.md` gives the test procedure.
+- `docs/research/firefox-audioworklet-tail.md` records the browser research and the empirical result.

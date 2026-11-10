@@ -59,10 +59,37 @@ The checks below use the app's own browser contract. They do not depend on Playw
 4. For engine audio, call `player.pullAudioBlock(left, right)` with two `Float32Array` buffers. Playback must be active first. A valid track yields nonzero samples. A peak above 0.1 is the current sanity threshold.
 5. For worklet checks, call `audioContext.audioWorklet.addModule(url)`, create an `AudioWorkletNode`, connect it through a near-silent gain to `destination`, and count `process()` ticks posted over the node port.
 6. For the real app, the first tap starts the worklet. `player.getState().audioBackend` changes to `"worklet"` when the processor owns audio. `player.getTelemetry().frameCount` must advance while the page plays.
-7. Click Stats for Nerds to show process timing, late blocks, missed quanta, telemetry drops, context state, telemetry rate and latency. `lateQuanta` counts blocks over the 2.67ms quantum budget; `lateWindow` shows the current diagnostics window. Session peaks persist until reload. The overlay groups Context, Latency, Process, Deadlines, Telemetry and Events; each metric is one label/value unit, and the Process group includes audio sub-phase and main-thread frame peaks. Click `?` to expand plain-English descriptions for every group and metric. Confirm the guide scrolls, closes back to compact mode, and does not overflow at phone widths. Add `?audioDebug=1` to open the same overlay on load. Playback latency is the default. Toggle Audio Mode to `INTERACTIVE` for the lower-latency hint, or add `?latency=interactive` to start there. Debug captures also accept `?latency=balanced`, `?latency=0.1` and `?latency=0.2`; invalid values fall back to `playback`. The Audio Mode switch stays limited to `playback` and `interactive`. Firefox currently ignores `latencyHint`, so record whether `out` changes and treat identical values as the expected no-op. Telemetry runs at 62.5Hz by default; add `?telemetry=30` for the lighter rate. The Telemetry switch is hidden. Add `?telemetry=off` to stop snapshots entirely. Audio diagnostics continue, Stats shows `OFF`, and opening Stats must not re-enable snapshots while the override is active.
+7. Click Stats for Nerds to show process timing, late blocks, missed quanta, telemetry drops, context state, telemetry rate and latency. `lateQuanta` counts blocks over the 2.67ms quantum budget; `lateWindow` shows the current diagnostics window. Session peaks persist until reload. The overlay groups Context, Latency, Process, Deadlines, Telemetry and Events; each metric is one label/value unit, and the Process group includes audio sub-phase and main-thread frame peaks. Click `?` to expand plain-English descriptions for every group and metric. Confirm the guide scrolls, closes back to compact mode, and does not overflow at phone widths. Add `?audioDebug=1` to open the same overlay on load. Playback latency is the default. Toggle Audio Mode to `INTERACTIVE` for the lower-latency hint, or add `?latency=interactive` to start there. Chromium interactive is about 16ms and can pop on low-end devices. Keep Chromium playback for clean runs. Firefox ignores the hint, so `out` does not change. Debug captures also accept `?latency=balanced`, `?latency=0.1` and `?latency=0.2`; invalid values fall back to `playback`. The Audio Mode switch stays limited to `playback` and `interactive`. Telemetry runs at 62.5Hz by default; add `?telemetry=30` for the lighter rate. The Telemetry switch is hidden. Add `?telemetry=off` to stop snapshots entirely. Audio diagnostics continue, Stats shows `OFF`, and opening Stats must not re-enable snapshots while the override is active.
 8. For the Boot Sequence, load without `?skipBoot=1`. Confirm the full-screen power-on, exact BASIC screen, typed `LOAD""`, PRESS PLAY ON TAPE gate, tape loader, tape sound, `READY.`, CRT collapse and Wizball playback. The boot screen must be visible from first paint with no workbench flash. Normal completion starts audio and fades the boot overlay into the workbench over 2.4 seconds. The collapsed CRT must stay aligned with the monitor through the fade. Skip and reduced motion must hide the boot screen and reveal the workbench from first paint. Check the gate hint, skip path and reduced-motion path. Copy Playwright screenshots to `/sdcard/Download/tmp`.
 9. Toggle **LOW POWER** near Audio Mode. Confirm the full workbench hides and the minimal bar appears with play and pause, restart, a grouped track selector, Stats and `FULL UI`. Confirm the render loop stops, telemetry snapshots stop, choosing a tune autoplays it, opening Stats resumes telemetry and closing it stops telemetry again, and `FULL UI` restores the workbench. Check that `?telemetry=off` still wins over the Stats resume path. Chromium default behaviour must be unchanged.
 10. Add `?render=minimal` to hide the centre and right panels and pause the workbench render loop. Confirm the transport and track list still work, no `music-only` class is applied and the page fits a 375px viewport without horizontal overflow. Use this flag for the Firefox isolation captures. Run `npm run check:minimal-render` for a repeatable Chromium 153 check at 360px and 390px. It asserts the centre panel, right panel, SID strip and mobile tabs are hidden, the track list is visible and `scrollWidth` does not exceed `innerWidth`. Expected output is two `PASS` lines.
+
+### Firefox Nightly audio buffer check
+
+Firefox stable and Beta on Android do not expose `about:config`. This check requires Firefox Nightly.
+
+1. Install Firefox Nightly.
+2. Open `about:config`.
+3. Tap **+**.
+4. Add `media.cubeb_latency_mtg_frames` as a **Number**.
+5. Set the value to `4096`.
+6. Force-stop Nightly and reopen it.
+7. Open the app and Stats. Confirm `out` is around 190ms.
+8. Play for two minutes and listen for pops.
+
+A value of `2048` did not help on the test device. `out` stayed around 11ms and the pops remained.
+
+Expected audio results:
+
+| Browser and mode | `out` | Result |
+| --- | --- | --- |
+| Chromium playback | about 192ms | clean |
+| Chromium interactive | about 16ms | pops |
+| Firefox default | about 11ms | pops |
+| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
+| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+
+Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build. See [Audio delay and clean playback](../audio-latency.md) for the plain-English explanation.
 
 Minimal worklet probe:
 

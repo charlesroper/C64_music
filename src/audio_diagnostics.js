@@ -7,7 +7,7 @@
 import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 
 const HELP_INTRO =
-  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed.";
+  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The README explains the Firefox Nightly buffer setting.";
 
 const HEALTH = {
   NORMAL: "normal",
@@ -88,14 +88,19 @@ const GROUPS = [
   {
     id: "latency",
     title: "LATENCY",
-    description: "How much output buffer the browser reports.",
+    description:
+      "Output delay and buffer hints. A larger buffer is safer but adds delay. Chromium playback and Firefox Nightly with a 4096-frame buffer are the clean options in testing.",
     items: [
-      ["mode", "mode", "Browser buffer hint. Playback is the stable default."],
-      ["base", "base", "Browser-reported base latency."],
+      [
+        "mode",
+        "mode",
+        "Browser buffer hint. Chromium playback is the safe default. Chromium interactive lowers latency but can pop on low-end devices. Firefox ignores this hint.",
+      ],
+      ["base", "base", "Browser-reported base latency. Firefox usually reports 0ms."],
       [
         "out",
         "out",
-        "Browser-reported output buffer. Firefox is about 10ms; Chromium about 192ms.",
+        "Total delay before you hear sound, not the callback buffer. Chromium playback is about 192ms, Chromium interactive about 16ms, Firefox default about 11ms. Low values can pop. Firefox Nightly with a 4096-frame buffer is about 190ms and clean.",
       ],
     ],
     health: {
