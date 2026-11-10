@@ -243,6 +243,16 @@ Releases use calendar versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`) and deploy
 
    `scripts/deploy.mjs` checks that the working tree is clean and the `fork` remote exists, runs `npm run lint` and `npm test`, pushes `HEAD` to `fork/main` and prints the deployed commit SHA.
 
+4. Verify the Pages workflow for the release commit:
+
+   ```bash
+   gh run list -R charlesroper/C64_music --limit 5
+   gh run view <run-id> -R charlesroper/C64_music --json headSha,status,conclusion,jobs
+   curl -s https://charlesroper.github.io/C64_music/src/version.js
+   ```
+
+   Confirm the `pages build and deployment` run is for the release commit, completed successfully and its `deploy` job passed. Use the workflow run as the source of truth. The `pages/builds/latest` API can lag or attribute the build to the previous commit.
+
 ## Rebuild the WebAssembly sound core
 
 `wasm/c64_engine.wasm` (about 25KB) is pre-compiled and committed to the repository. Rebuild it only when you edit `src/wasm/c64_engine.c`.
