@@ -4,7 +4,7 @@
 
 import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createBootSequence } from "./boot_sequence.js";
-import { resolveLatencyHint } from "./latency_hint.js";
+import { resolveAudioMode } from "./latency_hint.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
 import { resolveTelemetryEnabled, resolveTelemetryHz } from "./telemetry_rate.js";
@@ -21,7 +21,10 @@ export async function bootWorkbench(options = {}) {
   if (!doc) return null;
 
   const params = new URLSearchParams(win?.location?.search || "");
-  const latencyHint = resolveLatencyHint(params.get("latency"));
+  const latencyHint = resolveAudioMode({
+    override: params.get("latency"),
+    window: win,
+  });
   const telemetryParam = params.get("telemetry");
   const telemetryHz = resolveTelemetryHz(telemetryParam);
   const telemetryEnabled = resolveTelemetryEnabled(telemetryParam);

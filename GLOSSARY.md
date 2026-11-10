@@ -89,12 +89,16 @@ One slice of audio. At 48kHz, 48 frames last 1ms and 128 frames last about 2.67m
 _Avoid_: Sample, packet
 
 **Playback Mode**:
-Chromium's large-buffer audio mode. It reported about 192ms output latency and clean playback in testing.
+The large-buffer audio mode. It reported about 192ms output latency and clean playback in testing. It is the safer choice for clean audio.
 _Avoid_: High latency mode, safe mode
 
 **Interactive Mode**:
-Chromium's lower-latency audio mode. It reported about 16ms output latency and popped in testing. Firefox ignores the hint.
+The lower-latency audio mode and the default. It reported about 16ms output latency and popped in testing. Firefox ignores the hint.
 _Avoid_: Low latency mode, fast mode
+
+**Stored Audio Mode**:
+The listener's remembered choice, kept in `localStorage` under `galway2664.audioMode.v1`. A URL override applies to one load and does not replace it.
+_Avoid_: Audio cookie, preference file
 
 **Seam**:
 A place where program behaviour can be altered without editing code in that place (from Michael Feathers). In this repository, it is the interface location where two modules meet, such as `createWorkbenchView` accepting a player implementation so automated UI test suites can drive presentation using `createFakePlayer` without compiling WebAssembly or initializing Web Audio.

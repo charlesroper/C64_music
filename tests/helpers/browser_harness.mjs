@@ -76,6 +76,7 @@ export function createBrowserHarness({
   rootDir = ROOT,
   htmlPath = path.join(ROOT, "index.html"),
   strictIds = true,
+  localStorage: storedValues = {},
 } = {}) {
   const html = fs.readFileSync(htmlPath, "utf8");
   const elementsById = new Map();
@@ -304,6 +305,15 @@ export function createBrowserHarness({
     if (id) {
       if (id === "slider-digi-boost" && !el.value) el.value = "1.3";
     }
+
+    const rest = html.slice(m.index + m[0].length);
+    const closeMatch = rest.match(new RegExp(`</${tag}\\s*>`, "i"));
+    if (closeMatch) {
+      const inner = rest.slice(0, closeMatch.index);
+      if (!inner.includes("<")) {
+        el.textContent = inner.replace(/\s+/g, " ").trim();
+      }
+    }
   }
 
   const audioState = {
@@ -377,10 +387,30 @@ export function createBrowserHarness({
 
   const docListeners = {};
 
+  const localStorage = {
+    _values: new Map(Object.entries(storedValues)),
+    getItem(key) {
+      return this._values.has(key) ? this._values.get(key) : null;
+    },
+    setItem(key, value) {
+      this._values.set(key, String(value));
+    },
+    removeItem(key) {
+      this._values.delete(key);
+    },
+    clear() {
+      this._values.clear();
+    },
+    get length() {
+      return this._values.size;
+    },
+  };
+
   globalThis.window = {
     innerWidth: viewport.width,
     innerHeight: viewport.height,
     AudioContext: StrictAudioContext,
+    localStorage,
     matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
     requestAnimationFrame: (cb) => globalThis.requestAnimationFrame(cb),
     cancelAnimationFrame: (id) => globalThis.cancelAnimationFrame(id),
@@ -501,6 +531,7 @@ export function createBrowserHarness({
     elementsById,
     allElements,
     audioState,
+    localStorage,
     scrolledElements,
     bootDone,
     stepAnimationFrame(timestamp) {

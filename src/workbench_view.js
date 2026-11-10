@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { createC64ScreenRenderer } from "./c64_screen.js";
-import { resolveLatencyHint } from "./latency_hint.js";
+import { AUDIO_MODE_DEFAULT, resolveLatencyHint, writeStoredAudioMode } from "./latency_hint.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
 import { resolveTelemetryHz, TELEMETRY_HZ_DEFAULT, TELEMETRY_HZ_LOW } from "./telemetry_rate.js";
@@ -176,7 +176,7 @@ export function createWorkbenchView({
   player = null,
   assets = null,
   elements = null,
-  latencyHint = "playback",
+  latencyHint = AUDIO_MODE_DEFAULT,
   telemetryHz = 62.5,
   renderMinimal = false,
   onFirstInteraction = null,
@@ -1498,6 +1498,7 @@ export function createWorkbenchView({
           valueEl.textContent = state.latencyHint === "interactive" ? "INTERACTIVE" : "PLAYBACK";
         }
         if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
+        writeStoredAudioMode(win, state.latencyHint);
       });
     }
 

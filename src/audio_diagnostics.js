@@ -94,7 +94,7 @@ const GROUPS = [
       [
         "mode",
         "mode",
-        "Browser buffer hint. Chromium playback is the safe default. Chromium interactive lowers latency but can pop on low-end devices. Firefox ignores this hint.",
+        "Browser buffer hint. Interactive is the default and lowers delay, but can pop on low-end devices. Playback uses a larger buffer and is safer. Firefox ignores this hint.",
       ],
       ["base", "base", "Browser-reported base latency. Firefox usually reports 0ms."],
       [

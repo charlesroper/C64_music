@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
-import { resolveLatencyHint } from "./latency_hint.js";
+import { AUDIO_MODE_DEFAULT, resolveLatencyHint } from "./latency_hint.js";
 import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
 import { resolveTelemetryHz, telemetryDividerForHz } from "./telemetry_rate.js";
@@ -204,7 +204,7 @@ export function createWorkbenchPlayer({
   navigatorObj,
   workletUrl,
   createAssemblyWorker = createDefaultAssemblyWorker,
-  latencyHint = "playback",
+  latencyHint = AUDIO_MODE_DEFAULT,
   telemetryHz = 62.5,
   telemetryEnabled = true,
   telemetryLockedOff = false,

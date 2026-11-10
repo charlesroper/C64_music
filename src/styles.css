@@ -411,6 +411,14 @@ button.active {
   color: var(--text-main);
 }
 
+.hw-hint {
+  width: 160px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 #latency-mode-value {
   min-width: 76px;
 }
@@ -2093,6 +2101,16 @@ body.music-only .audio-diagnostics:not(.is-help) {
 
   .hw-group {
     min-width: 0;
+  }
+
+  #hw-group-sid,
+  #hw-group-latency {
+    grid-column: 1 / -1;
+  }
+
+  .hw-hint {
+    width: auto;
+    font-size: 9px;
   }
 
   #hw-group-digi,
