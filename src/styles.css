@@ -415,6 +415,17 @@ button.active {
   color: var(--text-muted);
 }
 
+.hw-hint-link {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hw-hint-link:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
 #latency-mode-value {
   min-width: 76px;
 }
@@ -2034,6 +2045,11 @@ button.active {
   .hw-hint {
     width: auto;
     font-size: 9px;
+  }
+
+  /* The plain-language trade-off needs three lines at 360px and 390px. */
+  #latency-mode-hint {
+    font-size: 8px;
   }
 
   #hw-group-digi {

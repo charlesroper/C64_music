@@ -99,8 +99,10 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * Changing mode closes and recreates the audio context and reloads the current track, so audio stops briefly.
 * The app remembers your choice in `localStorage` under `galway2664.audioMode.v1`. It does not use cookies.
 * Append `?latency=interactive` or `?latency=playback` to override the stored choice for one load. A URL override is not saved.
-* The SID chip and Audio Mode toggles carry short visible explainers for the 6581/8580 filter difference and the buffer trade-off.
-* Firefox ignores both hints. Use the Firefox buffer setting below.
+* The SID chip and Audio Mode toggles carry visible explainers. The SID chip hint covers the 6581/8580 filter difference.
+* The Audio Mode hint says playback is the default and waits about 0.2 seconds so the audio stays clean. Interactive responds sooner but can crackle on slower devices. Firefox uses its own setting.
+* **Audio delay help** links to [the audio delay guide](docs/audio-latency.md) in a new tab. The link sits outside the toggle label, so following it does not change the mode.
+* Firefox ignores the Audio Mode hint. Use the Firefox buffer setting below.
 
 ### Audio delay and clean playback
 

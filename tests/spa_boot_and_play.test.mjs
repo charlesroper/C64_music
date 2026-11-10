@@ -208,7 +208,7 @@ test("SID and audio mode switches apply options", () => {
   }
 });
 
-test("SID and Audio Mode explainers are visible hardware copy", () => {
+test("SID explainer and drum boost are unchanged hardware copy", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   try {
     const player = createFakePlayer();
@@ -223,17 +223,61 @@ test("SID and Audio Mode explainers are visible hardware copy", () => {
     assert.match(sidHint.textContent, /8580/);
     assert.match(sidHint.textContent, /1982/);
     assert.match(sidHint.textContent, /1987/);
-
-    const audioHint = harness.elementsById.get("latency-mode-hint");
-    assert.match(audioHint.textContent, /[Pp]layback/);
-    assert.match(audioHint.textContent, /[Ii]nteractive/);
-    assert.match(audioHint.textContent, /pop/);
-    assert.match(audioHint.textContent, /Firefox/);
+    assert.equal(
+      harness.elementsById.get("slider-digi-boost").value,
+      "1.3",
+      "Drum boost must keep its default range value",
+    );
 
     view.destroy();
   } finally {
     harness.restoreGlobals();
   }
+});
+
+test("Audio Mode explainer states the trade-off and links the guide", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const groupStart = html.indexOf('id="hw-group-latency"');
+  const groupEnd = html.indexOf('id="hw-group-digi"');
+  assert.ok(groupStart > -1 && groupEnd > groupStart, "Audio Mode group must precede drum boost");
+  const group = html.slice(groupStart, groupEnd);
+
+  const hintMatch = group.match(/id="latency-mode-hint"[\s\S]*?<\/span\s*>/);
+  assert.ok(hintMatch, "Audio Mode explainer must exist");
+  const hint = hintMatch[0]
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  assert.match(hint, /Playback is the default\./);
+  assert.match(hint, /waits about 0\.2 seconds/);
+  assert.match(hint, /audio stays clean/);
+  assert.match(hint, /Interactive responds sooner/);
+  assert.match(hint, /can crackle on slower devices/);
+  assert.match(hint, /Firefox uses its own setting\./);
+  assert.doesNotMatch(hint, /safest|ignores it|192ms|16ms/);
+
+  const labelEnd = group.indexOf("</label>");
+  const linkIndex = group.indexOf('id="latency-mode-help"');
+  assert.ok(linkIndex > labelEnd, "The help link must sit outside the toggle label");
+  const anchorMatch = group.match(/<a\b[^>]*id="latency-mode-help"[\s\S]*?<\/a\s*>/);
+  assert.ok(anchorMatch, "Audio delay help must be a real anchor");
+  const anchor = anchorMatch[0];
+  assert.match(
+    anchor,
+    /href="https:\/\/github\.com\/charlesroper\/C64_music\/blob\/main\/docs\/audio-latency\.md"/,
+  );
+  assert.match(anchor, /target="_blank"/);
+  assert.match(anchor, /rel="noopener"/);
+  assert.match(anchor, /class="[^"]*\bhw-hint-link\b/);
+  assert.doesNotMatch(anchor, /tabindex="-1"/);
+  assert.match(anchor, />\s*Audio delay help\s*<\/a\s*>/);
+
+  assert.match(group, /aria-describedby="latency-mode-hint"/);
+
+  assert.match(css, /\.hw-hint-link\s*\{[^}]*text-decoration:\s*underline/);
+  assert.match(css, /\.hw-hint-link:focus-visible\s*\{[^}]*outline:/);
 });
 
 test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {

@@ -156,8 +156,17 @@
               <span class="hw-toggle-value" id="latency-mode-value">PLAYBACK</span>
             </label>
             <span class="hw-hint" id="latency-mode-hint"
-              >Playback is safest (about 192ms). Interactive is about 16ms and can pop on low-end
-              devices. Firefox ignores it.</span
+              >Playback is the default. It waits about 0.2 seconds so the audio stays clean.
+              Interactive responds sooner but can crackle on slower devices. Firefox uses its own
+              setting.
+              <a
+                class="hw-hint-link"
+                id="latency-mode-help"
+                href="https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md"
+                target="_blank"
+                rel="noopener"
+                >Audio delay help</a
+              ></span
             >
           </div>
 
