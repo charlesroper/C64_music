@@ -208,8 +208,35 @@ test("SID and audio mode switches apply options", () => {
   }
 });
 
-test("SID explainer and drum boost are unchanged hardware copy", () => {
+test("SID help popover uses the shared module and drum boost still works", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const sidStart = html.indexOf('id="hw-group-sid"');
+  const latencyStart = html.indexOf('id="hw-group-latency"');
+  const group = html.slice(sidStart, latencyStart);
+
+  const summary = group
+    .match(/<span[^>]*id="sid-model-hint"[^>]*>([\s\S]*?)<\/span\s*>/)[1]
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  assert.equal(summary, "6581 is warmer; 8580 is cleaner.");
+
+  const triggerTag = group.match(/<button\b[^>]*id="sid-model-help-trigger"[^>]*>/)[0];
+  assert.match(triggerTag, /aria-label="About SID chip"/);
+  assert.match(triggerTag, /aria-haspopup="dialog"/);
+  assert.match(triggerTag, /aria-controls="sid-model-help-panel"/);
+
+  const panel = group
+    .match(/id="sid-model-help-panel"[\s\S]*?<\/div\s*>/)[0]
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  assert.match(panel, /original 1982 chip/);
+  assert.match(panel, /1987 revision/);
+  assert.match(panel, /6581 filter is warmer/);
+  assert.match(panel, /sound the same on both/);
+
   try {
     const player = createFakePlayer();
     const view = createWorkbenchView({
@@ -218,11 +245,30 @@ test("SID explainer and drum boost are unchanged hardware copy", () => {
       player,
     });
 
-    const sidHint = harness.elementsById.get("sid-model-hint");
-    assert.match(sidHint.textContent, /6581/);
-    assert.match(sidHint.textContent, /8580/);
-    assert.match(sidHint.textContent, /1982/);
-    assert.match(sidHint.textContent, /1987/);
+    const sidTrigger = harness.elementsById.get("sid-model-help-trigger");
+    const sidPanel = harness.elementsById.get("sid-model-help-panel");
+    const audioTrigger = harness.elementsById.get("latency-mode-help-trigger");
+    const audioPanel = harness.elementsById.get("latency-mode-help-panel");
+
+    sidTrigger.click();
+    assert.equal(sidTrigger.getAttribute("aria-expanded"), "true");
+    assert.equal(sidPanel.hidden, false);
+    assert.equal(globalThis.document.activeElement, sidPanel);
+
+    audioTrigger.click();
+    assert.equal(sidTrigger.getAttribute("aria-expanded"), "false");
+    assert.equal(sidPanel.hidden, true, "Opening Audio Mode must close SID help");
+    assert.equal(audioTrigger.getAttribute("aria-expanded"), "true");
+    assert.equal(audioPanel.hidden, false);
+
+    audioTrigger.click();
+    assert.equal(audioPanel.hidden, true);
+
+    const sidToggle = harness.elementsById.get("chk-sid-8580");
+    sidToggle.checked = true;
+    sidToggle.dispatchEvent("change");
+    assert.equal(player.getState().sidModel8580, true);
+
     const slider = harness.elementsById.get("slider-digi-boost");
     assert.equal(slider.value, "1.3", "Drum boost must keep its default range value");
     slider.value = "2.0";

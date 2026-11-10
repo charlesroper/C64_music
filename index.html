@@ -137,10 +137,36 @@
               <span class="hw-toggle-switch" aria-hidden="true"></span>
               <span class="hw-toggle-value" id="sid-model-value">6581</span>
             </label>
-            <span class="hw-hint" id="sid-model-hint"
-              >6581 is the original 1982 chip. 8580 is the 1987 revision. The 6581 filter is warmer;
-              the 8580 is cleaner.</span
+            <div class="hw-help-row">
+              <span class="hw-hint" id="sid-model-hint">6581 is warmer; 8580 is cleaner.</span>
+              <button
+                type="button"
+                class="hw-help-trigger"
+                id="sid-model-help-trigger"
+                aria-label="About SID chip"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-controls="sid-model-help-panel"
+                popovertarget="sid-model-help-panel"
+              >
+                ?
+              </button>
+            </div>
+            <div
+              class="hw-help-panel"
+              id="sid-model-help-panel"
+              popover
+              role="dialog"
+              aria-labelledby="sid-model-help-title"
+              tabindex="-1"
             >
+              <h3 class="hw-help-title" id="sid-model-help-title">SID chip</h3>
+              <p>
+                6581 is the original 1982 chip. 8580 is the 1987 revision. The 6581 filter is
+                warmer; the 8580 is cleaner. Tracks that do not use the filter or combined waveforms
+                sound the same on both.
+              </p>
+            </div>
           </div>
 
           <div class="hw-group" id="hw-group-latency">

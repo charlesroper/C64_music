@@ -1402,6 +1402,15 @@ export function createWorkbenchView({
       });
     }
 
+    const sidHelp = createHelpPopover({
+      document: doc,
+      trigger: getEl("sid-model-help-trigger"),
+      panel: getEl("sid-model-help-panel"),
+    });
+    if (sidHelp) {
+      cleanups.push(() => sidHelp.destroy());
+    }
+
     const latencyHelp = createHelpPopover({
       document: doc,
       trigger: getEl("latency-mode-help-trigger"),
