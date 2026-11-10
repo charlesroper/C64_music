@@ -249,7 +249,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in April and May 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
 
-`npm test` runs 102 automated checks across 12 test files:
+`npm test` runs 104 automated checks across 12 test files:
 
 * **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, that sample-rate negotiation leaves loaded C64 RAM intact, that a Track Load freezes the clock at frame 0 and emits silence without a pre-render, that commands received during a load apply in exact order afterwards and that fast-forward adds 3 frames per 2048 samples at any render block size.
 * **PETSCII screen rasteriser.** The shared renderer paints screen RAM, colour RAM and border scanlines into the VIC-II palette for both the workbench CRT monitor and the Boot Sequence. Tests cover border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
@@ -264,7 +264,7 @@ Martin Galway uploaded his original assembly files to GitHub in April and May 20
 * **Telemetry change guards.** All telemetry text elements, SID register hex cells, active voice classes and Morse stream spans compare against previous values before writing to the DOM, eliminating redundant mutations on consecutive identical frames.
 * **Workbench view interface.** The presentation layer sits behind `createWorkbenchView` in `src/workbench_view.js` with a small surface (`renderSession`, `renderTelemetry`, `renderSource`, `getFrameDiagnostics`, `setPlaying`, `setRenderingPaused`), element lookup behind a registry and zero side effects on module import, while UI test suites drive the view using fake player adapters. Tests cover the boot-overlay rendering pause and resume.
 * **Stats help mode and health colours.** Tests cover the help toggle, accessible name and `aria-expanded` state, all six group descriptions, all 38 metric descriptions, the latency mode link to the audio delay guide, the latency mode trade-off copy, scroll reset, hide and reopen, and compact mode restoration. Health tests cover normal, under-pressure and bad values, the three-state legend, the 12.8ms Firefox output buffer as bad and neutral cumulative totals.
-* **Audio mode and storage.** Tests cover the playback default, stored interactive, the two accepted hints, URL override precedence over the stored choice, invalid and unavailable storage fallback, saving the toggle choice without saving a URL override, and the SID and Audio Mode explainer text, trade-off copy and help link.
+* **Audio mode and storage.** Tests cover the playback default, stored interactive, the two accepted hints, URL override precedence over the stored choice, invalid and unavailable storage fallback, saving the toggle choice without saving a URL override, the SID and Audio Mode help popovers, focus return, dismissal, the trade-off copy and the help link.
 * **Assembler source index.** Assembled source artefacts provide a bound `sourceIndex` exposing `lineForAddress(addr)`, `lineForSymbol(name)` and `findLines(query)`, replacing regular expression scans and backwards address loops in the view with direct index queries.
 * **Track session descriptors.** Calling `player.selectTrack()` yields a structured `TrackSession` descriptor defining the active game, tune, primary source file, drum sequencer availability and Morse banner states, removing all game identifier branching from the presentation layer.
 * **Game loader adapters.** A dispatch table of named loader adapters (`GAME_LOADERS`) encapsulates hardware initialisation, zero-page word writes, custom raster setup and entry-point jumps across all six games, verified by asserting CPU states and cycle budgets.
@@ -684,21 +684,27 @@ Interactive audio gave the closer source follow, but it popped on the test devic
 
 New listeners boot in `PLAYBACK`. A stored `INTERACTIVE` choice still boots interactive, and the URL overrides keep their one-load precedence. The decision is recorded in [ADR 0009](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0009-playback-default.md). README, GLOSSARY, the audio latency guide and the browser verification guide now describe playback as the default. The explainer and Stats help copy follow in the later tickets. Historical entries stay. The suite rose to 98 checks across 12 files. Commit [0a67c05](https://github.com/charlesroper/C64_music/commit/0a67c05) and issue [#78](https://github.com/charlesroper/C64_music/issues/78) carry the change.
 
+### 10 November 2026: help panels go responsive
+
+The help panels opened as a centred card at every width. They now become a bottom sheet on phones and anchor near their trigger on wider screens, with viewport clamping and recalculation on resize or scroll. Reduced-motion preferences skip the opening fade.
+
+Browser checks cover 360px, 390px, 820px, 1280x600 and 1440x900. Headless Chromium 153 kept every panel inside the viewport, placed the phone sheet 12px from the bottom, found no horizontal overflow and passed keyboard, Escape, outside dismissal, reduced-motion and one-panel-at-a-time checks. The suite rose to 104 checks across 12 files. Issue [#84](https://github.com/charlesroper/C64_music/issues/84) carries the change.
+
 ### 10 November 2026: SID chip help moves into a popover
 
 The SID chip explainer used the same long hardware hint that broke at intermediate widths. It now shows "6581 is warmer; 8580 is cleaner" with a **?** button.
 
 The panel keeps the full 1982 and 1987 chip explanation and the filter difference. It reuses the Audio Mode help-popover module, so focus, Escape, outside dismissal and one-panel-at-a-time behaviour are shared. Opening one hardware panel closes the other.
 
-The suite remains at 102 checks across 12 files. Issue [#83](https://github.com/charlesroper/C64_music/issues/83) carries the change.
+The suite remains at 102 checks across 12 files. Commit [82603e7](https://github.com/charlesroper/C64_music/commit/82603e7) and issue [#83](https://github.com/charlesroper/C64_music/issues/83) carry the change.
 
 ### 10 November 2026: Audio Mode help moves into a popover
 
 The long Audio Mode hint broke at intermediate widths, grew the hardware panel and pushed the Audio delay link onto its own line. The control now shows only "Playback is the default for clean audio" and a **?** button.
 
-The button opens a non-modal dialog with the buffer explanation, the 0.2-second playback delay, the interactive crackle risk, the Firefox setting and the Audio delay link. It uses the native Popover API with a DOM fallback. Focus moves into the panel on open, returns to the trigger on close, and Escape or an outside tap dismisses it.
+The button opens a non-modal dialog with the buffer explanation, the 0.2-second playback delay, the interactive crackle risk, the Firefox setting and the Audio delay link. It uses the native Popover API with a DOM fallback. Focus moves into the panel on open, returns to the trigger on close. Escape or an outside tap dismisses it.
 
-The SID chip explainer stays visible until the next ticket. The suite rose to 102 checks across 12 files. Issue [#82](https://github.com/charlesroper/C64_music/issues/82) carries the change.
+The SID chip explainer stays visible until the next ticket. The suite rose to 102 checks across 12 files. Commit [3217b29](https://github.com/charlesroper/C64_music/commit/3217b29) and issue [#82](https://github.com/charlesroper/C64_music/issues/82) carry the change.
 
 ### 10 November 2026: Audio Mode explainer rewritten
 

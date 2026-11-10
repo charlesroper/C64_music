@@ -387,6 +387,43 @@ test("Audio Mode help popover opens, closes and restores focus", () => {
   }
 });
 
+test("help panels position near the trigger and clear inline position on phones", () => {
+  const harness = createBrowserHarness({
+    hardwareSampleRate: 44100,
+    viewport: { width: 1280, height: 900 },
+  });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    const trigger = harness.elementsById.get("latency-mode-help-trigger");
+    const panel = harness.elementsById.get("latency-mode-help-panel");
+    trigger.width = 40;
+    trigger.height = 20;
+    panel.width = 380;
+    panel.height = 200;
+
+    trigger.click();
+    assert.equal(panel.style.left, "8px", "The panel must clamp to the viewport edge");
+    assert.equal(panel.style.top, "28px", "The panel must sit below the trigger");
+    assert.equal(panel.style.transform, "none");
+
+    globalThis.window.innerWidth = 390;
+    globalThis.window.dispatchEvent("resize");
+    assert.equal(panel.style.left, "", "Phone layout must use the CSS bottom sheet");
+    assert.equal(panel.style.top, "");
+    assert.equal(panel.style.transform, "");
+
+    view.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const overlay = createAudioDiagnosticsOverlay({

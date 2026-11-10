@@ -749,3 +749,16 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     globalThis.cancelAnimationFrame = prevCaf;
   }
 });
+
+test("help panel becomes a bottom sheet at phone width", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const phone = computeStyleForSelector(rules, ".hw-help-panel", { width: 390, height: 844 });
+  assert.equal(phone.inset, "auto 12px calc(12px + env(safe-area-inset-bottom)) 12px");
+  assert.equal(phone.width, "auto");
+  assert.equal(phone.transform, "none");
+
+  const desktop = computeStyleForSelector(rules, ".hw-help-panel", { width: 1440, height: 900 });
+  assert.equal(desktop.inset, "50% auto auto 50%");
+  assert.equal(desktop.transform, "translate(-50%, -50%)");
+});

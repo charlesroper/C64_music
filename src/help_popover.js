@@ -9,11 +9,45 @@ const openPopovers = new Set();
 export function createHelpPopover({ document: doc, trigger, panel } = {}) {
   if (!doc || !trigger || !panel) return null;
 
+  const win = doc.defaultView || (typeof window !== "undefined" ? window : null);
+  const MOBILE_MAX_WIDTH = 560;
+  const VIEWPORT_MARGIN = 8;
   const native = typeof panel.showPopover === "function" && typeof panel.hidePopover === "function";
   let open = false;
   let destroyed = false;
 
   const closeSelf = () => close({ focus: false });
+
+  function clearPosition() {
+    panel.style.left = "";
+    panel.style.top = "";
+    panel.style.transform = "";
+  }
+
+  function positionPanel() {
+    if (!open || !win) return;
+    const width = win.innerWidth || 0;
+    if (width <= MOBILE_MAX_WIDTH) {
+      clearPosition();
+      return;
+    }
+    const triggerRect = trigger.getBoundingClientRect();
+    const panelRect = panel.getBoundingClientRect();
+    const gap = 8;
+    let left = triggerRect.left + triggerRect.width / 2 - panelRect.width / 2;
+    left = Math.max(VIEWPORT_MARGIN, Math.min(left, width - panelRect.width - VIEWPORT_MARGIN));
+    let top = triggerRect.bottom + gap;
+    if (top + panelRect.height > (win.innerHeight || 0) - VIEWPORT_MARGIN) {
+      top = triggerRect.top - panelRect.height - gap;
+    }
+    top = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(top, (win.innerHeight || 0) - panelRect.height - VIEWPORT_MARGIN),
+    );
+    panel.style.left = `${Math.round(left)}px`;
+    panel.style.top = `${Math.round(top)}px`;
+    panel.style.transform = "none";
+  }
 
   function setOpen(next, { focus = true } = {}) {
     if (destroyed || open === next) return;
@@ -22,9 +56,14 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
     panel.classList.toggle("is-open", open);
     if (open) {
       openPopovers.add(closeSelf);
-      if (focus) panel.focus?.();
+      positionPanel();
+      if (focus) {
+        const focusTarget = panel.querySelector?.("[data-help-focus]") || panel;
+        focusTarget.focus?.();
+      }
     } else {
       openPopovers.delete(closeSelf);
+      clearPosition();
       if (focus) trigger.focus?.();
     }
   }
@@ -65,7 +104,7 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
     if (!open) return;
     const target = event.target;
     if (panel.contains?.(target) || trigger.contains?.(target)) return;
-    close({ focus: false });
+    close();
   }
 
   function onKeyDown(event) {
@@ -90,12 +129,13 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
     doc.addEventListener("pointerdown", onPointerDown, true);
     doc.addEventListener("keydown", onKeyDown, true);
   }
+  win?.addEventListener?.("resize", positionPanel);
+  win?.addEventListener?.("scroll", positionPanel, true);
 
   return {
     open: openPanel,
     close,
     toggle,
-    isOpen: () => open,
     destroy() {
       if (destroyed) return;
       close({ focus: false });
@@ -107,6 +147,8 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
         doc.removeEventListener("pointerdown", onPointerDown, true);
         doc.removeEventListener("keydown", onKeyDown, true);
       }
+      win?.removeEventListener?.("resize", positionPanel);
+      win?.removeEventListener?.("scroll", positionPanel, true);
     },
   };
 }
