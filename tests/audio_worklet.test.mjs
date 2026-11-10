@@ -42,7 +42,7 @@ function createProcessor(port, options = {}) {
   }
   const Processor = createC64ProcessorClass(FakeAudioWorkletProcessor);
   return new Processor({
-    processorOptions: { wasmModule, sampleRate: 48000, telemetryDivider: 1, ...options },
+    processorOptions: { wasmModule, sampleRate: 48000, ...options },
   });
 }
 
@@ -182,65 +182,6 @@ test("worklet processor throttles telemetry below the audio callback rate", asyn
   const telemetryCount = port.messages.filter((message) => message.type === "telemetry").length;
   assert.ok(telemetryCount >= 1, "Expected telemetry while playing");
   assert.ok(telemetryCount <= 3, `Expected throttled telemetry, got ${telemetryCount} messages`);
-});
-
-test("worklet processor sends telemetry at the selected divider", async () => {
-  const port = createPort();
-  const processor = createProcessor(port, { telemetryDivider: 2 });
-  await waitForMessage(port, "ready");
-
-  loadWizball(port);
-  const loadTelemetry = port.messages.findLast((message) => message.type === "telemetry");
-  assert.ok(loadTelemetry, "Track load telemetry must be sent immediately");
-  port.onmessage({ data: { type: "telemetry-recycle", buffer: loadTelemetry.buffer } });
-  port.messages.length = 0;
-
-  const left = new Float32Array(128);
-  const right = new Float32Array(128);
-  for (let block = 0; block < 18; block++) {
-    processor.process([], [[left, right]]);
-  }
-
-  const sent = port.messages.filter((message) => message.type === "telemetry");
-  assert.equal(sent.length, 1, "18 quanta at divider 2 must send one periodic snapshot");
-});
-
-test("worklet processor stops telemetry snapshots when disabled and resumes on enable", async () => {
-  const port = createPort();
-  const processor = createProcessor(port, { telemetryDivider: 1 });
-  await waitForMessage(port, "ready");
-
-  loadWizball(port);
-  port.messages.length = 0;
-  port.onmessage({ data: { type: "setTelemetryEnabled", enabled: false } });
-
-  const left = new Float32Array(128);
-  const right = new Float32Array(128);
-  for (let block = 0; block < 12; block++) {
-    processor.process([], [[left, right]]);
-  }
-
-  assert.equal(
-    port.messages.filter((message) => message.type === "telemetry").length,
-    0,
-    "Telemetry snapshots must stop while disabled",
-  );
-
-  processor.reportDiagnostics();
-  assert.ok(
-    port.messages.some((message) => message.type === "audio-diagnostics"),
-    "Audio diagnostics must continue while snapshots are disabled",
-  );
-
-  port.onmessage({ data: { type: "setTelemetryEnabled", enabled: true } });
-  for (let block = 0; block < 12; block++) {
-    processor.process([], [[left, right]]);
-  }
-
-  assert.ok(
-    port.messages.filter((message) => message.type === "telemetry").length >= 1,
-    "Telemetry snapshots must resume when enabled",
-  );
 });
 
 test("worklet processor reports process timing and audio budget diagnostics", async () => {
@@ -389,103 +330,7 @@ test("player passes the two audio modes to the AudioContext", async () => {
   }
 });
 
-test("player defaults to 62.5Hz telemetry and accepts 30Hz", async () => {
-  const instance = await WebAssembly.instantiate(wasmModule, {});
-  const defaultPlayer = createWorkbenchPlayer({
-    wasm: instance.exports,
-    wasmModule,
-    rawSources: { "wizball.asm": wizballSource },
-  });
-
-  assert.equal(defaultPlayer.getState().telemetryHz, 62.5);
-  assert.equal(defaultPlayer.getAudioDiagnostics().telemetryHz, 62.5);
-
-  const lowRatePlayer = createWorkbenchPlayer({
-    wasm: instance.exports,
-    wasmModule,
-    rawSources: { "wizball.asm": wizballSource },
-    telemetryHz: 30,
-  });
-  assert.equal(lowRatePlayer.getState().telemetryHz, 30);
-  assert.equal(lowRatePlayer.getAudioDiagnostics().telemetryHz, 30);
-
-  const unknownRatePlayer = createWorkbenchPlayer({
-    wasm: instance.exports,
-    wasmModule,
-    rawSources: { "wizball.asm": wizballSource },
-    telemetryHz: 45,
-  });
-  assert.equal(unknownRatePlayer.getState().telemetryHz, 62.5);
-  unknownRatePlayer.setTelemetryHz(45);
-  assert.equal(unknownRatePlayer.getState().telemetryHz, 62.5);
-});
-
-test("player forwards telemetry enable and disable to the worklet", async () => {
-  const instance = await WebAssembly.instantiate(wasmModule, {});
-  const { nodes, fakeContext, FakeAudioWorkletNode } = createWorkletHarness();
-
-  const previousNode = globalThis.AudioWorkletNode;
-  globalThis.AudioWorkletNode = FakeAudioWorkletNode;
-  try {
-    const player = createWorkbenchPlayer({
-      wasm: instance.exports,
-      wasmModule,
-      rawSources: { "wizball.asm": wizballSource },
-      createAudioContext: () => fakeContext,
-      workletUrl: "/audio_worklet.js",
-    });
-
-    player.play();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    assert.equal(nodes.length, 1);
-    const node = nodes[0];
-    assert.equal(node.options.processorOptions.telemetryEnabled, true);
-    node.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
-
-    assert.equal(player.setTelemetryEnabled(false), false);
-    assert.equal(player.getState().telemetryEnabled, false);
-    assert.equal(player.getAudioDiagnostics().telemetryEnabled, false);
-    let message = node.port.messages.findLast(
-      (candidate) => candidate.type === "setTelemetryEnabled",
-    );
-    assert.equal(message.enabled, false);
-
-    node.port.messages.length = 0;
-    player.getTelemetry();
-    player.getRamView();
-    assert.equal(
-      node.port.messages.filter((candidate) => candidate.type === "requestTelemetry").length,
-      0,
-      "Disabled telemetry must not request snapshots from the worklet",
-    );
-
-    assert.equal(player.setTelemetryEnabled(true), true);
-    assert.equal(player.getState().telemetryEnabled, true);
-    assert.equal(player.getAudioDiagnostics().telemetryEnabled, true);
-    message = node.port.messages.findLast((candidate) => candidate.type === "setTelemetryEnabled");
-    assert.equal(message.enabled, true);
-  } finally {
-    globalThis.AudioWorkletNode = previousNode;
-  }
-});
-
-test("player keeps a locked telemetry-off override off", async () => {
-  const instance = await WebAssembly.instantiate(wasmModule, {});
-  const player = createWorkbenchPlayer({
-    wasm: instance.exports,
-    wasmModule,
-    rawSources: { "wizball.asm": wizballSource },
-    telemetryEnabled: false,
-    telemetryLockedOff: true,
-  });
-
-  assert.equal(player.getState().telemetryEnabled, false);
-  assert.equal(player.getAudioDiagnostics().telemetryEnabled, false);
-  assert.equal(player.setTelemetryEnabled(true), false);
-  assert.equal(player.getState().telemetryEnabled, false);
-});
-
-test("in-thread transport stops advancing telemetry when disabled", async () => {
+test("player reports the fixed 62.5Hz telemetry rate", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const player = createWorkbenchPlayer({
     wasm: instance.exports,
@@ -493,34 +338,10 @@ test("in-thread transport stops advancing telemetry when disabled", async () => 
     rawSources: { "wizball.asm": wizballSource },
   });
 
-  player.selectTrack("wizball.asm", "wiz-title", { autoPlay: true });
-  const left = new Float32Array(2048);
-  const right = new Float32Array(2048);
-  player.pullAudioBlock(left, right);
-  player.pullAudioBlock(left, right);
-  const before = player.getTelemetry().frameCount;
-
-  player.pullAudioBlock(left, right);
-  player.pullAudioBlock(left, right);
-  assert.ok(player.getTelemetry().frameCount > before, "Enabled telemetry must advance");
-
-  player.setTelemetryEnabled(false);
-  const disabled = player.getTelemetry().frameCount;
-  player.pullAudioBlock(left, right);
-  player.pullAudioBlock(left, right);
-  assert.equal(
-    player.getTelemetry().frameCount,
-    disabled,
-    "Disabled telemetry must not advance the snapshot",
-  );
-
-  player.setTelemetryEnabled(true);
-  player.pullAudioBlock(left, right);
-  player.pullAudioBlock(left, right);
-  assert.ok(
-    player.getTelemetry().frameCount > disabled,
-    "Re-enabled telemetry must advance the snapshot",
-  );
+  assert.equal(player.getState().telemetryHz, 62.5);
+  assert.equal(player.getAudioDiagnostics().telemetryHz, 62.5);
+  assert.equal(typeof player.setTelemetryHz, "undefined");
+  assert.equal(typeof player.setTelemetryEnabled, "undefined");
 });
 
 test("player soft-restarts the audio context when latency mode changes", async () => {
@@ -606,7 +427,6 @@ test("player queues play until the worklet is ready and then dispatches the acti
       rawSources: { "wizball.asm": wizballSource },
       createAudioContext: () => fakeContext,
       workletUrl: "/audio_worklet.js",
-      telemetryHz: 30,
     });
 
     player.selectTrack("wizball.asm", "wiz-title", { autoPlay: false });
@@ -652,30 +472,11 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.equal(player.getAudioDiagnostics().postMessagePeakUs, 300);
     assert.equal(player.getAudioDiagnostics().applyGainPeakUs, 50);
 
-    let divider = node.port.messages
-      .filter((message) => message.type === "setTelemetryDivider")
-      .at(-1);
-    assert.equal(divider.divider, 2, "A 30Hz player must start the worklet at divider 2");
-
-    player.setTelemetryHz(62.5);
-    divider = node.port.messages.filter((message) => message.type === "setTelemetryDivider").at(-1);
-    assert.equal(divider.divider, 1);
-    assert.equal(player.getState().telemetryHz, 62.5);
-
-    player.setTelemetryHz(30);
-    divider = node.port.messages.filter((message) => message.type === "setTelemetryDivider").at(-1);
-    assert.equal(divider.divider, 2);
-    assert.equal(player.getAudioDiagnostics().telemetryHz, 30);
-
     await player.setLatencyMode("playback");
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(nodes.length, 2, "Restart must create a new worklet node");
     const restartedNode = nodes[1];
     restartedNode.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
-    const restartedDivider = restartedNode.port.messages
-      .filter((message) => message.type === "setTelemetryDivider")
-      .at(-1);
-    assert.equal(restartedDivider.divider, 2, "Restart must keep the 30Hz divider");
     assert.equal(player.getState().latencyHint, "playback");
 
     restartedNode.port.onmessage({

@@ -77,7 +77,7 @@ const GROUPS = [
       [
         "telemetry",
         "telemetry",
-        "How often screen and scope updates arrive. OFF means snapshots are stopped.",
+        "How often screen and scope updates arrive. The rate is fixed at 62.5Hz.",
       ],
     ],
     health: {
@@ -258,10 +258,7 @@ function buildValues(diagnostics) {
     "context:backend": diagnostics.backend || "-",
     "context:ctx": diagnostics.contextState || "-",
     "context:rate": diagnostics.sampleRate || "-",
-    "context:telemetry":
-      diagnostics.telemetryEnabled === false
-        ? "OFF"
-        : `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
+    "context:telemetry": `${diagnostics.telemetryHz ?? TELEMETRY_HZ_DEFAULT}Hz`,
     "latency:mode":
       diagnostics.latencyHint !== undefined && diagnostics.latencyHint !== null
         ? String(diagnostics.latencyHint)

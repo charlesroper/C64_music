@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assembleOceanSource } from "../../src/ocean_assembler.js";
 import { buildSessionDescriptor } from "../../src/player_engine.js";
-import { resolveTelemetryHz } from "../../src/telemetry_rate.js";
 import { GAME_FILES } from "../../src/tracks_catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -685,8 +684,6 @@ export function createFakePlayer(options = {}) {
     digiBoost: 1.3,
     latencyHint: "playback",
     telemetryHz: 62.5,
-    telemetryEnabled: options.telemetryEnabled !== false,
-    telemetryLockedOff: Boolean(options.telemetryLockedOff),
     muteMask: 0,
     soloVoice: -1,
   };
@@ -748,16 +745,6 @@ export function createFakePlayer(options = {}) {
       state.latencyHint = mode === "interactive" ? "interactive" : "playback";
       options.onLatencyMode?.(state.latencyHint);
       return Promise.resolve(state.latencyHint);
-    },
-    setTelemetryHz(hz) {
-      state.telemetryHz = resolveTelemetryHz(hz);
-      options.onTelemetryHz?.(state.telemetryHz);
-      return state.telemetryHz;
-    },
-    setTelemetryEnabled(enabled) {
-      state.telemetryEnabled = state.telemetryLockedOff ? false : Boolean(enabled);
-      options.onTelemetryEnabled?.(state.telemetryEnabled);
-      return state.telemetryEnabled;
     },
     injectKey(code) {
       options.onInjectKey?.(code);

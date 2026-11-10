@@ -195,7 +195,6 @@ export function createEngineCore({
   postMessage = () => {},
   sampleRate = 48000,
   telemetryInterval = 1,
-  shouldEmitTelemetry = () => true,
 }) {
   const telemetryEvery = Math.max(1, Math.floor(telemetryInterval));
   let renderCount = 0;
@@ -308,7 +307,6 @@ export function createEngineCore({
   }
 
   function emitTelemetry() {
-    if (!shouldEmitTelemetry()) return null;
     const snapshot = getTelemetry();
     postMessage({ type: "telemetry", snapshot });
     return snapshot;

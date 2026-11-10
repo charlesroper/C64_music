@@ -335,10 +335,6 @@ button.active {
   gap: 2px;
 }
 
-#hw-group-telemetry[hidden] {
-  display: none;
-}
-
 .hw-label {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -2040,8 +2036,7 @@ button.active {
     font-size: 9px;
   }
 
-  #hw-group-digi,
-  #hw-group-telemetry {
+  #hw-group-digi {
     grid-column: 1 / -1;
     width: 100%;
   }
@@ -2758,26 +2753,4 @@ html[data-boot-mode="immediate"] .boot-sequence {
   .diag-group {
     gap: 1px 8px;
   }
-}
-
-/* Debug-only minimal render (?render=minimal). */
-body.render-minimal .workbench-grid {
-  grid-template-columns: minmax(0, 720px);
-  grid-template-rows: auto;
-  justify-content: center;
-  align-content: start;
-}
-
-body.render-minimal .workbench-grid .panel-left {
-  display: flex;
-}
-
-body.render-minimal .workbench-grid .panel-center,
-body.render-minimal .workbench-grid .panel-right,
-body.render-minimal .workbench-grid .sid-hex-strip {
-  display: none;
-}
-
-body.render-minimal .mobile-view-tabs {
-  display: none;
 }

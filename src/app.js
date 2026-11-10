@@ -7,7 +7,6 @@ import { createBootSequence } from "./boot_sequence.js";
 import { resolveAudioMode } from "./latency_hint.js";
 import { createWorkbenchPlayer } from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
-import { resolveTelemetryEnabled, resolveTelemetryHz } from "./telemetry_rate.js";
 import {
   cancelViewerSmoothScroll,
   createWorkbenchView,
@@ -25,11 +24,6 @@ export async function bootWorkbench(options = {}) {
     override: params.get("latency"),
     window: win,
   });
-  const telemetryParam = params.get("telemetry");
-  const telemetryHz = resolveTelemetryHz(telemetryParam);
-  const telemetryEnabled = resolveTelemetryEnabled(telemetryParam);
-  const telemetryLockedOff = !telemetryEnabled;
-  const renderMinimal = params.get("render") === "minimal";
   const reducedMotion =
     options.reducedMotion === true ||
     Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -126,8 +120,6 @@ export async function bootWorkbench(options = {}) {
     elements: options.elements,
     player: null,
     latencyHint,
-    telemetryHz,
-    renderMinimal,
     onFirstInteraction: handleFirstInteraction,
   });
   view.setRenderingPaused(bootActive);
@@ -158,9 +150,6 @@ export async function bootWorkbench(options = {}) {
     wasmModule,
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
     latencyHint,
-    telemetryHz,
-    telemetryEnabled,
-    telemetryLockedOff,
     rawSources,
     createAudioContext: (opts) => {
       if (preUnlockedAudioCtx && (!opts || opts.latencyHint === preUnlockedLatencyHint)) {

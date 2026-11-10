@@ -7,7 +7,6 @@ import { createC64ScreenRenderer } from "./c64_screen.js";
 import { AUDIO_MODE_DEFAULT, resolveLatencyHint, writeStoredAudioMode } from "./latency_hint.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
-import { resolveTelemetryHz, TELEMETRY_HZ_DEFAULT, TELEMETRY_HZ_LOW } from "./telemetry_rate.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
@@ -177,14 +176,11 @@ export function createWorkbenchView({
   assets = null,
   elements = null,
   latencyHint = AUDIO_MODE_DEFAULT,
-  telemetryHz = 62.5,
-  renderMinimal = false,
   onFirstInteraction = null,
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
   const registry = createDomRegistry(doc, elements);
   const getEl = (id) => registry.get(id);
-  const initialTelemetryHz = resolveTelemetryHz(telemetryHz);
 
   const state = {
     player: player || null,
@@ -203,9 +199,6 @@ export function createWorkbenchView({
     videoNtsc: false,
     digiBoost: 1.3,
     latencyHint: resolveLatencyHint(latencyHint),
-    telemetryHz: initialTelemetryHz,
-    baseTelemetryHz: initialTelemetryHz,
-    renderMinimal: Boolean(renderMinimal),
     diagnostics: null,
 
     muteMask: 0,
@@ -1234,10 +1227,7 @@ export function createWorkbenchView({
     const viewer = getEl("source-viewer");
     const viewerEmpty = !viewer || (viewer.children && viewer.children.length === 0);
 
-    if (
-      !state.renderMinimal &&
-      (prevGameId !== game.id || state.currentSourceFile !== targetFile || viewerEmpty)
-    ) {
+    if (prevGameId !== game.id || state.currentSourceFile !== targetFile || viewerEmpty) {
       renderSource(targetFile);
     }
 
@@ -1277,7 +1267,6 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
-    syncTelemetryRate();
     updateDrmChipState();
     renderGameList();
   }
@@ -1300,25 +1289,8 @@ export function createWorkbenchView({
     if (valueEl) valueEl.textContent = interactive ? "INTERACTIVE" : "PLAYBACK";
   }
 
-  function syncTelemetryRate() {
-    const high = state.telemetryHz === TELEMETRY_HZ_DEFAULT;
-    const chkTelemetry = getEl("chk-telemetry-high");
-    if (chkTelemetry && chkTelemetry.checked !== high) chkTelemetry.checked = high;
-    const valueEl = getEl("telemetry-rate-value");
-    const label = `${state.telemetryHz === TELEMETRY_HZ_LOW ? TELEMETRY_HZ_LOW : TELEMETRY_HZ_DEFAULT}Hz`;
-    if (valueEl && valueEl.textContent !== label) valueEl.textContent = label;
-    const playerHz = state.player?.getState?.()?.telemetryHz;
-    if (playerHz !== undefined && playerHz !== state.telemetryHz) {
-      state.player.setTelemetryHz?.(state.telemetryHz);
-    }
-  }
-
   function scrollFollowLine(lineNo) {
     scrollToSourceLine(lineNo, { doc, getEl });
-  }
-
-  function applyRenderMinimalChrome(enabled) {
-    doc.body?.classList.toggle("render-minimal", enabled);
   }
 
   function setAssets(newAssets) {
@@ -1426,15 +1398,6 @@ export function createWorkbenchView({
         }
         if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
         writeStoredAudioMode(win, state.latencyHint);
-      });
-    }
-
-    const chkTelemetry = getEl("chk-telemetry-high");
-    if (chkTelemetry) {
-      addListener(chkTelemetry, "change", (e) => {
-        state.baseTelemetryHz = e.target.checked ? TELEMETRY_HZ_DEFAULT : TELEMETRY_HZ_LOW;
-        state.telemetryHz = state.baseTelemetryHz;
-        syncTelemetryRate();
       });
     }
 
@@ -1575,8 +1538,6 @@ export function createWorkbenchView({
       if (chkC && crtOverlay) {
         crtOverlay.classList.toggle("hidden", !chkC.checked);
       }
-
-      applyRenderMinimalChrome(state.renderMinimal);
 
       const sDigi = getEl("slider-digi-boost");
       if (sDigi) {
@@ -1802,7 +1763,6 @@ export function createWorkbenchView({
   const cleanups = [];
   setupUIHandlers();
   syncLatencyMode();
-  syncTelemetryRate();
   renderKeypadButtons();
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
@@ -1873,7 +1833,7 @@ export function createWorkbenchView({
   }
 
   function isRenderLoopActive() {
-    return !isDestroyed && !renderingPaused && !state.renderMinimal && !doc?.hidden;
+    return !isDestroyed && !renderingPaused && !doc?.hidden;
   }
 
   function scheduleRenderFrame() {

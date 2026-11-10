@@ -749,32 +749,3 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
     globalThis.cancelAnimationFrame = prevCaf;
   }
 });
-
-test("minimal render CSS hides centre and right panels at phone width", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
-  const phone = { width: 375, height: 812 };
-
-  for (const selector of [
-    "body.render-minimal .workbench-grid .panel-center",
-    "body.render-minimal .workbench-grid .panel-right",
-    "body.render-minimal .workbench-grid .sid-hex-strip",
-    "body.render-minimal .mobile-view-tabs",
-  ]) {
-    assert.equal(
-      computeStyleForSelector(rules, selector, phone).display,
-      "none",
-      `${selector} must be hidden in minimal render mode`,
-    );
-  }
-
-  const grid = computeStyleForSelector(rules, "body.render-minimal .workbench-grid", phone);
-  assert.equal(grid["grid-template-columns"], "minmax(0, 720px)");
-  assert.equal(grid["justify-content"], "center");
-  assert.equal(
-    computeStyleForSelector(rules, "body.render-minimal .workbench-grid .panel-left", phone)
-      .display,
-    "flex",
-    "The track list panel must stay visible in minimal render mode",
-  );
-});

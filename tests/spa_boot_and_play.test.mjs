@@ -156,7 +156,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
   }
 });
 
-test("SID, audio mode and telemetry switches apply options", () => {
+test("SID and audio mode switches apply options", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   try {
     const player = createFakePlayer();
@@ -201,18 +201,6 @@ test("SID, audio mode and telemetry switches apply options", () => {
     assert.equal(player.getState().latencyHint, "interactive");
     assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
     assert.equal(harness.localStorage.getItem("galway2664.audioMode.v1"), "interactive");
-
-    const telemetryToggle = harness.elementsById.get("chk-telemetry-high");
-    assert.equal(telemetryToggle.checked, true, "62.5Hz must be the checked default");
-    telemetryToggle.checked = false;
-    telemetryToggle.dispatchEvent("change");
-    assert.equal(player.getState().telemetryHz, 30);
-    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
-
-    telemetryToggle.checked = true;
-    telemetryToggle.dispatchEvent("change");
-    assert.equal(player.getState().telemetryHz, 62.5);
-    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "62.5Hz");
   } finally {
     harness.restoreGlobals();
   }
@@ -246,41 +234,6 @@ test("SID and Audio Mode explainers are visible hardware copy", () => {
   }
 });
 
-test("Workbench View defaults telemetry to 62.5Hz and accepts 30Hz", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  try {
-    const player = createFakePlayer();
-    const view = createWorkbenchView({
-      document: globalThis.document,
-      elements: harness.elementsById,
-      player,
-    });
-    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "62.5Hz");
-    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, true);
-    assert.equal(
-      harness.elementsById.get("hw-group-telemetry").hidden,
-      true,
-      "The Telemetry group must be hidden from the interface",
-    );
-
-    const lowRatePlayer = createFakePlayer();
-    const lowRateView = createWorkbenchView({
-      document: globalThis.document,
-      elements: harness.elementsById,
-      player: lowRatePlayer,
-      telemetryHz: 30,
-    });
-    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
-    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, false);
-    assert.equal(lowRatePlayer.getState().telemetryHz, 30);
-
-    lowRateView.destroy();
-    view.destroy();
-  } finally {
-    harness.restoreGlobals();
-  }
-});
-
 test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const overlay = createAudioDiagnosticsOverlay({
@@ -292,24 +245,6 @@ test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {
     const value = globalThis.document.querySelector('[data-metric="context:telemetry"]');
     assert.ok(value, "Stats must have a telemetry rate value");
     assert.equal(value.textContent, "62.5Hz");
-  } finally {
-    overlay.stop();
-    harness.restoreGlobals();
-  }
-});
-
-test("Stats shows OFF when telemetry snapshots are disabled", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  const overlay = createAudioDiagnosticsOverlay({
-    document: globalThis.document,
-    player: {
-      getAudioDiagnostics: () => ({ telemetryHz: 62.5, telemetryEnabled: false }),
-    },
-    window: globalThis.window,
-  });
-  try {
-    const value = globalThis.document.querySelector('[data-metric="context:telemetry"]');
-    assert.equal(value.textContent, "OFF");
   } finally {
     overlay.stop();
     harness.restoreGlobals();
@@ -649,41 +584,6 @@ test("Stats for Nerds button toggles the audio diagnostics overlay", async () =>
   }
 });
 
-test("?telemetry=30 boots the workbench at 30Hz", async () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
-  try {
-    globalThis.window.location = { search: "?telemetry=30" };
-    const booted = await bootWorkbench({ skipBoot: true });
-
-    assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 30);
-    assert.equal(harness.elementsById.get("telemetry-rate-value").textContent, "30Hz");
-    assert.equal(harness.elementsById.get("chk-telemetry-high").checked, false);
-  } finally {
-    harness.restoreGlobals();
-  }
-});
-
-test("?telemetry=off boots with snapshots disabled and locked", async () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
-  try {
-    globalThis.window.location = { search: "?telemetry=off" };
-    const booted = await bootWorkbench({ skipBoot: true });
-
-    assert.equal(booted.player.getState().telemetryEnabled, false);
-    assert.equal(booted.player.getState().telemetryLockedOff, true);
-    assert.equal(booted.player.getAudioDiagnostics().telemetryEnabled, false);
-    assert.equal(
-      booted.player.setTelemetryEnabled(true),
-      false,
-      "The capture override must not be re-enabled",
-    );
-    assert.equal(booted.player.getState().telemetryEnabled, false);
-    assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 62.5);
-  } finally {
-    harness.restoreGlobals();
-  }
-});
-
 test("audio mode boots interactive by default and reaches the AudioContext", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   try {
@@ -759,22 +659,41 @@ test("?latency=playback overrides stored interactive for one load", async () => 
   }
 });
 
-test("?render=minimal boots with the minimal render class and paused loop", async () => {
+test("?render=minimal is ignored and the workbench renders", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   try {
     globalThis.window.location = { search: "?render=minimal" };
     const booted = await bootWorkbench({ skipBoot: true });
 
-    assert.ok(globalThis.document.body.classList.contains("render-minimal"));
+    assert.ok(!globalThis.document.body.classList.contains("render-minimal"));
+    assert.equal("renderMinimal" in booted.view.state, false);
 
     for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
       harness.stepAnimationFrame(timestamp);
     }
-    assert.equal(
-      booted.view.getFrameDiagnostics().frameCalls,
-      0,
-      "The boot handoff must not resume the loop in minimal render mode",
+    assert.ok(
+      booted.view.getFrameDiagnostics().frameCalls > 0,
+      "The boot handoff must resume the normal render loop",
     );
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("telemetry debug flags and gating are removed", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    globalThis.window.location = { search: "?telemetry=off&telemetry=30" };
+    const booted = await bootWorkbench({ skipBoot: true });
+
+    assert.equal(booted.player.getState().telemetryHz, 62.5);
+    assert.equal(booted.player.getAudioDiagnostics().telemetryHz, 62.5);
+    assert.equal(harness.elementsById.has("hw-group-telemetry"), false);
+    assert.equal(harness.elementsById.has("chk-telemetry-high"), false);
+    assert.equal(typeof booted.player.setTelemetryEnabled, "undefined");
+    assert.equal(typeof booted.player.setTelemetryHz, "undefined");
+    assert.equal("telemetryEnabled" in booted.player.getState(), false);
+    assert.equal("telemetryLockedOff" in booted.player.getState(), false);
   } finally {
     harness.restoreGlobals();
   }
@@ -1675,77 +1594,6 @@ test("music-only controls are absent and the workbench always renders", () => {
     assert.ok(!globalThis.document.body.classList.contains("music-only"));
   } finally {
     view.destroy();
-    harness.restoreGlobals();
-  }
-});
-
-test("Minimal render marks the body and pauses the workbench render loop", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  const player = createFakePlayer();
-  const originalRaf = globalThis.window.requestAnimationFrame;
-  let rafCalls = 0;
-  globalThis.window.requestAnimationFrame = (callback) => {
-    rafCalls++;
-    return originalRaf(callback);
-  };
-  let view = null;
-
-  try {
-    view = createWorkbenchView({
-      document: globalThis.document,
-      elements: harness.elementsById,
-      player,
-      renderMinimal: true,
-    });
-
-    assert.ok(globalThis.document.body.classList.contains("render-minimal"));
-    assert.equal(rafCalls, 0, "Minimal render must not schedule animation frames");
-
-    player.play();
-    for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
-      harness.stepAnimationFrame(timestamp);
-    }
-    assert.equal(
-      view.getFrameDiagnostics().frameCalls,
-      0,
-      "Minimal render must pause the workbench render loop",
-    );
-    assert.equal(rafCalls, 0, "Minimal render must not schedule another frame");
-
-    const before = view.state.activeTrackId;
-    harness.elementsById.get("btn-next").click();
-    assert.notEqual(
-      view.state.activeTrackId,
-      before,
-      "Track switching must remain usable in minimal render mode",
-    );
-    assert.equal(player.getState().isPlaying, true, "Track switching must keep playback");
-    assert.equal(
-      harness.elementsById.get("source-viewer").children.length,
-      0,
-      "Track switching must not render the hidden source viewer",
-    );
-
-    harness.elementsById.get("btn-play").click();
-    assert.equal(player.getState().isPlaying, false, "Pause must remain usable");
-    assert.equal(view.getFrameDiagnostics().frameCalls, 0, "Pause must not resume the loop");
-
-    const originalGetTelemetry = player.getTelemetry.bind(player);
-    let telemetryReads = 0;
-    player.getTelemetry = () => {
-      telemetryReads++;
-      return originalGetTelemetry();
-    };
-    globalThis.document.hidden = false;
-    globalThis.document.dispatchEvent("visibilitychange");
-    assert.equal(
-      telemetryReads,
-      0,
-      "A visibility change must not render hidden telemetry in minimal render mode",
-    );
-  } finally {
-    globalThis.window.requestAnimationFrame = originalRaf;
-    view?.destroy();
     harness.restoreGlobals();
   }
 });
