@@ -80,6 +80,10 @@ _Avoid_: Mixer, audio graph
 Firefox's audio backend, the layer that talks to Android audio.
 _Avoid_: Audio driver, sound API
 
+**Deep-Buffer Path**:
+Android's power-saving audio path, selected when the requested stream buffer is above 4,000 frames. It adds about 190ms of delay and is less likely to underrun.
+_Avoid_: Power-save mode, big buffer
+
 **Audio Frame**:
 One slice of audio. At 48kHz, 48 frames last 1ms and 128 frames last about 2.67ms.
 _Avoid_: Sample, packet

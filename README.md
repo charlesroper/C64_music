@@ -100,7 +100,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * The app remembers your choice in `localStorage` under `galway2664.audioMode.v1`. It does not use cookies.
 * Append `?latency=interactive` or `?latency=playback` to override the stored choice for one load. A URL override is not saved.
 * The SID chip and Audio Mode toggles carry short visible explainers for the 6581/8580 filter difference and the buffer trade-off.
-* Firefox ignores both hints. Use the Firefox Nightly buffer setting below.
+* Firefox ignores both hints. Use the Firefox buffer setting below.
 
 ### Audio delay and clean playback
 
@@ -113,25 +113,30 @@ Measurements in testing are below.
 | Chromium playback | about 192ms | clean |
 | Chromium interactive | about 16ms | pops |
 | Firefox default | about 11ms | pops |
-| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
-| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+| Firefox, 2048-frame buffer | about 11ms | pops |
+| Firefox, 4096-frame buffer | about 190ms | clean |
 
 * **Chromium:** keep **AUDIO MODE** on `PLAYBACK`. Use `INTERACTIVE` only if low latency matters more than the pops.
-* **Firefox stable and Beta:** Android does not expose `about:config`. Use Chromium playback or install Firefox Nightly.
+* **Firefox:** the Audio Mode switch does nothing. Firefox discards `latencyHint` and asks Android for minimum latency.
+* **Why `4096` works:** Android's audio backend switches to the deep-buffer path above 4,000 frames. `2048` stays in low-latency mode and does not enlarge the buffer.
+* **Firefox Beta and Nightly:** `about:config` is available. Follow the steps below.
+* **Firefox stable:** `about:config` is hidden. The same editor may open at `chrome://geckoview/content/config.xhtml`. That route is unsupported and can change between builds. Test it before relying on it. Otherwise use Chromium playback or install Beta or Nightly.
 
-**Firefox Nightly:**
+**Firefox Beta or Nightly:**
 
 1. Open `about:config`.
 2. Tap **+**.
 3. Add `media.cubeb_latency_mtg_frames` as a **Number**.
 4. Set `4096`.
-5. Force-stop Nightly and reopen it.
+5. Force-stop Firefox and reopen it.
 6. Confirm Stats shows `out` around 190ms.
 
 * A value of `2048` did not help on the test device. `out` stayed around 11ms and the pops remained.
 * **What the setting means:** `media.cubeb_latency_mtg_frames` is Firefox's MediaTrackGraph audio batch size. `mtg` means MediaTrackGraph. The value is in frames, not milliseconds. At 48kHz, 4096 frames is about 85ms of sound. Stats can report `out` around 190ms because the phone adds more buffering.
+* Firefox is adding `latencyHint` support in [Bug 2020377](https://bugzilla.mozilla.org/show_bug.cgi?id=2020377). When it lands, `PLAYBACK` may work on Firefox without this preference. It has not landed yet.
 * Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build. A faster device may play cleanly with a smaller buffer.
 * Clean playback carries a delay of about 190ms. The source viewer follow leads the sound by roughly the same amount.
+* The [Firefox latencyHint research](docs/research/firefox-audiocontext-latencyhint.md) records the source links for the WebIDL, MediaTrackGraph, Android threshold and `about:config` findings.
 
 ## Edit and reassemble music live
 

@@ -62,20 +62,22 @@ The checks below use the app's own browser contract. They do not depend on Playw
 7. Click Stats for Nerds to show process timing, late blocks, missed quanta, telemetry drops, context state, telemetry rate and latency. `lateQuanta` counts blocks over the 2.67ms quantum budget; `lateWindow` shows the current diagnostics window. Session peaks persist until reload. The overlay groups Context, Latency, Process, Deadlines, Telemetry and Events; each metric is one label/value unit, and the Process group includes audio sub-phase and main-thread frame peaks. Click `?` to expand plain-English descriptions for every group and metric. Confirm the guide scrolls, closes back to compact mode, and does not overflow at phone widths. Add `?audioDebug=1` to open the same overlay on load. Audio Mode defaults to `INTERACTIVE` for lower delay. Toggle it to `PLAYBACK` for clean runs, or add `?latency=playback` to override the stored choice for one load. Chromium interactive is about 16ms and can pop on low-end devices; Chromium playback is about 192ms and clean. Firefox ignores the hint, so `out` does not change. The choice is stored in `localStorage` under `galway2664.audioMode.v1`, and a URL override does not overwrite it. Confirm the SID chip and Audio Mode explainers are visible, that the stored choice survives a reload, and that `?latency=playback` changes the mode for that load only. Telemetry runs at a fixed 62.5Hz. The `30Hz` option and stop-snapshot debug flags are removed, and Stats always shows the rate.
 8. For the Boot Sequence, load without `?skipBoot=1`. Confirm the full-screen power-on, exact BASIC screen, typed `LOAD""`, PRESS PLAY ON TAPE gate, tape loader, tape sound, `READY.`, CRT collapse and Wizball playback. The boot screen must be visible from first paint with no workbench flash. Normal completion starts audio and fades the boot overlay into the workbench over 2.4 seconds. The collapsed CRT must stay aligned with the monitor through the fade. Skip and reduced motion must hide the boot screen and reveal the workbench from first paint. Check the gate hint, skip path and reduced-motion path. Copy Playwright screenshots to `/sdcard/Download/tmp`.
 
-### Firefox Nightly audio buffer check
+### Firefox audio buffer check
 
-Firefox stable and Beta on Android do not expose `about:config`. This check requires Firefox Nightly.
+Firefox Beta and Nightly expose `about:config`. Stable hides the `about:config` name, but the same editor may open at `chrome://geckoview/content/config.xhtml`. That route is unsupported and can change between builds.
 
-1. Install Firefox Nightly.
+1. Open Firefox Beta or Nightly.
 2. Open `about:config`.
 3. Tap **+**.
 4. Add `media.cubeb_latency_mtg_frames` as a **Number**.
 5. Set the value to `4096`.
-6. Force-stop Nightly and reopen it.
+6. Force-stop Firefox and reopen it.
 7. Open the app and Stats. Confirm `out` is around 190ms.
 8. Play for two minutes and listen for pops.
 
-A value of `2048` did not help on the test device. `out` stayed around 11ms and the pops remained.
+A value of `2048` did not help on the test device. `out` stayed around 11ms and the pops remained. Android's audio backend switches to the deep-buffer path above 4,000 frames, so `2048` stays in low-latency mode and the buffer does not grow.
+
+Firefox is adding `latencyHint` support in [Bug 2020377](https://bugzilla.mozilla.org/show_bug.cgi?id=2020377). It has not landed yet. The [research note](../research/firefox-audiocontext-latencyhint.md) records the source links.
 
 Expected audio results:
 
@@ -84,8 +86,8 @@ Expected audio results:
 | Chromium playback | about 192ms | clean |
 | Chromium interactive | about 16ms | pops |
 | Firefox default | about 11ms | pops |
-| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
-| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+| Firefox, 2048-frame buffer | about 11ms | pops |
+| Firefox, 4096-frame buffer | about 190ms | clean |
 
 Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 153. Results vary by device, Android version and browser build. See [Audio delay and clean playback](../audio-latency.md) for the plain-English explanation.
 

@@ -25,8 +25,8 @@ Measurements come from a Samsung Galaxy A16 using Firefox Nightly and Chromium 1
 | Chromium playback | about 192ms | clean |
 | Chromium interactive | about 16ms | pops |
 | Firefox default | about 11ms | pops |
-| Firefox Nightly, 2048-frame buffer | about 11ms | pops |
-| Firefox Nightly, 4096-frame buffer | about 190ms | clean |
+| Firefox, 2048-frame buffer | about 11ms | pops |
+| Firefox, 4096-frame buffer | about 190ms | clean |
 
 The pattern is consistent. On the test device, about 190ms is clean and about 11ms to 16ms pops, in both browsers.
 
@@ -40,20 +40,33 @@ Switching Audio Mode restarts the current track.
 
 ## Firefox
 
-Firefox stable and Beta on Android do not expose `about:config`. This workaround requires **Firefox Nightly**.
+Firefox ignores the Audio Mode switch. `latencyHint` is not in Firefox's WebIDL, so the browser discards it. MediaTrackGraph asks the audio backend for minimum latency. The app cannot request a larger buffer through Web Audio.
 
-1. Install Firefox Nightly.
-2. Open `about:config`.
-3. Tap the **+** button.
-4. Add `media.cubeb_latency_mtg_frames` as a **Number**.
-5. Set the value to `4096`.
-6. Force-stop Nightly and reopen it.
-7. Open the app and Stats. Confirm `out` is around 190ms.
-8. Play for two minutes and listen for pops.
+On Android, the audio backend has a hard mode switch at 4,000 frames. A requested buffer of 4,000 frames or less stays in low-latency mode. The buffer does not grow with the request. A value above 4,000 frames selects the deep-buffer path.
+
+That is why `2048` did nothing and `4096` worked on the test device. `4096` crosses the threshold.
+
+### Firefox Beta and Nightly
+
+1. Open `about:config`.
+2. Tap the **+** button.
+3. Add `media.cubeb_latency_mtg_frames` as a **Number**.
+4. Set the value to `4096`.
+5. Force-stop Firefox and reopen it.
+6. Open the app and Stats. Confirm `out` is around 190ms.
+7. Play for two minutes and listen for pops.
 
 A value of `2048` did not help in testing. `out` stayed around 11ms and the pops remained.
 
 After you add the preference, search for `mtg` in `about:config` to confirm it is there.
+
+### Firefox stable
+
+`about:config` is hidden in Stable. The same editor may open at `chrome://geckoview/content/config.xhtml`. This route is unsupported and can change between builds. Test it before relying on it. If it does not open, use Chromium playback or install Firefox Beta or Nightly.
+
+Firefox is adding `latencyHint` support in [Bug 2020377](https://bugzilla.mozilla.org/show_bug.cgi?id=2020377). When it lands, `PLAYBACK` may work on Firefox without this preference. It has not landed yet.
+
+The [Firefox latencyHint research](research/firefox-audiocontext-latencyhint.md) records the source links for the WebIDL, MediaTrackGraph, Android threshold and `about:config` findings.
 
 ## What the setting means
 
@@ -97,10 +110,11 @@ If you need low latency, Chromium `INTERACTIVE` gives about 16ms, with pops on l
 - Close CPU-heavy apps before listening.
 - Disable battery saver.
 - Try Chromium `PLAYBACK` to confirm the app path is clean.
-- If Firefox Nightly with `4096` still pops, the device cannot keep up with a smaller buffer.
+- If Firefox with `4096` still pops, the device cannot keep up even with the deep-buffer path.
 
 ## Related documentation
 
 - `README.md` gives the short setup steps.
 - `docs/agents/browser-verification.md` gives the test procedure.
 - `docs/research/firefox-audioworklet-tail.md` records the browser research and the empirical result.
+- `docs/research/firefox-audiocontext-latencyhint.md` records the sourced `latencyHint`, MediaTrackGraph and Android threshold research.
