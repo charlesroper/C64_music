@@ -43,7 +43,7 @@ Apply Guardian British English and Zinsser clarity:
 - Spell out one to nine in general prose. Use numerals from 10 upward and with units.
 - Leave no space before abbreviated units: `50Hz`, `200Hz`, `44.1kHz`, `1.023MHz`, `20ms`, `40px`. Use a space before spelled-out units: `40 pixels`.
 - Format dates as `23 April 1987` and times as `4.31pm`.
-- Use commas, colons, parentheses or full stops for pauses. Never use em-dashes (U+2014) or en-dashes (U+2013).
+- Use commas, colons, parentheses or full stops for pauses. Never use em-dashes (U+2014). En-dashes (U+2013) are allowed in Markdown prose.
 - Use backticks around code identifiers and registers such as `$D400` and `requestAnimationFrame`. Use `->` rather than arrow glyphs.
 - Keep active voice, concrete verbs and one controlling idea per sentence. Remove brochure adjectives and AI tropes.
 - Prioritise scannability in technical documentation (`README.md`, developer guides and reference lists). Use bold lead-in tags on reference items, numbered steps with action verbs and fenced syntax blocks for before and after code. These visual scannability conventions override general essay anti-bullet-bolding rules.
@@ -55,7 +55,7 @@ Apply Guardian British English and Zinsser clarity:
 - Keep Martin Galway's quotations verbatim.
 - Respect `src/markdown.js`: full `https://` URLs only, `#`, `##` and `###` headings only, single-line unwrapped paragraphs and code spans around `*` expressions.
 
-Completion: the edited prose passes the repository rules test, with zero em-dashes or en-dashes and no broken Markdown rendering.
+Completion: the edited prose passes the repository rules test, with zero em-dashes and no broken Markdown rendering.
 
 ## 4. Documentation and test suite synchronisation
 
