@@ -205,8 +205,6 @@ export function createWorkbenchView({
     latencyHint: resolveLatencyHint(latencyHint),
     telemetryHz: initialTelemetryHz,
     baseTelemetryHz: initialTelemetryHz,
-    musicOnly: false,
-    statsVisible: false,
     renderMinimal: Boolean(renderMinimal),
     diagnostics: null,
 
@@ -1198,16 +1196,12 @@ export function createWorkbenchView({
     const btnPlay = getEl("btn-play");
     const playIcon = getEl("play-icon");
     const playLabel = getEl("play-label");
-    const miniPlay = getEl("btn-mini-play");
-    const miniPlayLabel = getEl("mini-play-label");
     const led = getEl("status-led");
 
     if (playing) {
       if (btnPlay) btnPlay.classList.add("playing");
       if (playIcon) playIcon.innerHTML = "&#10074;&#10074;";
       if (playLabel) playLabel.textContent = "PAUSE";
-      if (miniPlay) miniPlay.classList.add("playing");
-      if (miniPlayLabel) miniPlayLabel.textContent = "PAUSE";
       if (led) {
         led.classList.remove("ready");
         led.classList.add("playing");
@@ -1216,31 +1210,11 @@ export function createWorkbenchView({
       if (btnPlay) btnPlay.classList.remove("playing");
       if (playIcon) playIcon.innerHTML = "&#9654;";
       if (playLabel) playLabel.textContent = "PLAY";
-      if (miniPlay) miniPlay.classList.remove("playing");
-      if (miniPlayLabel) miniPlayLabel.textContent = "PLAY";
       if (led) {
         led.classList.remove("playing");
         led.classList.add("ready");
       }
     }
-  }
-
-  function renderMiniTrackSelect() {
-    const select = getEl("select-mini-track");
-    if (!select) return;
-    select.innerHTML = "";
-    for (const game of GAME_FILES) {
-      const group = doc.createElement("optgroup");
-      group.label = game.title;
-      for (const track of game.tracks) {
-        const option = doc.createElement("option");
-        option.value = `${game.id}|${track.id}`;
-        option.textContent = track.name;
-        group.appendChild(option);
-      }
-      select.appendChild(group);
-    }
-    select.value = `${state.activeGameId}|${state.activeTrackId}`;
   }
 
   function renderSession(session) {
@@ -1255,7 +1229,6 @@ export function createWorkbenchView({
     renderGameList();
     renderTrackList();
     renderGameMetaCard(game);
-    renderMiniTrackSelect();
 
     const targetFile = getSessionSourceFile(session, state.followVoice);
     const viewer = getEl("source-viewer");
@@ -1304,17 +1277,19 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
-    applyTelemetryPolicy();
     syncTelemetryRate();
     updateDrmChipState();
     renderGameList();
   }
 
+  function syncStatsButton(visible = state.diagnostics?.isVisible()) {
+    const button = getEl("btn-stats-nerds");
+    if (button) button.classList.toggle("active", Boolean(visible));
+  }
+
   function setDiagnostics(diagnostics) {
     state.diagnostics = diagnostics || null;
-    state.statsVisible = Boolean(diagnostics?.isVisible());
-    applyTelemetryPolicy();
-    syncStatsButtons();
+    syncStatsButton(Boolean(diagnostics?.isVisible()));
   }
 
   function syncLatencyMode() {
@@ -1339,59 +1314,11 @@ export function createWorkbenchView({
   }
 
   function scrollFollowLine(lineNo) {
-    scrollToSourceLine(lineNo, { doc, getEl, instant: state.musicOnly });
-  }
-
-  function applyMusicOnlyChrome(enabled) {
-    doc.body?.classList.toggle("music-only", enabled);
-    const chkMusicOnly = getEl("chk-low-power");
-    if (chkMusicOnly) chkMusicOnly.checked = enabled;
-    const musicOnlyValue = getEl("low-power-value");
-    if (musicOnlyValue) musicOnlyValue.textContent = enabled ? "ON" : "OFF";
-    const chkCrt = getEl("chk-crt-scanlines");
-    if (chkCrt) chkCrt.disabled = enabled;
+    scrollToSourceLine(lineNo, { doc, getEl });
   }
 
   function applyRenderMinimalChrome(enabled) {
     doc.body?.classList.toggle("render-minimal", enabled);
-  }
-
-  function setStatsVisible(visible) {
-    state.statsVisible = Boolean(visible);
-    applyTelemetryPolicy();
-    syncStatsButtons();
-  }
-
-  function syncStatsButtons() {
-    const active = Boolean(state.diagnostics?.isVisible());
-    for (const id of ["btn-stats-nerds", "btn-mini-stats"]) {
-      const button = getEl(id);
-      if (button) button.classList.toggle("active", active);
-    }
-  }
-
-  function applyTelemetryPolicy() {
-    if (state.musicOnly) state.player?.setTelemetryEnabled(state.statsVisible);
-  }
-
-  function setMusicOnly(enabled) {
-    const next = Boolean(enabled);
-    if (state.musicOnly === next) return;
-    state.musicOnly = next;
-    applyMusicOnlyChrome(next);
-    if (next) {
-      applyTelemetryPolicy();
-      syncStatsButtons();
-      cancelViewerSmoothScroll();
-      const brandLogo = doc.querySelector ? doc.querySelector(".brand-logo") : null;
-      brandLogo?.classList.remove("sparkle-active");
-    } else {
-      state.player?.setTelemetryEnabled(true);
-      syncStatsButtons();
-      lastFrameTimestamp = 0;
-      resetTelemetryCaches();
-      scheduleRenderFrame();
-    }
   }
 
   function setAssets(newAssets) {
@@ -1509,49 +1436,6 @@ export function createWorkbenchView({
         state.telemetryHz = state.baseTelemetryHz;
         syncTelemetryRate();
       });
-    }
-
-    const chkMusicOnly = getEl("chk-low-power");
-    if (chkMusicOnly) {
-      addListener(chkMusicOnly, "change", (e) => {
-        setMusicOnly(e.target.checked);
-      });
-    }
-
-    const btnMiniPlay = getEl("btn-mini-play");
-    if (btnMiniPlay) {
-      addListener(btnMiniPlay, "click", () => {
-        if (!state.player) return;
-        setPlaying(!state.player.getState().isPlaying);
-      });
-    }
-
-    const btnMiniRestart = getEl("btn-mini-restart");
-    if (btnMiniRestart) {
-      addListener(btnMiniRestart, "click", () => {
-        selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
-      });
-    }
-
-    const selectMiniTrack = getEl("select-mini-track");
-    if (selectMiniTrack) {
-      addListener(selectMiniTrack, "change", (e) => {
-        const [gameId, trackId] = String(e.target.value || "").split("|");
-        if (gameId && trackId) selectGameAndTrack(gameId, trackId, true);
-      });
-    }
-
-    const btnMiniStats = getEl("btn-mini-stats");
-    if (btnMiniStats) {
-      addListener(btnMiniStats, "click", () => {
-        if (!state.diagnostics) return;
-        state.diagnostics.toggle();
-      });
-    }
-
-    const btnMiniFullUi = getEl("btn-mini-full-ui");
-    if (btnMiniFullUi) {
-      addListener(btnMiniFullUi, "click", () => setMusicOnly(false));
     }
 
     const sliderDigi = getEl("slider-digi-boost");
@@ -1692,7 +1576,6 @@ export function createWorkbenchView({
         crtOverlay.classList.toggle("hidden", !chkC.checked);
       }
 
-      applyMusicOnlyChrome(state.musicOnly);
       applyRenderMinimalChrome(state.renderMinimal);
 
       const sDigi = getEl("slider-digi-boost");
@@ -1824,7 +1707,7 @@ export function createWorkbenchView({
       addListener(btnStats, "click", () => {
         if (!state.diagnostics) return;
         const visible = state.diagnostics.toggle();
-        btnStats.classList.toggle("active", visible);
+        syncStatsButton(visible);
       });
     }
 
@@ -1847,7 +1730,6 @@ export function createWorkbenchView({
     if (brandLogo) {
       let sparkleTimer = null;
       const triggerSparkle = () => {
-        if (state.musicOnly) return;
         brandLogo.classList.remove("sparkle-active");
         void brandLogo.offsetWidth;
         brandLogo.classList.add("sparkle-active");
@@ -1991,9 +1873,7 @@ export function createWorkbenchView({
   }
 
   function isRenderLoopActive() {
-    return (
-      !isDestroyed && !renderingPaused && !state.musicOnly && !state.renderMinimal && !doc?.hidden
-    );
+    return !isDestroyed && !renderingPaused && !state.renderMinimal && !doc?.hidden;
   }
 
   function scheduleRenderFrame() {
@@ -2103,7 +1983,6 @@ export function createWorkbenchView({
     setPlaying,
     setPlayer,
     setDiagnostics,
-    setStatsVisible,
     setAssets,
     setRenderingPaused,
     selectGameAndTrack,

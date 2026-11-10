@@ -64,10 +64,6 @@ _Avoid_: Line lookup table, symbol resolver
 The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused, the document is backgrounded, or the Boot Sequence covers the workbench, while capping unthrottled display refresh at 60 Hz.
 _Avoid_: Tick stopper, frame skipper
 
-**Music Only**:
-An opt-in mode entered from the LOW POWER switch. It hides the workbench, shows a minimal transport bar, pauses the render loop and stops telemetry snapshots while audio diagnostics continue. Stats resumes snapshots while open unless `?telemetry=off` locked them. Leaving restores the workbench and telemetry.
-_Avoid_: low power mode, performance mode, eco mode
-
 **Output Latency**:
 The total delay between the app producing a sound and the speaker playing it, reported as `out` in Stats. It includes browser and device buffering.
 _Avoid_: Buffer size, callback time

@@ -401,7 +401,6 @@ export function createAudioDiagnosticsOverlay({
   player,
   window: win,
   getFrameDiagnostics = null,
-  onVisibilityChange = null,
 }) {
   if (!doc || !player) return null;
   const params = new URLSearchParams(win?.location?.search || "");
@@ -458,21 +457,17 @@ export function createAudioDiagnosticsOverlay({
   }
 
   function show() {
-    const wasVisible = visible;
     visible = true;
     element.classList.remove("hidden");
-    if (!wasVisible) onVisibilityChange?.(true);
     startTimer();
     return true;
   }
 
   function hide() {
-    const wasVisible = visible;
     setHelp(false);
     visible = false;
     element.classList.add("hidden");
     stopTimer();
-    if (wasVisible) onVisibilityChange?.(false);
     return false;
   }
 

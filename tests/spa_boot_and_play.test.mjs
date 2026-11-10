@@ -766,10 +766,6 @@ test("?render=minimal boots with the minimal render class and paused loop", asyn
     const booted = await bootWorkbench({ skipBoot: true });
 
     assert.ok(globalThis.document.body.classList.contains("render-minimal"));
-    assert.ok(
-      !globalThis.document.body.classList.contains("music-only"),
-      "Minimal render must not enable music-only mode",
-    );
 
     for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
       harness.stepAnimationFrame(timestamp);
@@ -1647,7 +1643,7 @@ test("Workbench View pauses and resumes rendering for boot presentation", () => 
   }
 });
 
-test("Music-only mode pauses rendering, stops telemetry and restores the full UI", () => {
+test("music-only controls are absent and the workbench always renders", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();
   const view = createWorkbenchView({
@@ -1657,188 +1653,28 @@ test("Music-only mode pauses rendering, stops telemetry and restores the full UI
   });
 
   try {
-    const chkMusicOnly = harness.elementsById.get("chk-low-power");
-    assert.ok(chkMusicOnly, "The LOW POWER switch must exist");
-    assert.equal(chkMusicOnly.checked, false, "Music-only must be off by default");
-    assert.equal(harness.elementsById.get("low-power-value").textContent, "OFF");
-    assert.ok(!globalThis.document.body.classList.contains("music-only"));
+    for (const id of [
+      "chk-low-power",
+      "low-power-value",
+      "music-only-bar",
+      "select-mini-track",
+      "btn-mini-play",
+      "btn-mini-restart",
+      "btn-mini-stats",
+      "btn-mini-full-ui",
+    ]) {
+      assert.equal(harness.elementsById.has(id), false, `#${id} must be removed`);
+    }
+    assert.equal(typeof view.setStatsVisible, "undefined");
 
     player.play();
-    const chkSid = harness.elementsById.get("chk-sid-8580");
-    chkSid.checked = true;
-    chkSid.dispatchEvent("change");
-    const sliderDigi = harness.elementsById.get("slider-digi-boost");
-    sliderDigi.value = "2.0";
-    sliderDigi.dispatchEvent("input");
-
-    chkMusicOnly.checked = true;
-    chkMusicOnly.dispatchEvent("change");
-
-    assert.ok(globalThis.document.body.classList.contains("music-only"));
-    assert.equal(harness.elementsById.get("low-power-value").textContent, "ON");
-    assert.equal(player.getState().telemetryEnabled, false);
-    assert.equal(player.getState().sidModel8580, true, "SID chip choice must survive");
-    assert.equal(player.getState().digiBoost, 2, "Drum boost must survive");
-    assert.equal(
-      harness.elementsById.get("chk-crt-scanlines").disabled,
-      true,
-      "Scanline control must be disabled while music-only is on",
-    );
-
     for (const timestamp of [1000, 1016, 1033, 1050, 1066, 1083, 1100]) {
       harness.stepAnimationFrame(timestamp);
     }
-    assert.equal(
-      view.getFrameDiagnostics().frameCalls,
-      0,
-      "Music-only must stop the workbench render loop",
-    );
-
-    chkMusicOnly.checked = false;
-    chkMusicOnly.dispatchEvent("change");
+    assert.ok(view.getFrameDiagnostics().frameCalls > 0, "the render loop must keep running");
     assert.ok(!globalThis.document.body.classList.contains("music-only"));
-    assert.equal(harness.elementsById.get("low-power-value").textContent, "OFF");
-    assert.equal(player.getState().telemetryEnabled, true);
-    assert.equal(
-      harness.elementsById.get("chk-crt-scanlines").disabled,
-      false,
-      "Scanline control must be enabled again",
-    );
-
-    for (const timestamp of [2000, 2016, 2033, 2050, 2066, 2083, 2100]) {
-      harness.stepAnimationFrame(timestamp);
-    }
-    assert.ok(
-      view.getFrameDiagnostics().frameCalls > 0,
-      "Leaving music-only must restart the workbench render loop",
-    );
   } finally {
     view.destroy();
-    harness.restoreGlobals();
-  }
-});
-
-test("Music-only bar switches tracks and toggles Stats telemetry", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  const player = createFakePlayer();
-  const view = createWorkbenchView({
-    document: globalThis.document,
-    elements: harness.elementsById,
-    player,
-  });
-  let statsVisible = false;
-  const diagnostics = {
-    isVisible: () => statsVisible,
-    toggle: () => {
-      statsVisible = !statsVisible;
-      view.setStatsVisible(statsVisible);
-      return statsVisible;
-    },
-  };
-  view.setDiagnostics(diagnostics);
-
-  try {
-    const chkMusicOnly = harness.elementsById.get("chk-low-power");
-    chkMusicOnly.checked = true;
-    chkMusicOnly.dispatchEvent("change");
-
-    const select = harness.elementsById.get("select-mini-track");
-    assert.ok(select, "The minimal bar must have a track selector");
-    assert.ok(select.children.length > 0, "The track selector must list games");
-    assert.equal(select.value, `${view.state.activeGameId}|${view.state.activeTrackId}`);
-
-    const secondGameGroup = select.children[1];
-    const secondGameOption = secondGameGroup.children[0];
-    const selectedGameId = secondGameOption.value.split("|")[0];
-    select.value = secondGameOption.value;
-    select.dispatchEvent("change");
-    assert.equal(view.state.activeGameId, selectedGameId);
-    assert.equal(player.getState().isPlaying, true, "Track choice must autoplay");
-
-    const miniPlay = harness.elementsById.get("btn-mini-play");
-    miniPlay.click();
-    assert.equal(player.getState().isPlaying, false, "Minimal play must pause");
-    assert.equal(harness.elementsById.get("mini-play-label").textContent, "PLAY");
-    miniPlay.click();
-    assert.equal(player.getState().isPlaying, true, "Minimal play must resume");
-    assert.equal(harness.elementsById.get("mini-play-label").textContent, "PAUSE");
-
-    const miniStats = harness.elementsById.get("btn-mini-stats");
-    miniStats.click();
-    assert.equal(statsVisible, true);
-    assert.equal(player.getState().telemetryEnabled, true);
-    miniStats.click();
-    assert.equal(statsVisible, false);
-    assert.equal(player.getState().telemetryEnabled, false);
-
-    harness.elementsById.get("btn-mini-full-ui").click();
-    assert.ok(!globalThis.document.body.classList.contains("music-only"));
-    assert.equal(player.getState().telemetryEnabled, true);
-  } finally {
-    view.destroy();
-    harness.restoreGlobals();
-  }
-});
-
-test("Music-only Stats cannot re-enable a locked telemetry override", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  const player = createFakePlayer({ telemetryEnabled: false, telemetryLockedOff: true });
-  const view = createWorkbenchView({
-    document: globalThis.document,
-    elements: harness.elementsById,
-    player,
-  });
-  let statsVisible = false;
-  const diagnostics = {
-    isVisible: () => statsVisible,
-    toggle: () => {
-      statsVisible = !statsVisible;
-      view.setStatsVisible(statsVisible);
-      return statsVisible;
-    },
-  };
-  view.setDiagnostics(diagnostics);
-
-  try {
-    const chkMusicOnly = harness.elementsById.get("chk-low-power");
-    chkMusicOnly.checked = true;
-    chkMusicOnly.dispatchEvent("change");
-    assert.equal(player.getState().telemetryEnabled, false);
-
-    const miniStats = harness.elementsById.get("btn-mini-stats");
-    miniStats.click();
-    assert.equal(statsVisible, true);
-    assert.ok(miniStats.classList.contains("active"));
-    assert.equal(player.getState().telemetryEnabled, false);
-
-    miniStats.click();
-    assert.equal(statsVisible, false);
-    assert.ok(!miniStats.classList.contains("active"));
-    assert.equal(player.getState().telemetryEnabled, false);
-  } finally {
-    view.destroy();
-    harness.restoreGlobals();
-  }
-});
-
-test("Stats visibility callback reports show and hide once per change", () => {
-  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
-  const events = [];
-  const overlay = createAudioDiagnosticsOverlay({
-    document: globalThis.document,
-    player: { getAudioDiagnostics: () => ({}) },
-    window: globalThis.window,
-    onVisibilityChange: (visible) => events.push(visible),
-  });
-
-  try {
-    overlay.show();
-    overlay.show();
-    overlay.hide();
-    overlay.hide();
-    assert.deepEqual(events, [true, false]);
-  } finally {
-    overlay.stop();
     harness.restoreGlobals();
   }
 });
@@ -1863,10 +1699,6 @@ test("Minimal render marks the body and pauses the workbench render loop", () =>
     });
 
     assert.ok(globalThis.document.body.classList.contains("render-minimal"));
-    assert.ok(
-      !globalThis.document.body.classList.contains("music-only"),
-      "Minimal render must not enable music-only mode",
-    );
     assert.equal(rafCalls, 0, "Minimal render must not schedule animation frames");
 
     player.play();
