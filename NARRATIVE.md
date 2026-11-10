@@ -664,7 +664,7 @@ The LOW POWER switch, minimal bar, music-only body state, minimal-bar styling an
 
 The `?render=minimal` flag existed only for the Firefox isolation captures, and those are finished. It is gone completely rather than kept behind a hidden URL.
 
-The render-minimal state, body class, CSS, source-viewer skip and render-loop guard are removed, along with the `check:minimal-render` script and npm command. `?render=minimal` is now ignored. Normal rendering and background-tab pausing are unchanged, and a regression test asserts the flag is inert. After both removals the suite fell to 97 checks across 12 files. Issue [#76](https://github.com/charlesroper/C64_music/issues/76) carries the change.
+The render-minimal state, body class, CSS, source-viewer skip and render-loop guard are removed, along with the `check:minimal-render` script and npm command. `?render=minimal` is now ignored. Normal rendering and background-tab pausing are unchanged, and a regression test asserts the flag is inert. After both removals the suite fell to 97 checks across 12 files. Commit [24767b3](https://github.com/charlesroper/C64_music/commit/24767b3) and issue [#76](https://github.com/charlesroper/C64_music/issues/76) carry the change.
 
 ### 10 November 2026: telemetry debug flags removed
 
