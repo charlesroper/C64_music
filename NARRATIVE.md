@@ -676,4 +676,4 @@ The hard telemetry lock, the Player Engine and worklet enable and disable path, 
 
 The docs said the Android buffer preference was Nightly-only. A sourced research thread showed that Beta exposes `about:config`, and that Stable may reach the same editor at `chrome://geckoview/content/config.xhtml`. It also explained the 4,000-frame Android switch: `2048` stays in low-latency mode, while `4096` crosses into the deep-buffer path.
 
-The README, the audio latency guide, the browser guide and Section 5 are corrected. The sourced research note is added under `docs/research/`. Firefox still discards `latencyHint`, and the app cannot set the preference. Bug 2020377 may add support later. The suite remains at 97 checks.
+The README, the audio latency guide, the browser guide and Section 5 are corrected. The sourced research note is added under `docs/research/`. Firefox still discards `latencyHint`, and the app cannot set the preference. Bug 2020377 may add support later. The suite remains at 97 checks. Commit [cac843e](https://github.com/charlesroper/C64_music/commit/cac843e) carries the correction.
