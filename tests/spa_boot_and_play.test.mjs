@@ -313,6 +313,61 @@ test("Stats shows the interactive audio mode", () => {
   }
 });
 
+test("Stats latency help links to the audio delay guide", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({ latencyHint: "playback" }) },
+    window: globalThis.window,
+  });
+  try {
+    const value = globalThis.document.querySelector('[data-metric="latency:mode"]');
+    const help = value.closest(".diag-item").children[2];
+    const link = globalThis.document.querySelector(".diag-help a");
+
+    assert.ok(link, "The latency mode help must include a link");
+    assert.equal(link.tagName, "A", "The help link must be an anchor");
+    assert.equal(link.parentElement, help, "The link must belong to the latency mode help");
+    assert.equal(link.textContent, "Audio delay help");
+    assert.equal(
+      link.getAttribute("href"),
+      "https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md",
+    );
+    assert.equal(link.getAttribute("tabindex"), null, "The link must stay keyboard reachable");
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats latency help describes the audio trade-off and default", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({ latencyHint: "playback" }) },
+    window: globalThis.window,
+  });
+  try {
+    const value = globalThis.document.querySelector('[data-metric="latency:mode"]');
+    const helpText = value.closest(".diag-item").children[2].textContent;
+
+    assert.match(helpText, /Interactive responds sooner/);
+    assert.match(helpText, /crackle/);
+    assert.match(helpText, /0\.2 seconds/);
+    assert.match(helpText, /default/);
+    assert.match(helpText, /Firefox uses its own setting/);
+    assert.doesNotMatch(helpText, /Interactive is the default/);
+
+    const intro = globalThis.document.querySelector(".diag-help-intro").textContent;
+    assert.doesNotMatch(intro, /README explains/);
+    assert.doesNotMatch(intro, /Firefox Nightly/);
+    assert.match(intro, /Audio delay help/i);
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
 test("Stats groups metrics and keeps each label with its value", () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const overlay = createAudioDiagnosticsOverlay({
