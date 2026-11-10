@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { createC64ScreenRenderer } from "./c64_screen.js";
+import { createHelpPopover } from "./help_popover.js";
 import { AUDIO_MODE_DEFAULT, resolveLatencyHint, writeStoredAudioMode } from "./latency_hint.js";
 import { renderMarkdownToHtml } from "./markdown.js";
 import { getSessionSourceFile } from "./player_engine.js";
@@ -1399,6 +1400,15 @@ export function createWorkbenchView({
         if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
         writeStoredAudioMode(win, state.latencyHint);
       });
+    }
+
+    const latencyHelp = createHelpPopover({
+      document: doc,
+      trigger: getEl("latency-mode-help-trigger"),
+      panel: getEl("latency-mode-help-panel"),
+    });
+    if (latencyHelp) {
+      cleanups.push(() => latencyHelp.destroy());
     }
 
     const sliderDigi = getEl("slider-digi-boost");

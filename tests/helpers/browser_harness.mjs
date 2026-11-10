@@ -194,6 +194,21 @@ export function createBrowserHarness({
       this.listeners[type].push(fn);
     }
 
+    removeEventListener(type, fn) {
+      if (!this.listeners[type]) return;
+      this.listeners[type] = this.listeners[type].filter((listener) => listener !== fn);
+    }
+
+    focus() {
+      globalThis.document.activeElement = this;
+    }
+
+    contains(node) {
+      if (!node) return false;
+      if (node === this) return true;
+      return this.children.some((child) => child.contains?.(node) ?? child === node);
+    }
+
     setAttribute(name, value) {
       this.attributes[name] = String(value);
     }

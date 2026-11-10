@@ -235,7 +235,7 @@ test("SID explainer and drum boost are unchanged hardware copy", () => {
   }
 });
 
-test("Audio Mode explainer states the trade-off and links the guide", () => {
+test("Audio Mode help markup stays compact and explains the trade-off", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
   const groupStart = html.indexOf('id="hw-group-latency"');
@@ -243,43 +243,102 @@ test("Audio Mode explainer states the trade-off and links the guide", () => {
   assert.ok(groupStart > -1 && groupEnd > groupStart, "Audio Mode group must precede drum boost");
   const group = html.slice(groupStart, groupEnd);
 
-  const hintMatch = group.match(/id="latency-mode-hint"[\s\S]*?<\/span\s*>/);
-  assert.ok(hintMatch, "Audio Mode explainer must exist");
-  const hint = hintMatch[0]
+  const summaryMatch = group.match(/<span[^>]*id="latency-mode-hint"[^>]*>([\s\S]*?)<\/span\s*>/);
+  assert.ok(summaryMatch, "Audio Mode summary must exist");
+  const summary = summaryMatch[1]
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  assert.equal(summary, "Playback is the default for clean audio.");
+  assert.doesNotMatch(summary, /0\.2|Interactive|Firefox/);
 
-  assert.match(hint, /Playback is the default\./);
-  assert.match(hint, /waits about 0\.2 seconds/);
-  assert.match(hint, /clean audio/);
-  assert.match(hint, /Interactive responds sooner/);
-  assert.match(hint, /can crackle on slower devices/);
-  assert.match(hint, /Firefox uses its own setting\./);
-  assert.doesNotMatch(hint, /safest|ignores it|192ms|16ms/);
+  const triggerTag = group.match(/<button\b[^>]*id="latency-mode-help-trigger"[^>]*>/)[0];
+  assert.match(triggerTag, /aria-label="About Audio Mode"/);
+  assert.match(triggerTag, /aria-haspopup="dialog"/);
+  assert.match(triggerTag, /aria-expanded="false"/);
+  assert.match(triggerTag, /aria-controls="latency-mode-help-panel"/);
+  assert.match(triggerTag, /popovertarget="latency-mode-help-panel"/);
 
-  const labelEnd = group.indexOf("</label>");
-  const linkIndex = group.indexOf('id="latency-mode-help"');
-  assert.ok(linkIndex > labelEnd, "The help link must sit outside the toggle label");
-  const anchorMatch = group.match(/<a\b[^>]*id="latency-mode-help"[\s\S]*?<\/a\s*>/);
-  assert.ok(anchorMatch, "Audio delay help must be a real anchor");
-  const anchor = anchorMatch[0];
+  const panelTag = group.match(/<div\b[^>]*id="latency-mode-help-panel"[^>]*>/)[0];
+  assert.match(panelTag, /\bpopover\b/);
+  assert.match(panelTag, /role="dialog"/);
+  assert.match(panelTag, /aria-labelledby="latency-mode-help-title"/);
+  assert.match(panelTag, /tabindex="-1"/);
+
+  const panelMatch = group.match(/id="latency-mode-help-panel"[\s\S]*?<\/div\s*>/);
+  const panel = panelMatch[0]
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  assert.match(panel, /buffer/);
+  assert.match(panel, /0\.2 seconds/);
+  assert.match(panel, /crackle/);
+  assert.match(panel, /Firefox uses its own setting/);
+
+  const linkMatch = group.match(/class="hw-help-link"[\s\S]*?<\/a\s*>/);
+  assert.ok(linkMatch, "Audio delay help must be a real anchor");
+  const link = linkMatch[0];
   assert.match(
-    anchor,
+    link,
     /href="https:\/\/github\.com\/charlesroper\/C64_music\/blob\/main\/docs\/audio-latency\.md"/,
   );
-  assert.match(anchor, /target="_blank"/);
-  assert.match(anchor, /rel="noopener"/);
-  assert.match(anchor, /class="[^"]*\bhw-hint-link\b/);
-  assert.doesNotMatch(anchor, /tabindex="-1"/);
-  assert.match(anchor, />\s*Audio delay help\s*<\/a\s*>/);
+  assert.match(link, /target="_blank"/);
+  assert.match(link, /rel="noopener"/);
+  assert.match(link, />\s*Audio delay help\s*<\/a\s*>/);
 
-  assert.match(group, /aria-describedby="latency-mode-hint"/);
+  assert.match(css, /\.hw-help-trigger::after\s*\{[^}]*inset:\s*-12px/);
+  assert.match(css, /\.hw-help-panel\s*\{[^}]*position:\s*fixed/);
+});
 
-  assert.match(css, /\.hw-hint-link[^{]*\{[^}]*text-decoration:\s*underline/);
-  assert.match(css, /\.hw-hint-link\s*\{[^}]*font:\s*inherit/);
-  assert.doesNotMatch(css, /\.hw-hint-link\s*\{[^}]*display:\s*block/);
-  assert.match(css, /\.hw-hint-link:focus-visible[^{]*\{[^}]*outline:/);
+test("Audio Mode help popover opens, closes and restores focus", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    const trigger = harness.elementsById.get("latency-mode-help-trigger");
+    const panel = harness.elementsById.get("latency-mode-help-panel");
+    assert.equal(trigger.tagName, "BUTTON");
+    assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.equal(panel.hidden, true, "The fallback must start closed");
+    assert.equal(typeof panel.showPopover, "undefined", "The harness must exercise the fallback");
+
+    trigger.click();
+    assert.equal(trigger.getAttribute("aria-expanded"), "true");
+    assert.equal(panel.hidden, false);
+    assert.ok(panel.classList.contains("is-open"));
+    assert.equal(globalThis.document.activeElement, panel);
+
+    trigger.click();
+    assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.equal(panel.hidden, true);
+    assert.equal(globalThis.document.activeElement, trigger);
+
+    trigger.click();
+    globalThis.document.dispatchEvent("keydown", { key: "Escape" });
+    assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.equal(panel.hidden, true);
+    assert.equal(globalThis.document.activeElement, trigger);
+
+    trigger.click();
+    globalThis.document.dispatchEvent("pointerdown", {
+      target: harness.elementsById.get("btn-play"),
+    });
+    assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.equal(panel.hidden, true);
+
+    const sidToggle = harness.elementsById.get("chk-sid-8580");
+    sidToggle.checked = true;
+    sidToggle.dispatchEvent("change");
+    assert.equal(player.getState().sidModel8580, true);
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
 });
 
 test("Stats defaults to 62.5Hz when diagnostics omit the rate", () => {

@@ -155,18 +155,45 @@
               <span class="hw-toggle-switch" aria-hidden="true"></span>
               <span class="hw-toggle-value" id="latency-mode-value">PLAYBACK</span>
             </label>
-            <span class="hw-hint" id="latency-mode-hint"
-              >Playback is the default. It waits about 0.2 seconds for clean audio. Interactive
-              responds sooner but can crackle on slower devices. Firefox uses its own setting.
+            <div class="hw-help-row">
+              <span class="hw-hint" id="latency-mode-hint"
+                >Playback is the default for clean audio.</span
+              >
+              <button
+                type="button"
+                class="hw-help-trigger"
+                id="latency-mode-help-trigger"
+                aria-label="About Audio Mode"
+                aria-haspopup="dialog"
+                aria-expanded="false"
+                aria-controls="latency-mode-help-panel"
+                popovertarget="latency-mode-help-panel"
+              >
+                ?
+              </button>
+            </div>
+            <div
+              class="hw-help-panel"
+              id="latency-mode-help-panel"
+              popover
+              role="dialog"
+              aria-labelledby="latency-mode-help-title"
+              tabindex="-1"
+            >
+              <h3 class="hw-help-title" id="latency-mode-help-title">Audio Mode</h3>
+              <p>
+                Audio plays from a buffer. Playback waits about 0.2 seconds, which gives the device
+                time to keep up and avoids crackles. Interactive responds sooner but can crackle on
+                slower devices. Firefox uses its own setting.
+              </p>
               <a
-                class="hw-hint-link"
-                id="latency-mode-help"
+                class="hw-help-link"
                 href="https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md"
                 target="_blank"
                 rel="noopener"
                 >Audio delay help</a
-              ></span
-            >
+              >
+            </div>
           </div>
 
           <div class="hw-group" id="hw-group-digi">

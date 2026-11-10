@@ -100,9 +100,9 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * Changing mode closes and recreates the audio context and reloads the current track, so audio stops briefly.
 * The app remembers your choice in `localStorage` under `galway2664.audioMode.v1`. It does not use cookies.
 * Append `?latency=interactive` or `?latency=playback` to override the stored choice for one load. A URL override is not saved.
-* The SID chip and Audio Mode toggles carry visible explainers. The SID chip hint covers the 6581/8580 filter difference.
-* The Audio Mode hint says playback is the default and waits about 0.2 seconds for clean audio. Interactive responds sooner but can crackle on slower devices. Firefox uses its own setting.
-* **Audio delay help** links to [the audio delay guide](docs/audio-latency.md) in a new tab. The link sits outside the toggle label, so following it does not change the mode.
+* The SID chip toggle keeps its visible explainer for the 6581/8580 filter difference.
+* The Audio Mode control shows a short summary and a **?** help button. The button opens a non-modal help panel with the buffer explanation, the 0.2-second playback delay, the interactive crackle risk and the Firefox setting.
+* The Audio Mode panel links **Audio delay help** to [the audio delay guide](docs/audio-latency.md) in a new tab. Following it does not change the mode.
 * Firefox ignores the Audio Mode hint. Use the Firefox buffer setting below.
 
 ### Audio delay and clean playback
@@ -181,7 +181,7 @@ The test suite uses the built-in Node.js test runner (`node:test`) with zero ext
 npm test
 ```
 
-The test runner executes 101 automated checks across 12 test files:
+The test runner executes 102 automated checks across 12 test files:
 
 * `tests/engine_core.test.mjs`: Tests the Engine Core message protocol. It loads assembled bytecode (`mem` and `symbols`), passes the extra `arkanoid.asm` payload for `arkadrum.asm` tracks, renders stereo blocks and checks playback controls, hardware options, key injection, telemetry and sample-rate updates. It also checks that track loads freeze the clock at frame 0 without pre-rendering audio, apply queued commands in order after loading and scale fast-forward to three extra frames per 2048 samples across 128-frame and 2048-frame blocks.
 * `tests/c64_screen.test.mjs`: Checks the shared PETSCII screen rasteriser used by the workbench CRT monitor and the Boot Sequence. It verifies border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
