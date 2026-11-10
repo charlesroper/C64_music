@@ -1,10 +1,10 @@
 // ============================================================================
 // Latency hint policy
 // Accept only the two product modes. A URL override wins for one load, then
-// the stored choice, then the interactive default.
+// the stored choice, then the playback default.
 // ============================================================================
 
-export const AUDIO_MODE_DEFAULT = "interactive";
+export const AUDIO_MODE_DEFAULT = "playback";
 export const AUDIO_MODE_STORAGE_KEY = "galway2664.audioMode.v1";
 
 export function normalizeAudioMode(value) {

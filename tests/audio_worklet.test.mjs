@@ -292,7 +292,7 @@ test("worklet processor windows telemetry drops and keeps the peak", () => {
   assert.equal(report.diagnostics.telemetryDropPeakWindow, 2);
 });
 
-test("player defaults to the interactive latency hint", async () => {
+test("player defaults to the playback latency hint", async () => {
   const instance = await WebAssembly.instantiate(wasmModule, {});
   const player = createWorkbenchPlayer({
     wasm: instance.exports,
@@ -300,7 +300,7 @@ test("player defaults to the interactive latency hint", async () => {
     rawSources: { "wizball.asm": wizballSource },
   });
 
-  assert.equal(player.getAudioDiagnostics().latencyHint, "interactive");
+  assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
 });
 
 test("player passes the two audio modes to the AudioContext", async () => {
@@ -380,15 +380,15 @@ test("player soft-restarts the audio context when latency mode changes", async (
   player.pullAudioBlock(left, right);
 
   assert.equal(contexts.length, 1);
-  assert.equal(contexts[0].latencyHint, "interactive");
+  assert.equal(contexts[0].latencyHint, "playback");
 
-  await player.setLatencyMode("playback");
+  await player.setLatencyMode("interactive");
   assert.equal(contexts.length, 2);
   assert.equal(contexts[0].closed, true, "Old AudioContext must close");
-  assert.equal(contexts[1].latencyHint, "playback");
-  assert.equal(player.getState().latencyHint, "playback");
+  assert.equal(contexts[1].latencyHint, "interactive");
+  assert.equal(player.getState().latencyHint, "interactive");
   assert.equal(player.getState().isPlaying, true);
-  assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
+  assert.equal(player.getAudioDiagnostics().latencyHint, "interactive");
 
   left.fill(0);
   right.fill(0);
@@ -400,11 +400,11 @@ test("player soft-restarts the audio context when latency mode changes", async (
   }
   assert.ok(peak > 0.01, `Restarted track must still produce audio, got peak=${peak}`);
 
-  await player.setLatencyMode("interactive");
+  await player.setLatencyMode("playback");
   assert.equal(contexts.length, 3);
   assert.equal(contexts[1].closed, true);
-  assert.equal(contexts[2].latencyHint, "interactive");
-  assert.equal(player.getState().latencyHint, "interactive");
+  assert.equal(contexts[2].latencyHint, "playback");
+  assert.equal(player.getState().latencyHint, "playback");
 });
 
 test("player queues play until the worklet is ready and then dispatches the active track", async () => {
@@ -472,12 +472,12 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.equal(player.getAudioDiagnostics().postMessagePeakUs, 300);
     assert.equal(player.getAudioDiagnostics().applyGainPeakUs, 50);
 
-    await player.setLatencyMode("playback");
+    await player.setLatencyMode("interactive");
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(nodes.length, 2, "Restart must create a new worklet node");
     const restartedNode = nodes[1];
     restartedNode.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
-    assert.equal(player.getState().latencyHint, "playback");
+    assert.equal(player.getState().latencyHint, "interactive");
 
     restartedNode.port.onmessage({
       data: {

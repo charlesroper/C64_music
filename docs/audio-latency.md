@@ -32,9 +32,9 @@ The pattern is consistent. On the test device, about 190ms is clean and about 11
 
 ## Chromium
 
-The app defaults to **AUDIO MODE** `INTERACTIVE`. It lowers the delay to about 16ms and keeps the source follow closer to the sound. It popped on the test device. Switch to `PLAYBACK` when you want clean audio.
+The app defaults to **AUDIO MODE** `PLAYBACK`. It uses a large buffer, reports about 192ms and played cleanly in testing. That is the reliable choice on a low-end device, and the app remembers your choice.
 
-`PLAYBACK` uses a large buffer. It reports about 192ms and played cleanly in testing. That is the safer choice on a low-end device, and the app remembers your choice.
+`INTERACTIVE` is the opt-in lower-latency choice. It lowers the delay to about 16ms and keeps the source follow closer to the sound. It popped on the test device.
 
 Switching Audio Mode restarts the current track.
 

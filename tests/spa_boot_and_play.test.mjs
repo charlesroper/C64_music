@@ -41,14 +41,14 @@ function pullAudioFrames(player, blocks = 20, blockSize = 2048) {
   return { peakL, peakR, rms: Math.sqrt(sumSq / (blocks * blockSize)), nanCount };
 }
 
-test("audio mode defaults to interactive and accepts only two hints", () => {
-  assert.equal(resolveAudioMode(), "interactive");
+test("audio mode defaults to playback and accepts only two hints", () => {
+  assert.equal(resolveAudioMode(), "playback");
   assert.equal(resolveAudioMode({ override: "playback" }), "playback");
   assert.equal(resolveAudioMode({ override: "interactive" }), "interactive");
-  assert.equal(resolveAudioMode({ override: "balanced" }), "interactive");
-  assert.equal(resolveAudioMode({ override: "0.2" }), "interactive");
-  assert.equal(resolveAudioMode({ override: "bogus" }), "interactive");
-  assert.equal(resolveLatencyHint("bogus"), "interactive");
+  assert.equal(resolveAudioMode({ override: "balanced" }), "playback");
+  assert.equal(resolveAudioMode({ override: "0.2" }), "playback");
+  assert.equal(resolveAudioMode({ override: "bogus" }), "playback");
+  assert.equal(resolveLatencyHint("bogus"), "playback");
 });
 
 test("audio mode survives a storage write failure", () => {
@@ -79,7 +79,7 @@ test("audio mode load order is URL override, stored choice, default", () => {
   assert.equal(resolveAudioMode({ override: "bogus", window: win("playback") }), "playback");
   assert.equal(resolveAudioMode({ window: win("playback") }), "playback");
   assert.equal(resolveAudioMode({ window: win("interactive") }), "interactive");
-  assert.equal(resolveAudioMode({ window: win("broken") }), "interactive");
+  assert.equal(resolveAudioMode({ window: win("broken") }), "playback");
   assert.equal(
     resolveAudioMode({
       window: {
@@ -88,7 +88,7 @@ test("audio mode load order is URL override, stored choice, default", () => {
         },
       },
     }),
-    "interactive",
+    "playback",
   );
 });
 
@@ -185,7 +185,15 @@ test("SID and audio mode switches apply options", () => {
     assert.equal(harness.elementsById.get("sid-model-value").textContent, "8580");
 
     const latencyToggle = harness.elementsById.get("chk-latency-interactive");
-    assert.equal(latencyToggle.checked, true, "Interactive must be the default");
+    assert.equal(latencyToggle.checked, false, "Playback must be the default");
+    assert.equal(harness.elementsById.get("latency-mode-value").textContent, "PLAYBACK");
+
+    latencyToggle.checked = true;
+    latencyToggle.dispatchEvent("change");
+    assert.equal(player.getState().latencyHint, "interactive");
+    assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
+    assert.equal(harness.localStorage.getItem("galway2664.audioMode.v1"), "interactive");
+
     latencyToggle.checked = false;
     latencyToggle.dispatchEvent("change");
     assert.equal(player.getState().latencyHint, "playback");
@@ -195,12 +203,6 @@ test("SID and audio mode switches apply options", () => {
       "playback",
       "Changing Audio Mode must store the choice",
     );
-
-    latencyToggle.checked = true;
-    latencyToggle.dispatchEvent("change");
-    assert.equal(player.getState().latencyHint, "interactive");
-    assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
-    assert.equal(harness.localStorage.getItem("galway2664.audioMode.v1"), "interactive");
   } finally {
     harness.restoreGlobals();
   }
@@ -584,15 +586,34 @@ test("Stats for Nerds button toggles the audio diagnostics overlay", async () =>
   }
 });
 
-test("audio mode boots interactive by default and reaches the AudioContext", async () => {
+test("audio mode boots playback by default and reaches the AudioContext", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   try {
     globalThis.window.location = { search: "" };
     const booted = await bootWorkbench({ skipBoot: true });
     booted.player.prepareAudio();
 
+    assert.equal(booted.player.getState().latencyHint, "playback");
+    assert.equal(booted.player.getAudioDiagnostics().latencyHint, "playback");
+    assert.equal(harness.audioState.ctx.latencyHint, "playback");
+    assert.equal(harness.elementsById.get("latency-mode-value").textContent, "PLAYBACK");
+    assert.equal(harness.elementsById.get("chk-latency-interactive").checked, false);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("stored interactive audio mode boots without a URL override", async () => {
+  const harness = createBrowserHarness({
+    hardwareSampleRate: 48000,
+    localStorage: { "galway2664.audioMode.v1": "interactive" },
+  });
+  try {
+    globalThis.window.location = { search: "" };
+    const booted = await bootWorkbench({ skipBoot: true });
+    booted.player.prepareAudio();
+
     assert.equal(booted.player.getState().latencyHint, "interactive");
-    assert.equal(booted.player.getAudioDiagnostics().latencyHint, "interactive");
     assert.equal(harness.audioState.ctx.latencyHint, "interactive");
     assert.equal(harness.elementsById.get("latency-mode-value").textContent, "INTERACTIVE");
     assert.equal(harness.elementsById.get("chk-latency-interactive").checked, true);

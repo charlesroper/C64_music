@@ -89,11 +89,11 @@ One slice of audio. At 48kHz, 48 frames last 1ms and 128 frames last about 2.67m
 _Avoid_: Sample, packet
 
 **Playback Mode**:
-The large-buffer audio mode. It reported about 192ms output latency and clean playback in testing. It is the safer choice for clean audio.
+The large-buffer audio mode and the default. It reported about 192ms output latency and clean playback in testing. It is the reliable choice for clean audio.
 _Avoid_: High latency mode, safe mode
 
 **Interactive Mode**:
-The lower-latency audio mode and the default. It reported about 16ms output latency and popped in testing. Firefox ignores the hint.
+The lower-latency audio mode, opt-in. It reported about 16ms output latency and popped in testing. Firefox ignores the hint.
 _Avoid_: Low latency mode, fast mode
 
 **Stored Audio Mode**:
