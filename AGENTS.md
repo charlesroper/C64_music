@@ -30,11 +30,28 @@ Implement catalogue fixes, bug fixes and timing changes in `src/` or `src/tracks
 
 ## 3. Style and prose rules
 
-Read the relevant skill before editing:
-- Prose, UI copy or catalogue descriptions: `.agents/skills/guardian-style-guide/SKILL.md` and `.agents/skills/on-writing-well/SKILL.md`, including `references/tropes.md`.
-- `NARRATIVE.md`: `.agents/skills/project-narrative/SKILL.md`.
-- Commit messages: `.agents/skills/cbeams-git-commit-messages/SKILL.md`.
-- `AGENTS.md`: `.agents/skills/writing-for-agents/SKILL.md`.
+Write for the surface. Run Stage 1 before drafting, then Stage 2 before delivery.
+
+### Stage 1: Drafting
+
+| Surface | Skill |
+|---|---|
+| `README.md` introduction, architecture, capabilities and developer workflow | `on-writing-well`. Keep the voice human and enticing. |
+| `README.md` install, build and command instructions | `on-writing-well` for voice, then `ste-80` for the steps: one action per step, one meaning per term, explicit outcome. Do not flatten the surrounding prose. |
+| UI copy and catalogue descriptions | `on-writing-well` and `guardian-style-guide`. |
+| `NARRATIVE.md` | `project-narrative`, then the eight-section rules below. |
+| `AGENTS.md` and skill files | `writing-for-agents`. |
+| Commit messages | `cbeams-git-commit-messages`. |
+
+Skills resolve by name. Repo copies live under `.agents/skills/`. `project-narrative`, `cbeams-git-commit-messages` and `ste-80` are installed globally.
+
+### Stage 2: Sub-editor gate
+
+Pass drafted prose, UI copy and documentation through `guardian-style-guide` before delivery. Enforce British English, sentence case and the AI trope check. Commit messages are exempt, as are Martin Galway's verbatim quotations.
+
+### House rules
+
+These override the general skills.
 
 Apply Guardian British English and Zinsser clarity:
 - Use `licence` as a noun and `licensed` as a verb. Use `catalogue`, `analogue`, `colour`, `centre`, `artefact`, `modelled`, `labelled`, `focused`, `synthesise`, `synthesiser`, `digitised`, `synchronise`, `synchronisation` and `program` for computer code.
@@ -47,6 +64,8 @@ Apply Guardian British English and Zinsser clarity:
 - Use backticks around code identifiers and registers such as `$D400` and `requestAnimationFrame`. Use `->` rather than arrow glyphs.
 - Keep active voice, concrete verbs and one controlling idea per sentence. Remove brochure adjectives and AI tropes.
 - Prioritise scannability in technical documentation (`README.md`, developer guides and reference lists). Use bold lead-in tags on reference items, numbered steps with action verbs and fenced syntax blocks for before and after code. These visual scannability conventions override general essay anti-bullet-bolding rules.
+
+### Project narrative
 
 `NARRATIVE.md` powers the in-app THE STORY modal. Keep its eight-section progressive layout:
 - Sections 1 to 3 orient non-technical listeners with no assumed 6502 knowledge.
