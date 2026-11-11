@@ -5,7 +5,7 @@ Commodore 64 6502-SID music workbench and live assembly player for Martin Galway
 ## Core Concepts
 
 **Player Engine**:
-The main-thread module that assembles Galway's 6502 routines, holds playback and hardware state, and sends commands to the Engine Core.
+The main-thread module that assembles Galway's 6502 routines, owns Audio Mode resolution and browser audio lifecycle, holds playback and hardware state and sends commands to the Engine Core.
 _Avoid_: Audio service, emulator backend
 
 **Engine Core**:

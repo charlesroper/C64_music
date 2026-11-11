@@ -5,7 +5,11 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createC64ProcessorClass } from "../src/audio_worklet.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
-import { createWorkbenchPlayer } from "../src/player_engine.js";
+import {
+  AUDIO_MODE_STORAGE_KEY,
+  createAudioContextManager,
+  createWorkbenchPlayer,
+} from "../src/player_engine.js";
 import { TELEMETRY_BUFFER_BYTES } from "../src/telemetry_buffer.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
@@ -301,6 +305,211 @@ test("player defaults to the playback latency hint", async () => {
   });
 
   assert.equal(player.getAudioDiagnostics().latencyHint, "playback");
+});
+
+test("player resolves Audio Mode as URL override, then Stored Audio Mode, then playback", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const modeFor = ({ latencyOverride, stored, brokenStorage = false }) => {
+    const win = brokenStorage
+      ? {
+          get localStorage() {
+            throw new Error("storage unavailable");
+          },
+        }
+      : { localStorage: { getItem: (key) => (key === AUDIO_MODE_STORAGE_KEY ? stored : null) } };
+    return createWorkbenchPlayer({
+      wasm: instance.exports,
+      wasmModule,
+      rawSources: { "wizball.asm": wizballSource },
+      latencyOverride,
+      window: win,
+    }).getState().latencyHint;
+  };
+
+  assert.equal(modeFor({}), "playback");
+  assert.equal(modeFor({ stored: "interactive" }), "interactive");
+  assert.equal(modeFor({ stored: "playback" }), "playback");
+  assert.equal(modeFor({ stored: "broken" }), "playback");
+  assert.equal(modeFor({ brokenStorage: true }), "playback");
+  assert.equal(modeFor({ latencyOverride: "playback", stored: "interactive" }), "playback");
+  assert.equal(modeFor({ latencyOverride: "interactive", stored: "playback" }), "interactive");
+  for (const bogus of ["balanced", "0.2", "bogus"]) {
+    assert.equal(modeFor({ latencyOverride: bogus, stored: "interactive" }), "interactive");
+    assert.equal(modeFor({ latencyOverride: bogus }), "playback");
+  }
+});
+
+test("setLatencyMode persists Stored Audio Mode and boot resolution never writes it", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const stored = new Map([[AUDIO_MODE_STORAGE_KEY, "playback"]]);
+  const writes = [];
+  const win = {
+    localStorage: {
+      getItem: (key) => stored.get(key) ?? null,
+      setItem: (key, value) => {
+        writes.push(value);
+        stored.set(key, value);
+      },
+    },
+  };
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    latencyOverride: "interactive",
+    window: win,
+  });
+
+  assert.equal(player.getState().latencyHint, "interactive");
+  assert.deepEqual(writes, [], "A one-load URL override must not overwrite the stored choice");
+  assert.equal(stored.get(AUDIO_MODE_STORAGE_KEY), "playback");
+
+  await player.setLatencyMode("interactive");
+  assert.equal(
+    stored.get(AUDIO_MODE_STORAGE_KEY),
+    "interactive",
+    "An explicit choice is stored even when the active mode does not change",
+  );
+
+  await player.setLatencyMode("playback");
+  assert.equal(stored.get(AUDIO_MODE_STORAGE_KEY), "playback");
+  assert.equal(player.getState().latencyHint, "playback");
+
+  await player.setLatencyMode("bogus");
+  assert.equal(
+    stored.get(AUDIO_MODE_STORAGE_KEY),
+    "playback",
+    "Invalid modes normalise to playback",
+  );
+  assert.equal(player.getState().latencyHint, "playback");
+
+  const unavailable = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    window: {
+      localStorage: {
+        getItem: () => null,
+        setItem() {
+          throw new Error("storage unavailable");
+        },
+      },
+    },
+  });
+  assert.equal(await unavailable.setLatencyMode("interactive"), "interactive");
+  assert.equal(unavailable.getState().latencyHint, "interactive");
+
+  const noStorage = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    window: {},
+  });
+  assert.equal(await noStorage.setLatencyMode("interactive"), "interactive");
+});
+
+test("audio context manager unlocks early, adopts a matching context and closes a stale one", () => {
+  const created = [];
+  class FakeAudioContext {
+    constructor(options) {
+      this.options = options;
+      this.state = "suspended";
+      this.closed = false;
+      created.push(this);
+    }
+    resume() {
+      this.state = "running";
+      return Promise.resolve();
+    }
+    close() {
+      this.closed = true;
+      return Promise.resolve();
+    }
+  }
+  const navigatorObj = { audioSession: { type: "ambient" } };
+  const manager = createAudioContextManager({
+    window: { AudioContext: FakeAudioContext },
+    navigator: navigatorObj,
+    latencyHint: "playback",
+  });
+
+  manager.unlock();
+  assert.equal(navigatorObj.audioSession.type, "playback");
+  assert.equal(created.length, 1);
+  assert.deepEqual(created[0].options, { sampleRate: 48000, latencyHint: "playback" });
+  assert.equal(created[0].state, "running");
+
+  manager.unlock();
+  assert.equal(created.length, 1, "A second unlock must reuse the pre-unlocked context");
+
+  const adopted = manager.createAudioContext({ sampleRate: 48000, latencyHint: "playback" });
+  assert.equal(adopted, created[0], "A matching pre-unlocked context must be adopted");
+  assert.equal(created[0].closed, false);
+
+  manager.unlock();
+  assert.equal(created.length, 2);
+  const fresh = manager.createAudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+  assert.equal(created[1].closed, true, "A stale pre-unlocked context must close");
+  assert.notEqual(fresh, created[1]);
+  assert.deepEqual(fresh.options, { sampleRate: 48000, latencyHint: "interactive" });
+
+  const direct = manager.createAudioContext({ sampleRate: 48000, latencyHint: "playback" });
+  assert.equal(created.length, 4, "Without a pre-unlocked context a new one is created");
+  assert.notEqual(direct, fresh);
+});
+
+test("audio context manager falls back when the context rejects its options", () => {
+  class PickyAudioContext {
+    constructor(options) {
+      if (options) throw new DOMException("Unsupported option", "NotSupportedError");
+      this.state = "running";
+    }
+    close() {
+      return Promise.resolve();
+    }
+  }
+  const manager = createAudioContextManager({
+    window: { AudioContext: PickyAudioContext },
+    navigator: null,
+    latencyHint: "interactive",
+  });
+
+  manager.unlock();
+  const adopted = manager.createAudioContext({ sampleRate: 48000, latencyHint: "interactive" });
+  assert.ok(adopted instanceof PickyAudioContext);
+  assert.equal(adopted.state, "running");
+});
+
+test("player builds its own AudioContext from the window when no factory is injected", async () => {
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const created = [];
+  class FakeAudioContext {
+    constructor(options) {
+      this.options = options;
+      this.sampleRate = 48000;
+      this.state = "running";
+      this.destination = {};
+      created.push(this);
+    }
+    resume() {
+      return Promise.resolve();
+    }
+    close() {
+      return Promise.resolve();
+    }
+  }
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    latencyOverride: "interactive",
+    window: { AudioContext: FakeAudioContext },
+  });
+
+  player.prepareAudio();
+  assert.equal(created.length, 1);
+  assert.deepEqual(created[0].options, { sampleRate: 48000, latencyHint: "interactive" });
+  assert.equal(player.getAudioContext(), created[0]);
 });
 
 test("player passes the two audio modes to the AudioContext", async () => {

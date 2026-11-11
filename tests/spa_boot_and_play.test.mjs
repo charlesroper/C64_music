@@ -6,7 +6,6 @@ import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { createAudioDiagnosticsOverlay } from "../src/audio_diagnostics.js";
-import { resolveAudioMode, resolveLatencyHint, writeStoredAudioMode } from "../src/latency_hint.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
@@ -40,57 +39,6 @@ function pullAudioFrames(player, blocks = 20, blockSize = 2048) {
 
   return { peakL, peakR, rms: Math.sqrt(sumSq / (blocks * blockSize)), nanCount };
 }
-
-test("audio mode defaults to playback and accepts only two hints", () => {
-  assert.equal(resolveAudioMode(), "playback");
-  assert.equal(resolveAudioMode({ override: "playback" }), "playback");
-  assert.equal(resolveAudioMode({ override: "interactive" }), "interactive");
-  assert.equal(resolveAudioMode({ override: "balanced" }), "playback");
-  assert.equal(resolveAudioMode({ override: "0.2" }), "playback");
-  assert.equal(resolveAudioMode({ override: "bogus" }), "playback");
-  assert.equal(resolveLatencyHint("bogus"), "playback");
-});
-
-test("audio mode survives a storage write failure", () => {
-  assert.equal(
-    writeStoredAudioMode(
-      {
-        localStorage: {
-          setItem() {
-            throw new Error("storage unavailable");
-          },
-        },
-      },
-      "playback",
-    ),
-    false,
-  );
-  assert.equal(writeStoredAudioMode({}, "playback"), false);
-  assert.equal(writeStoredAudioMode({ localStorage: {} }, "bogus"), false);
-});
-
-test("audio mode load order is URL override, stored choice, default", () => {
-  const win = (value) => ({ localStorage: { getItem: () => value } });
-  assert.equal(resolveAudioMode({ override: "playback", window: win("interactive") }), "playback");
-  assert.equal(
-    resolveAudioMode({ override: "interactive", window: win("playback") }),
-    "interactive",
-  );
-  assert.equal(resolveAudioMode({ override: "bogus", window: win("playback") }), "playback");
-  assert.equal(resolveAudioMode({ window: win("playback") }), "playback");
-  assert.equal(resolveAudioMode({ window: win("interactive") }), "interactive");
-  assert.equal(resolveAudioMode({ window: win("broken") }), "playback");
-  assert.equal(
-    resolveAudioMode({
-      window: {
-        get localStorage() {
-          throw new Error("storage unavailable");
-        },
-      },
-    }),
-    "playback",
-  );
-});
 
 test("unified browser harness enforces strict element IDs and shares environment between UI tests", () => {
   const harness = createBrowserHarness({
@@ -151,6 +99,48 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
     assert.ok(stats.peakL > 0.1, `Expected left channel peak > 0.1, got ${stats.peakL}`);
     assert.ok(stats.peakR > 0.1, `Expected right channel peak > 0.1, got ${stats.peakR}`);
     assert.ok(stats.rms > 0.02, `Expected RMS > 0.02, got ${stats.rms}`);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("Workbench View takes Audio Mode from the player and leaves storage to it", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  try {
+    const modes = [];
+    const stub = (latencyHint) => ({
+      ...createFakePlayer(),
+      getState: () => ({ latencyHint, isPlaying: false }),
+      setLatencyMode(mode) {
+        modes.push(mode);
+        return Promise.resolve(mode);
+      },
+    });
+    const toggle = harness.elementsById.get("chk-latency-interactive");
+    const label = harness.elementsById.get("latency-mode-value");
+
+    const view = createWorkbenchView({
+      document: globalThis.document,
+      elements: harness.elementsById,
+      player: stub("interactive"),
+    });
+    assert.equal(toggle.checked, true, "The toggle must reflect the player's Audio Mode");
+    assert.equal(label.textContent, "INTERACTIVE");
+
+    view.setPlayer(stub("playback"));
+    assert.equal(toggle.checked, false, "Attaching a player must re-sync the toggle");
+    assert.equal(label.textContent, "PLAYBACK");
+
+    toggle.checked = true;
+    toggle.dispatchEvent("change");
+    assert.deepEqual(modes, ["interactive"]);
+    assert.equal(label.textContent, "INTERACTIVE");
+    assert.equal(
+      harness.localStorage.getItem("galway2664.audioMode.v1"),
+      null,
+      "Persistence belongs to the Player Engine, not the view",
+    );
+    view.destroy();
   } finally {
     harness.restoreGlobals();
   }

@@ -4,8 +4,11 @@
 
 import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
 import { createBootSequence } from "./boot_sequence.js";
-import { resolveAudioMode } from "./latency_hint.js";
-import { createWorkbenchPlayer } from "./player_engine.js";
+import {
+  createAudioContextManager,
+  createWorkbenchPlayer,
+  resolveAudioMode,
+} from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
 import {
   cancelViewerSmoothScroll,
@@ -24,6 +27,12 @@ export async function bootWorkbench(options = {}) {
     override: params.get("latency"),
     window: win,
   });
+  const navigatorObj = typeof navigator !== "undefined" ? navigator : null;
+  const audioManager = createAudioContextManager({
+    window: win,
+    navigator: navigatorObj,
+    latencyHint,
+  });
   const reducedMotion =
     options.reducedMotion === true ||
     Boolean(win?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -35,8 +44,6 @@ export async function bootWorkbench(options = {}) {
   let bootTarget = null;
   let bootTargetLoaded = false;
   let prewarmDone = false;
-  let preUnlockedAudioCtx = null;
-  let preUnlockedLatencyHint = null;
   const tapeSound = createTapeLoadingSound({
     getContext: () => player?.getAudioContext?.() || null,
   });
@@ -79,29 +86,6 @@ export async function bootWorkbench(options = {}) {
   });
   boot.start();
 
-  const handleFirstInteraction = () => {
-    if (typeof navigator !== "undefined" && navigator.audioSession) {
-      try {
-        navigator.audioSession.type = "playback";
-      } catch (_) {}
-    }
-    if (!preUnlockedAudioCtx) {
-      const AudioCtx = win.AudioContext || win.webkitAudioContext;
-      if (AudioCtx) {
-        try {
-          preUnlockedAudioCtx = new AudioCtx({ sampleRate: 48000, latencyHint });
-          preUnlockedLatencyHint = latencyHint;
-        } catch (_) {
-          preUnlockedAudioCtx = new AudioCtx();
-          preUnlockedLatencyHint = null;
-        }
-        if (preUnlockedAudioCtx.state !== "running") {
-          preUnlockedAudioCtx.resume();
-        }
-      }
-    }
-  };
-
   const fileNames = [
     "wizball.asm",
     "arkanoid.asm",
@@ -120,7 +104,7 @@ export async function bootWorkbench(options = {}) {
     elements: options.elements,
     player: null,
     latencyHint,
-    onFirstInteraction: handleFirstInteraction,
+    onFirstInteraction: audioManager.unlock,
   });
   view.setRenderingPaused(bootActive);
 
@@ -150,27 +134,10 @@ export async function bootWorkbench(options = {}) {
     wasmModule,
     workletUrl: new URL("./audio_worklet.js", import.meta.url).href,
     latencyHint,
+    window: win,
     rawSources,
-    createAudioContext: (opts) => {
-      if (preUnlockedAudioCtx && (!opts || opts.latencyHint === preUnlockedLatencyHint)) {
-        const ctx = preUnlockedAudioCtx;
-        preUnlockedAudioCtx = null;
-        preUnlockedLatencyHint = null;
-        return ctx;
-      }
-      if (preUnlockedAudioCtx) {
-        const stale = preUnlockedAudioCtx;
-        preUnlockedAudioCtx = null;
-        preUnlockedLatencyHint = null;
-        if (typeof stale.close === "function") {
-          const closing = stale.close();
-          if (closing && typeof closing.catch === "function") closing.catch(() => {});
-        }
-      }
-      const AudioCtx = win.AudioContext || win.webkitAudioContext;
-      return opts ? new AudioCtx(opts) : new AudioCtx();
-    },
-    navigatorObj: typeof navigator !== "undefined" ? navigator : null,
+    createAudioContext: audioManager.createAudioContext,
+    navigatorObj,
   });
   const prewarm = player.prewarmAssemblies();
 

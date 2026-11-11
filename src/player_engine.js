@@ -6,11 +6,107 @@
 // ============================================================================
 
 import { createEngineCore } from "./engine_core.js";
-import { AUDIO_MODE_DEFAULT, resolveLatencyHint } from "./latency_hint.js";
 import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
-import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
 import { GAME_FILES } from "./tracks_catalog.js";
+
+// Audio Mode policy: accept only the two product modes. A URL override wins for
+// one load, then the Stored Audio Mode, then the playback default.
+export const AUDIO_MODE_DEFAULT = "playback";
+export const AUDIO_MODE_STORAGE_KEY = "galway2664.audioMode.v1";
+// One telemetry rate: about 62.5 snapshots per second.
+export const TELEMETRY_HZ_DEFAULT = 62.5;
+
+export function normalizeAudioMode(value) {
+  if (value === "playback" || value === "interactive") return value;
+  return null;
+}
+
+export function resolveLatencyHint(value) {
+  return normalizeAudioMode(value) ?? AUDIO_MODE_DEFAULT;
+}
+
+function readStoredAudioMode(win) {
+  try {
+    return normalizeAudioMode(win?.localStorage?.getItem(AUDIO_MODE_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredAudioMode(win, mode) {
+  try {
+    win?.localStorage?.setItem(AUDIO_MODE_STORAGE_KEY, mode);
+  } catch {
+    // Storage can be unavailable or full. The mode still applies for this load.
+  }
+}
+
+export function resolveAudioMode({ override = null, window: win = null } = {}) {
+  return normalizeAudioMode(override) ?? readStoredAudioMode(win) ?? AUDIO_MODE_DEFAULT;
+}
+
+// Early-gesture audio unlock. A tap before the engine finishes loading unlocks an
+// AudioContext straight away. The Player Engine adopts it when the Audio Mode
+// matches and the manager closes it when the listener has since changed mode.
+export function createAudioContextManager({
+  window: win = typeof window !== "undefined" ? window : null,
+  navigator: nav = typeof navigator !== "undefined" ? navigator : null,
+  latencyHint = AUDIO_MODE_DEFAULT,
+} = {}) {
+  const hint = resolveLatencyHint(latencyHint);
+  let preUnlocked = null;
+  let preUnlockedHint = null;
+
+  const getConstructor = () => win?.AudioContext || win?.webkitAudioContext || null;
+
+  function closeQuietly(ctx) {
+    try {
+      ctx.close?.()?.catch?.(() => {});
+    } catch (_) {
+      // A context that cannot close is already gone.
+    }
+  }
+
+  function unlock() {
+    if (nav?.audioSession) {
+      try {
+        nav.audioSession.type = "playback";
+      } catch (_) {
+        // Ignore on browsers where audioSession.type is read-only
+      }
+    }
+    if (preUnlocked) return;
+    const AudioCtx = getConstructor();
+    if (!AudioCtx) return;
+    try {
+      preUnlocked = new AudioCtx({ sampleRate: 48000, latencyHint: hint });
+      preUnlockedHint = hint;
+    } catch (_) {
+      preUnlocked = new AudioCtx();
+      preUnlockedHint = null;
+    }
+    if (preUnlocked.state !== "running") preUnlocked.resume?.();
+  }
+
+  function createAudioContext(options) {
+    if (preUnlocked) {
+      const ctx = preUnlocked;
+      // A context built without options cannot honour any hint, so it matches every request.
+      const matches =
+        !options || preUnlockedHint === null || options.latencyHint === preUnlockedHint;
+      preUnlocked = null;
+      preUnlockedHint = null;
+      if (matches) return ctx;
+      closeQuietly(ctx);
+    }
+    const AudioCtx = getConstructor();
+    if (!AudioCtx) return null;
+    return options ? new AudioCtx(options) : new AudioCtx();
+  }
+
+  return { unlock, createAudioContext };
+}
 
 export {
   GAME_LOADERS,
@@ -192,11 +288,13 @@ export function createWorkbenchPlayer({
   wasm,
   wasmModule,
   rawSources,
-  createAudioContext,
+  createAudioContext: injectedAudioContext,
   navigatorObj,
   workletUrl,
   createAssemblyWorker = createDefaultAssemblyWorker,
-  latencyHint = AUDIO_MODE_DEFAULT,
+  window: win = typeof window !== "undefined" ? window : null,
+  latencyOverride = null,
+  latencyHint,
 }) {
   const sources = { ...rawSources };
   const assembledCache = {};
@@ -275,7 +373,10 @@ export function createWorkbenchPlayer({
     muteMask: 0,
     soloVoice: -1,
     sampleRate: 48000,
-    latencyHint: resolveLatencyHint(latencyHint),
+    latencyHint:
+      latencyHint === undefined
+        ? resolveAudioMode({ override: latencyOverride, window: win })
+        : resolveLatencyHint(latencyHint),
     telemetryHz: TELEMETRY_HZ_DEFAULT,
     audioCtx: null,
     currentSession: null,
@@ -283,6 +384,13 @@ export function createWorkbenchPlayer({
     workletReady: false,
     workletError: null,
   };
+
+  // Callers that need an early-gesture unlock inject the manager's factory.
+  const createAudioContext =
+    injectedAudioContext ??
+    (win?.AudioContext || win?.webkitAudioContext
+      ? createAudioContextManager({ window: win, navigator: navigatorObj }).createAudioContext
+      : null);
 
   const inThreadTransport = createInThreadTransport({
     wasm,
@@ -449,7 +557,8 @@ export function createWorkbenchPlayer({
   }
 
   function setLatencyMode(mode) {
-    const next = mode === "interactive" ? "interactive" : "playback";
+    const next = resolveLatencyHint(mode);
+    writeStoredAudioMode(win, next);
     if (next === state.latencyHint) return Promise.resolve(next);
     state.latencyHint = next;
 

@@ -4,7 +4,7 @@
 // audio quanta, context state changes, and output latency on the phone.
 // ============================================================================
 
-import { TELEMETRY_HZ_DEFAULT } from "./telemetry_rate.js";
+import { TELEMETRY_HZ_DEFAULT } from "./player_engine.js";
 
 const HELP_INTRO =
   "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The Audio delay help link explains the Firefox buffer setting.";

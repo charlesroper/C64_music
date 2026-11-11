@@ -758,6 +758,9 @@ export function createFakePlayer(options = {}) {
     },
     setLatencyMode(mode) {
       state.latencyHint = mode === "interactive" ? "interactive" : "playback";
+      try {
+        globalThis.window?.localStorage?.setItem("galway2664.audioMode.v1", state.latencyHint);
+      } catch (_) {}
       options.onLatencyMode?.(state.latencyHint);
       return Promise.resolve(state.latencyHint);
     },

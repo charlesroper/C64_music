@@ -5,9 +5,8 @@
 
 import { createC64ScreenRenderer } from "./c64_screen.js";
 import { createHelpPopover } from "./help_popover.js";
-import { AUDIO_MODE_DEFAULT, resolveLatencyHint, writeStoredAudioMode } from "./latency_hint.js";
 import { renderMarkdownToHtml } from "./markdown.js";
-import { getSessionSourceFile } from "./player_engine.js";
+import { AUDIO_MODE_DEFAULT, getSessionSourceFile, resolveLatencyHint } from "./player_engine.js";
 import { GAME_FILES } from "./tracks_catalog.js";
 
 const NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
@@ -199,7 +198,7 @@ export function createWorkbenchView({
     // Dormant NTSC plumbing: the engine and player support remain; the UI switch is retired.
     videoNtsc: false,
     digiBoost: 1.3,
-    latencyHint: resolveLatencyHint(latencyHint),
+    latencyHint: resolveLatencyHint(player?.getState?.().latencyHint ?? latencyHint),
     diagnostics: null,
 
     muteMask: 0,
@@ -1268,6 +1267,11 @@ export function createWorkbenchView({
 
   function setPlayer(newPlayer) {
     state.player = newPlayer;
+    const playerMode = newPlayer?.getState?.().latencyHint;
+    if (playerMode) {
+      state.latencyHint = resolveLatencyHint(playerMode);
+      syncLatencyMode();
+    }
     updateDrmChipState();
     renderGameList();
   }
@@ -1393,12 +1397,8 @@ export function createWorkbenchView({
     if (chkLatency) {
       addListener(chkLatency, "change", (e) => {
         state.latencyHint = e.target.checked ? "interactive" : "playback";
-        const valueEl = getEl("latency-mode-value");
-        if (valueEl) {
-          valueEl.textContent = state.latencyHint === "interactive" ? "INTERACTIVE" : "PLAYBACK";
-        }
+        syncLatencyMode();
         if (state.player?.setLatencyMode) state.player.setLatencyMode(state.latencyHint);
-        writeStoredAudioMode(win, state.latencyHint);
       });
     }
 
