@@ -323,9 +323,10 @@ function createDiagnosticsLayout(doc) {
   header.appendChild(title);
 
   const helpButton = doc.createElement("button");
-  helpButton.classList.add("diag-help-toggle");
+  helpButton.classList.add("diag-help-toggle", "icon-button");
   helpButton.type = "button";
-  helpButton.textContent = "?";
+  helpButton.innerHTML =
+    '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
   helpButton.setAttribute("aria-label", "Explain stats");
   helpButton.setAttribute("aria-expanded", "false");
   header.appendChild(helpButton);
@@ -427,7 +428,9 @@ export function createAudioDiagnosticsOverlay({
     helpOpen = next;
     element.classList.toggle("is-help", helpOpen);
     if (helpOpen) element.scrollTop = 0;
-    helpButton.textContent = helpOpen ? "×" : "?";
+    helpButton.innerHTML = helpOpen
+      ? '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-close"></use></svg>'
+      : '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
     helpButton.setAttribute("aria-label", helpOpen ? "Close stats explanation" : "Explain stats");
     helpButton.setAttribute("aria-expanded", String(helpOpen));
   }

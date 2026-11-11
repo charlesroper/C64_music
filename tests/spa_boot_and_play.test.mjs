@@ -245,6 +245,13 @@ test("SID help popover uses the shared module and drum boost still works", () =>
     assert.equal(sidPanel.hidden, false);
     assert.equal(globalThis.document.activeElement, sidPanel);
 
+    const sidClose = harness.elementsById.get("sid-model-help-close");
+    sidClose.click();
+    assert.equal(sidTrigger.getAttribute("aria-expanded"), "false");
+    assert.equal(sidPanel.hidden, true);
+    assert.equal(globalThis.document.activeElement, sidTrigger);
+
+    sidTrigger.click();
     audioTrigger.click();
     assert.equal(sidTrigger.getAttribute("aria-expanded"), "false");
     assert.equal(sidPanel.hidden, true, "Opening Audio Mode must close SID help");
@@ -295,6 +302,16 @@ test("Audio Mode help markup stays compact and explains the trade-off", () => {
   assert.match(triggerTag, /aria-expanded="false"/);
   assert.match(triggerTag, /aria-controls="latency-mode-help-panel"/);
   assert.match(triggerTag, /popovertarget="latency-mode-help-panel"/);
+  assert.match(group, /id="latency-mode-help-trigger"[\s\S]*?<use href="#icon-help">/);
+
+  const closeTag = group.match(/<button\b[^>]*id="latency-mode-help-close"[^>]*>/)[0];
+  assert.match(closeTag, /aria-label="Close Audio Mode help"/);
+  assert.match(group, /id="latency-mode-help-close"[\s\S]*?<use href="#icon-close">/);
+
+  assert.match(html, /<symbol id="icon-help"/);
+  assert.match(html, /<symbol id="icon-close"/);
+  assert.match(html, /id="btn-close-modal"[\s\S]*?<use href="#icon-close">/);
+  assert.match(html, /id="btn-close-narrative-modal"[\s\S]*?<use href="#icon-close">/);
 
   const panelTag = group.match(/<div\b[^>]*id="latency-mode-help-panel"[^>]*>/)[0];
   assert.match(panelTag, /\bpopover\b/);
@@ -324,6 +341,8 @@ test("Audio Mode help markup stays compact and explains the trade-off", () => {
   assert.match(link, />\s*Audio delay help\s*<\/a\s*>/);
 
   assert.match(css, /\.hw-help-trigger::after\s*\{[^}]*inset:\s*-12px/);
+  assert.match(css, /\.hw-help-trigger\[aria-expanded="true"\]/);
+  assert.match(css, /\.icon-button\s*\{[^}]*display:\s*inline-grid/);
   assert.match(css, /\.hw-help-panel\s*\{[^}]*position:\s*fixed/);
 });
 
@@ -350,6 +369,14 @@ test("Audio Mode help popover opens, closes and restores focus", () => {
     assert.ok(panel.classList.contains("is-open"));
     assert.equal(globalThis.document.activeElement, panel);
 
+    const closeButton = harness.elementsById.get("latency-mode-help-close");
+    closeButton.click();
+    assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.equal(panel.hidden, true);
+    assert.equal(globalThis.document.activeElement, trigger);
+
+    trigger.click();
+    assert.equal(trigger.getAttribute("aria-expanded"), "true");
     trigger.click();
     assert.equal(trigger.getAttribute("aria-expanded"), "false");
     assert.equal(panel.hidden, true);
@@ -718,7 +745,7 @@ test("Stats help mode expands descriptions and closes back to compact", () => {
   try {
     const button = globalThis.document.querySelector(".diag-help-toggle");
     assert.ok(button, "Stats must have a help toggle");
-    assert.equal(button.textContent, "?");
+    assert.match(button.innerHTML, /#icon-help/);
     assert.equal(button.getAttribute("aria-label"), "Explain stats");
     assert.equal(button.getAttribute("aria-expanded"), "false");
     assert.ok(!overlay.element.classList.contains("is-help"));
@@ -727,7 +754,7 @@ test("Stats help mode expands descriptions and closes back to compact", () => {
     assert.ok(overlay.element.classList.contains("is-help"));
     assert.equal(button.getAttribute("aria-label"), "Close stats explanation");
     assert.equal(button.getAttribute("aria-expanded"), "true");
-    assert.equal(button.textContent, "×");
+    assert.match(button.innerHTML, /#icon-close/);
 
     overlay.element.scrollTop = 480;
     button.click();
@@ -749,7 +776,7 @@ test("Stats help mode expands descriptions and closes back to compact", () => {
     assert.ok(overlay.element.classList.contains("is-help"));
     button.click();
     assert.ok(!overlay.element.classList.contains("is-help"));
-    assert.equal(button.textContent, "?");
+    assert.match(button.innerHTML, /#icon-help/);
   } finally {
     overlay.stop();
     harness.restoreGlobals();

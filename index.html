@@ -16,6 +16,17 @@
     <link rel="stylesheet" href="./src/styles.css?v=2026.11.11">
   </head>
   <body data-boot-state="booting">
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="icon-help" viewBox="0 0 16 16">
+          <path d="M6.2 5.8a2 2 0 1 1 3.2 1.6c-.8.6-1.4 1-1.4 2" />
+          <path d="M8 12.2h.01" />
+        </symbol>
+        <symbol id="icon-close" viewBox="0 0 16 16">
+          <path d="M4 4l8 8M12 4l-8 8" />
+        </symbol>
+      </defs>
+    </svg>
     <div class="app-shell">
       <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
       <header class="top-bar">
@@ -141,7 +152,7 @@
               <span class="hw-hint" id="sid-model-hint">6581 is warmer; 8580 is cleaner.</span>
               <button
                 type="button"
-                class="hw-help-trigger"
+                class="hw-help-trigger icon-button"
                 id="sid-model-help-trigger"
                 aria-label="About SID chip"
                 aria-haspopup="dialog"
@@ -149,7 +160,9 @@
                 aria-controls="sid-model-help-panel"
                 popovertarget="sid-model-help-panel"
               >
-                ?
+                <svg class="icon" aria-hidden="true" focusable="false">
+                  <use href="#icon-help"></use>
+                </svg>
               </button>
             </div>
             <div
@@ -168,6 +181,16 @@
                 warmer; the 8580 is cleaner. Tracks that do not use the filter or combined waveforms
                 sound the same on both.
               </p>
+              <button
+                type="button"
+                class="hw-help-close icon-button"
+                id="sid-model-help-close"
+                aria-label="Close SID chip help"
+              >
+                <svg class="icon" aria-hidden="true" focusable="false">
+                  <use href="#icon-close"></use>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -189,7 +212,7 @@
               >
               <button
                 type="button"
-                class="hw-help-trigger"
+                class="hw-help-trigger icon-button"
                 id="latency-mode-help-trigger"
                 aria-label="About Audio Mode"
                 aria-haspopup="dialog"
@@ -197,7 +220,9 @@
                 aria-controls="latency-mode-help-panel"
                 popovertarget="latency-mode-help-panel"
               >
-                ?
+                <svg class="icon" aria-hidden="true" focusable="false">
+                  <use href="#icon-help"></use>
+                </svg>
               </button>
             </div>
             <div
@@ -223,6 +248,16 @@
                 rel="noopener"
                 >Audio delay help</a
               >
+              <button
+                type="button"
+                class="hw-help-close icon-button"
+                id="latency-mode-help-close"
+                aria-label="Close Audio Mode help"
+              >
+                <svg class="icon" aria-hidden="true" focusable="false">
+                  <use href="#icon-close"></use>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -641,7 +676,12 @@
       <div class="modal-card">
         <div class="modal-header">
           <h2>Ocean 1985-87 6502 assembler and Galway engine reference</h2>
-          <button type="button" id="btn-close-modal" class="btn-icon">&times; CLOSE</button>
+          <button type="button" id="btn-close-modal" class="btn-icon">
+            <svg class="icon" aria-hidden="true" focusable="false">
+              <use href="#icon-close"></use>
+            </svg>
+            CLOSE
+          </button>
         </div>
         <div class="modal-body">
           <div class="modal-cols">
@@ -727,7 +767,10 @@
         <div class="modal-header">
           <h2>Galway 2664: history, architecture and source code</h2>
           <button type="button" id="btn-close-narrative-modal" class="btn-icon">
-            &times; CLOSE
+            <svg class="icon" aria-hidden="true" focusable="false">
+              <use href="#icon-close"></use>
+            </svg>
+            CLOSE
           </button>
         </div>
         <div class="modal-body narrative-modal-body" id="narrative-modal-body"></div>

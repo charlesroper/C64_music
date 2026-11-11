@@ -166,7 +166,7 @@ async function openPanel(send, id) {
 
 async function closePanel(send, id) {
   await evaluate(send, `document.getElementById("${id}-help-panel").hidePopover?.()`);
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 200));
 }
 
 async function readLayout(send, id) {
@@ -195,6 +195,24 @@ async function readLayout(send, id) {
   );
 }
 
+async function readIconCentring(send, triggerId) {
+  return evaluate(
+    send,
+    `(() => {
+      const button = document.getElementById("${triggerId}");
+      const icon = button.querySelector("svg");
+      const b = button.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      return {
+        dx: Math.abs(b.left + b.width / 2 - (i.left + i.width / 2)),
+        dy: Math.abs(b.top + b.height / 2 - (i.top + i.height / 2)),
+        border: getComputedStyle(button).borderColor,
+        expanded: button.getAttribute("aria-expanded"),
+      };
+    })()`,
+  );
+}
+
 async function checkWidth({ client, appUrl, width, height }) {
   await client.send("Emulation.setDeviceMetricsOverride", {
     width,
@@ -205,8 +223,10 @@ async function checkWidth({ client, appUrl, width, height }) {
   await client.send("Page.navigate", { url: appUrl });
   await waitForApp(client.send);
 
+  const closedIcon = await readIconCentring(client.send, "latency-mode-help-trigger");
   await openPanel(client.send, "latency-mode");
   const layout = await readLayout(client.send, "latency-mode");
+  const openIcon = await readIconCentring(client.send, "latency-mode-help-trigger");
   const mobile = width <= 560;
   if (layout.expanded !== "true" || !layout.open) throw new Error(`${width}px panel did not open`);
   if (layout.overflow) throw new Error(`${width}px horizontal overflow`);
@@ -225,9 +245,34 @@ async function checkWidth({ client, appUrl, width, height }) {
       layout.panel.bottom <= layout.trigger.top + 1;
     if (!anchored) throw new Error(`${width}px panel is not anchored to its trigger`);
   }
+  const closeButtonCentring = await evaluate(
+    client.send,
+    `(() => {
+      const button = document.getElementById("latency-mode-help-close");
+      const icon = button.querySelector("svg");
+      const b = button.getBoundingClientRect();
+      const i = icon.getBoundingClientRect();
+      return {
+        dx: Math.abs(b.left + b.width / 2 - (i.left + i.width / 2)),
+        dy: Math.abs(b.top + b.height / 2 - (i.top + i.height / 2)),
+      };
+    })()`,
+  );
+  if (closedIcon.dx > 1 || closedIcon.dy > 1 || openIcon.dx > 1 || openIcon.dy > 1) {
+    throw new Error(`${width}px help trigger icon is not centred`);
+  }
+  if (closeButtonCentring.dx > 1 || closeButtonCentring.dy > 1) {
+    throw new Error(`${width}px close icon is not centred`);
+  }
   await closePanel(client.send, "latency-mode");
+  const closedState = await readIconCentring(client.send, "latency-mode-help-trigger");
+  if (closedState.expanded !== "false" || closedState.border !== closedIcon.border) {
+    throw new Error(
+      `${width}px trigger stayed lit after close: ${JSON.stringify({ closedIcon, closedState })}`,
+    );
+  }
   console.log(
-    `PASS ${width}x${height}: panel inside viewport, ${mobile ? "bottom sheet" : "anchored"}, no overflow.`,
+    `PASS ${width}x${height}: panel inside viewport, ${mobile ? "bottom sheet" : "anchored"}, icons centred, trigger reset, no overflow.`,
   );
 }
 
@@ -325,6 +370,20 @@ async function checkKeyboard({ client, appUrl }) {
   );
   if (state.expanded !== "false" || state.active !== "latency-mode-help-trigger") {
     throw new Error("Escape did not close and return focus");
+  }
+
+  await openPanel(client.send, "latency-mode");
+  await evaluate(client.send, 'document.getElementById("latency-mode-help-close").click()');
+  await new Promise((resolve) => setTimeout(resolve, 120));
+  state = await evaluate(
+    client.send,
+    `({
+      expanded: document.getElementById("latency-mode-help-trigger").getAttribute("aria-expanded"),
+      active: document.activeElement.id,
+    })`,
+  );
+  if (state.expanded !== "false" || state.active !== "latency-mode-help-trigger") {
+    throw new Error("Close button did not close and return focus");
   }
 
   await openPanel(client.send, "sid-model");

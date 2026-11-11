@@ -1406,6 +1406,7 @@ export function createWorkbenchView({
       document: doc,
       trigger: getEl("sid-model-help-trigger"),
       panel: getEl("sid-model-help-panel"),
+      closeButton: getEl("sid-model-help-close"),
     });
     if (sidHelp) {
       cleanups.push(() => sidHelp.destroy());
@@ -1415,6 +1416,7 @@ export function createWorkbenchView({
       document: doc,
       trigger: getEl("latency-mode-help-trigger"),
       panel: getEl("latency-mode-help-panel"),
+      closeButton: getEl("latency-mode-help-close"),
     });
     if (latencyHelp) {
       cleanups.push(() => latencyHelp.destroy());

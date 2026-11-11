@@ -421,19 +421,40 @@ button.active {
   gap: 4px;
 }
 
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.icon {
+  display: block;
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+}
+
 .hw-help-trigger {
   position: relative;
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
-  padding: 0;
   border: 1px solid var(--border-bright);
   border-radius: 50%;
   background: #141926;
   color: var(--accent-cyan);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1;
   cursor: pointer;
 }
 
@@ -444,11 +465,48 @@ button.active {
   border-radius: 50%;
 }
 
-.hw-help-trigger:hover {
+.hw-help-trigger:hover:not([aria-expanded="true"]) {
+  border-color: var(--border-bright);
+  background: #141926;
+}
+
+.hw-help-trigger[aria-expanded="true"] {
   border-color: var(--accent-cyan);
+  background: rgba(56, 226, 255, 0.16);
 }
 
 .hw-help-trigger:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.hw-help-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  background: #141926;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.hw-help-close::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+}
+
+.hw-help-close:hover {
+  border-color: var(--accent-cyan);
+  background: #141926;
+  color: var(--accent-cyan);
+}
+
+.hw-help-close:focus-visible {
   outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
@@ -475,6 +533,7 @@ button.active {
 
 .hw-help-title {
   margin: 0 0 8px;
+  padding-right: 32px;
   color: var(--accent-cyan);
   font-size: 12px;
 }
@@ -2645,9 +2704,19 @@ html[data-boot-mode="immediate"] .boot-sequence {
   touch-action: manipulation;
 }
 
-.diag-help-toggle:hover {
+.diag-help-toggle:hover:not([aria-expanded="true"]) {
+  border-color: rgba(56, 226, 255, 0.55);
+  background: rgba(56, 226, 255, 0.08);
+}
+
+.diag-help-toggle[aria-expanded="true"] {
   border-color: var(--accent-cyan);
   background: rgba(56, 226, 255, 0.16);
+}
+
+.diag-help-toggle .icon {
+  width: 16px;
+  height: 16px;
 }
 
 .diag-help-toggle:focus-visible {

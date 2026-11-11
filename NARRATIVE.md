@@ -684,6 +684,14 @@ Interactive audio gave the closer source follow, but it popped on the test devic
 
 New listeners boot in `PLAYBACK`. A stored `INTERACTIVE` choice still boots interactive, and the URL overrides keep their one-load precedence. The decision is recorded in [ADR 0009](https://github.com/charlesroper/C64_music/blob/main/docs/adr/0009-playback-default.md). README, GLOSSARY, the audio latency guide and the browser verification guide now describe playback as the default. The explainer and Stats help copy follow in the later tickets. Historical entries stay. The suite rose to 98 checks across 12 files. Commit [0a67c05](https://github.com/charlesroper/C64_music/commit/0a67c05) and issue [#78](https://github.com/charlesroper/C64_music/issues/78) carry the change.
 
+### 11 November 2026: help icon buttons polished
+
+The help triggers used text glyphs, had no close control and could stay lit after closing because the border followed sticky hover rather than the panel state.
+
+The hardware help, help-panel close buttons, Stats for Nerds toggle and the two modal close buttons now use a shared SVG help and close icon set. A shared icon-button class centres each glyph with a grid. The trigger active style follows `aria-expanded`, so it clears when the panel closes. Both help panels have a close button that returns focus to the trigger.
+
+Headless Chromium 153 checked icon centring and the closed-state border at 360px, 390px, 820px, 1280x600 and 1440x900. Keyboard, Escape, close-button focus return and exclusive panels still pass. The suite remains at 107 checks across 12 files. Issue [#86](https://github.com/charlesroper/C64_music/issues/86) carries the change.
+
 ### 10 November 2026: help panels go responsive
 
 The help panels opened as a centred card at every width. They now become a bottom sheet on phones and anchor near their trigger on wider screens, with viewport clamping and recalculation on resize or scroll. Reduced-motion preferences skip the opening fade.

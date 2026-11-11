@@ -6,7 +6,7 @@
 
 const openPopovers = new Set();
 
-export function createHelpPopover({ document: doc, trigger, panel } = {}) {
+export function createHelpPopover({ document: doc, trigger, panel, closeButton = null } = {}) {
   if (!doc || !trigger || !panel) return null;
 
   const win = doc.defaultView || (typeof window !== "undefined" ? window : null);
@@ -118,6 +118,11 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
     toggle();
   }
 
+  function onCloseClick(event) {
+    event.preventDefault();
+    close();
+  }
+
   trigger.setAttribute("aria-expanded", String(open));
   panel.classList.toggle("is-open", open);
 
@@ -131,6 +136,7 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
   }
   win?.addEventListener?.("resize", positionPanel);
   win?.addEventListener?.("scroll", positionPanel, true);
+  closeButton?.addEventListener?.("click", onCloseClick);
 
   return {
     open: openPanel,
@@ -149,6 +155,7 @@ export function createHelpPopover({ document: doc, trigger, panel } = {}) {
       }
       win?.removeEventListener?.("resize", positionPanel);
       win?.removeEventListener?.("scroll", positionPanel, true);
+      closeButton?.removeEventListener?.("click", onCloseClick);
     },
   };
 }
