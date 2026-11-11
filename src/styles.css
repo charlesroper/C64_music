@@ -2685,6 +2685,7 @@ html[data-boot-mode="immediate"] .boot-sequence {
 }
 
 .diag-help-toggle {
+  position: relative;
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
@@ -2702,6 +2703,13 @@ html[data-boot-mode="immediate"] .boot-sequence {
   cursor: pointer;
   pointer-events: auto;
   touch-action: manipulation;
+}
+
+.diag-help-toggle::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
 }
 
 .diag-help-toggle:hover:not([aria-expanded="true"]) {
