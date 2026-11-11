@@ -210,7 +210,7 @@ test("SID help popover uses the shared module and drum boost still works", () =>
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  assert.equal(summary, "6581 is warmer; 8580 is cleaner.");
+  assert.equal(summary, "Most Galway tracks were written for the 6581.");
 
   const triggerTag = group.match(/<button\b[^>]*id="sid-model-help-trigger"[^>]*>/)[0];
   assert.match(triggerTag, /aria-label="About SID chip"/);
@@ -279,7 +279,7 @@ test("SID help popover uses the shared module and drum boost still works", () =>
   }
 });
 
-test("Audio Mode help markup stays compact and explains the trade-off", () => {
+test("Audio Mode help markup explains the sound delay and links the Firefox setting", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
   const groupStart = html.indexOf('id="hw-group-latency"');
@@ -324,21 +324,28 @@ test("Audio Mode help markup stays compact and explains the trade-off", () => {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  assert.match(panel, /buffer/);
-  assert.match(panel, /0\.2 seconds/);
-  assert.match(panel, /crackle/);
-  assert.match(panel, /Firefox uses its own setting/);
+  assert.match(panel, /Audio plays from a buffer/);
+  assert.match(panel, /Playback waits about 0\.2 seconds/);
+  assert.match(panel, /all live readouts lead the sound/);
+  assert.match(panel, /monitor, oscilloscopes, register readouts and source follow/);
+  assert.match(panel, /Interactive responds sooner but is more likely to crackle/);
+  assert.match(panel, /Firefox ignores Audio Mode/);
+  assert.match(panel, /Use the Firefox buffer setting instead/);
+  assert.doesNotMatch(panel, /Audio delay help/);
 
-  const linkMatch = group.match(/class="hw-help-link"[\s\S]*?<\/a\s*>/);
-  assert.ok(linkMatch, "Audio delay help must be a real anchor");
+  const toggleLabel = group.match(/<label class="hw-toggle">[\s\S]*?<\/label>/)[0];
+  assert.doesNotMatch(toggleLabel, /Firefox buffer setting/);
+
+  const linkMatch = panelMatch[0].match(/<a\b[^>]*class="hw-help-link"[^>]*>[\s\S]*?<\/a\s*>/);
+  assert.ok(linkMatch, "Firefox buffer setting must be a real anchor inside the panel");
   const link = linkMatch[0];
   assert.match(
     link,
-    /href="https:\/\/github\.com\/charlesroper\/C64_music\/blob\/main\/docs\/audio-latency\.md"/,
+    /href="https:\/\/github\.com\/charlesroper\/C64_music\/blob\/main\/docs\/audio-latency\.md#firefox"/,
   );
   assert.match(link, /target="_blank"/);
-  assert.match(link, /rel="noopener"/);
-  assert.match(link, />\s*Audio delay help\s*<\/a\s*>/);
+  assert.match(link, /rel="noopener noreferrer"/);
+  assert.match(link, />\s*Firefox buffer setting\s*<\/a\s*>/);
 
   assert.match(css, /\.hw-help-trigger::after\s*\{[^}]*inset:\s*-12px/);
   assert.match(css, /\.hw-help-trigger\[aria-expanded="true"\]/);

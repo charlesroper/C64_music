@@ -149,7 +149,9 @@
               <span class="hw-toggle-value" id="sid-model-value">6581</span>
             </label>
             <div class="hw-help-row">
-              <span class="hw-hint" id="sid-model-hint">6581 is warmer; 8580 is cleaner.</span>
+              <span class="hw-hint" id="sid-model-hint"
+                >Most Galway tracks were written for the 6581.</span
+              >
               <button
                 type="button"
                 class="hw-help-trigger icon-button"
@@ -237,17 +239,19 @@
                 Audio Mode
               </h3>
               <p>
-                Audio plays from a buffer. Playback waits about 0.2 seconds, which gives the device
-                time to keep up and avoids crackles. Interactive responds sooner but can crackle on
-                slower devices. Firefox uses its own setting.
+                Audio plays from a buffer. Playback waits about 0.2 seconds so the device can keep
+                up, which avoids crackles. That wait means all live readouts lead the sound: the
+                monitor, oscilloscopes, register readouts and source follow. Interactive responds
+                sooner but is more likely to crackle. Firefox ignores Audio Mode. Use the
+                <a
+                  class="hw-help-link"
+                  href="https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md#firefox"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Firefox buffer setting</a
+                >
+                instead.
               </p>
-              <a
-                class="hw-help-link"
-                href="https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md"
-                target="_blank"
-                rel="noopener"
-                >Audio delay help</a
-              >
               <button
                 type="button"
                 class="hw-help-close icon-button"

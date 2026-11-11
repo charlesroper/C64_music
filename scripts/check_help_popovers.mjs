@@ -344,8 +344,8 @@ async function checkKeyboard({ client, appUrl }) {
     client.send,
     `({ active: document.activeElement.textContent.trim(), tag: document.activeElement.tagName })`,
   );
-  if (state.tag !== "A" || state.active !== "Audio delay help") {
-    throw new Error("Tab did not reach the Audio delay help link");
+  if (state.tag !== "A" || state.active !== "Firefox buffer setting") {
+    throw new Error("Tab did not reach the Firefox buffer setting link");
   }
 
   await client.send("Input.dispatchKeyEvent", {

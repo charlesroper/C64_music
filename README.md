@@ -84,7 +84,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * The Deadlines group reports late blocks and missed quanta as cumulative totals, current-window counts and session peaks.
 * The Telemetry group reports cumulative, windowed and peak telemetry drops.
 * `out` is total output delay, not the callback buffer. A small buffer can pop on low-end devices. See [Audio delay and clean playback](docs/audio-latency.md), the [browser verification guide](docs/agents/browser-verification.md) and the [Firefox latencyHint research](docs/research/firefox-audiocontext-latencyhint.md).
-* The latency mode help links to the audio delay guide. The link has visible text, **Audio delay help**, and works from the keyboard.
+* The Stats latency mode help links to the audio delay guide. The link has visible text, **Audio delay help**, and works from the keyboard.
 
 ### Telemetry rate
 
@@ -101,9 +101,10 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 * The app remembers your choice in `localStorage` under `galway2664.audioMode.v1`. It does not use cookies.
 * Append `?latency=interactive` or `?latency=playback` to override the stored choice for one load. A URL override is not saved.
 * The SID chip and Audio Mode controls show a short summary and an SVG **?** help button. Each button opens a non-modal help panel with the full explanation and a close icon. On phones the panel is a bottom sheet; on wider screens it anchors near the button and stays inside the viewport.
-* The SID chip panel covers the 1982 and 1987 chips and the filter difference. The Audio Mode panel covers the buffer, the 0.2-second playback delay, the interactive crackle risk and the Firefox setting.
-* The Audio Mode panel links **Audio delay help** to [the audio delay guide](docs/audio-latency.md) in a new tab. Following it does not change the mode.
-* Firefox ignores the Audio Mode hint. Use the Firefox buffer setting below.
+* The SID chip panel covers the 1982 and 1987 chips and the filter difference. Its summary notes that most Galway tracks were written for the 6581.
+* The Audio Mode panel covers the buffer, the 0.2-second playback delay, the interactive crackle risk and the Firefox setting. It explains that all live readouts lead the sound, including the monitor, oscilloscopes, register readouts and source follow.
+* The Audio Mode panel links **Firefox buffer setting** to the Firefox section of [the audio delay guide](docs/audio-latency.md#firefox) in a new tab. Following it does not change the mode.
+* Firefox ignores Audio Mode. Use the Firefox buffer setting below.
 
 ### Audio delay and clean playback
 
