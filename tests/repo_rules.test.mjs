@@ -84,6 +84,7 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
     "git remote get-url fork",
     "npm run lint",
     "npm test",
+    "npm run check:help-popovers",
     "git push fork main",
     "git rev-parse --short HEAD",
   ]);
@@ -153,6 +154,15 @@ test("historical Ocean assembly sources and assembler directives remain authenti
       `Historical file ${file} has been modified or corrupted (expected SHA-256 ${expectedHash}, got ${hash})`,
     );
   }
+});
+
+test("NARRATIVE.md leaves no commit-hash placeholder", () => {
+  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
+  assert.doesNotMatch(
+    narrative,
+    /\[HASH\]/,
+    "Replace [HASH] with the short commit hash in a follow-up Record commit",
+  );
 });
 
 test("documentation test counts in README.md and NARRATIVE.md match automated test suite", () => {

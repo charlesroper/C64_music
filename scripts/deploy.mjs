@@ -36,10 +36,13 @@ export function deploy(options = {}) {
   log("4. Running automated test suite...");
   exec("npm test", { stdio: "inherit" });
 
-  log(`5. Pushing to GitHub Pages (${remote}/${branch})...`);
+  log("5. Running help popover browser checks...");
+  exec("npm run check:help-popovers", { stdio: "inherit" });
+
+  log(`6. Pushing to GitHub Pages (${remote}/${branch})...`);
   exec(`git push ${remote} ${branch}`, { stdio: "inherit" });
 
-  log("6. Deployment status:");
+  log("7. Deployment status:");
   const commit = exec("git rev-parse --short HEAD", { encoding: "utf8" }).toString().trim();
   log(`Successfully pushed commit ${commit} to ${remote}/${branch}.`);
   log("GitHub Pages URL: https://charlesroper.github.io/C64_music/");

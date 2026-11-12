@@ -84,6 +84,8 @@ Reflect every feature, UI change, workflow script, bug fix or catalogue adjustme
 
 Append a dated entry (`### DD Month YYYY: title`) to `NARRATIVE.md` Section 8 for every story-changing event: a new feature, significant bug fix, architectural seam, performance optimisation or notable failure or reversal. Explain the problem, the change, how it was verified and link commit hashes, issues and ADRs. Skip routine chores such as typo fixes, CalVer bumps, formatting and dependency updates.
 
+A Section 8 entry cannot know its own commit hash. Commit the entry without a commit link, then add the short hash in a follow-up `Record ... commit` commit. The suite rejects a `[HASH]` placeholder.
+
 Run `npm test` before committing. When tests change, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly. Completion: both documents state the same test count as the suite.
 
 ## 5. Commit standards
