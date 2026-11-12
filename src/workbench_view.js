@@ -863,7 +863,7 @@ export function createWorkbenchView({
 
     const titleEl = getEl("source-file-name");
     if (titleEl) {
-      titleEl.textContent = `: ${gameId}`;
+      titleEl.textContent = gameId;
     }
     const statsEl = getEl("source-stats");
     if (statsEl) {
@@ -1642,21 +1642,19 @@ export function createWorkbenchView({
         if (!state.player) return;
         const fileToUpdate = state.currentSourceFile || state.activeGameId;
         const editedText = editorEl.value;
+        const stateEl = getEl("asm-compile-state");
+        const detailEl = getEl("asm-compile-detail");
         try {
           state.player.updateSource(fileToUpdate, editedText);
           state.sourceHtmlCache.delete(fileToUpdate);
           state.sourceRowCache.delete(fileToUpdate);
         } catch (err) {
-          const stateEl = getEl("asm-compile-state");
-          const detailEl = getEl("asm-compile-detail");
           if (stateEl) stateEl.textContent = "Error:";
           if (detailEl) detailEl.textContent = ` ${err.message || String(err)}`;
           return;
         }
 
         state.isEditorDirty = false;
-        const stateEl = getEl("asm-compile-state");
-        const detailEl = getEl("asm-compile-detail");
         if (stateEl) stateEl.textContent = "Hot-reloaded OK";
         if (detailEl) detailEl.textContent = "";
 

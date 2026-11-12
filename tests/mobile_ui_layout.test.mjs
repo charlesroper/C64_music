@@ -361,7 +361,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       false,
       "Voice 3 chip must not be active-followed",
     );
-    assert.match(elementsById.get("source-file-name").textContent, /arkadrum\.asm/);
+    assert.equal(elementsById.get("source-file-name").textContent, "arkadrum.asm");
 
     // Click Voice 3 chip -> switch back to arkanoid.asm and follow V3
     v3Chip.click();
@@ -375,7 +375,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       false,
       "DRM chip must not be active-followed",
     );
-    assert.match(elementsById.get("source-file-name").textContent, /arkanoid\.asm/);
+    assert.equal(elementsById.get("source-file-name").textContent, "arkanoid.asm");
 
     // Click DRM chip again -> switch back to arkadrum.asm
     drmChip.click();
@@ -384,7 +384,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
       true,
       "DRM chip must be active-followed again",
     );
-    assert.match(elementsById.get("source-file-name").textContent, /arkadrum\.asm/);
+    assert.equal(elementsById.get("source-file-name").textContent, "arkadrum.asm");
 
     // 7. SID Hex Strip renders all 4 labeled voice and filter groups
     const hexCells = elementsById.get("sid-hex-cells");

@@ -561,6 +561,11 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
   );
   assert.match(idTag("btn-directives-modal"), /class="[^"]*c64-caps/);
   assert.match(idTag("asm-compile-state"), /class="[^"]*c64-caps/);
+  assert.doesNotMatch(
+    idTag("asm-compile-badge"),
+    /c64-caps/,
+    "The badge container holds the dynamic detail and must not gain c64-caps",
+  );
   assert.match(
     fragment(
       /<span[^>]*id="asm-compile-state"[^>]*>[\s\S]*?<\/span\s*>/,
@@ -573,11 +578,13 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     />\s*Stats for nerds\s*</,
   );
   assert.match(idTag("btn-stats-nerds"), /class="[^"]*c64-caps/);
+  assert.match(buttonHtml("btn-narrative-modal"), />\s*The story\s*</);
+  assert.match(idTag("btn-narrative-modal"), /class="[^"]*c64-caps/);
   const sourcePrefix = fragment(
-    /<span class="c64-caps">5\. Ocean source<\/span\s*>/,
+    /<span class="c64-caps">5\. Ocean source:<\/span\s*>/,
     "The source title must wrap only its static prefix",
   );
-  assert.match(sourcePrefix, /5\. Ocean source/);
+  assert.match(sourcePrefix, /5\. Ocean source:/);
 
   for (const [tab, text] of [
     ["all", "All panels"],
