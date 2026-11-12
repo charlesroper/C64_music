@@ -872,7 +872,7 @@ export function createWorkbenchView({
 
     const symSelect = getEl("select-symbol-jump");
     if (symSelect) {
-      symSelect.innerHTML = `<option value="">Jump to Symbol / Label (${Object.keys(asm.symbols).length})...</option>`;
+      symSelect.innerHTML = `<option value="">Jump to symbol or label (${Object.keys(asm.symbols).length})...</option>`;
       const sortedSyms = Object.entries(asm.symbols)
         .filter(([k]) => !/^N\d\d$/.test(k))
         .sort((a, b) => a[0].localeCompare(b[0]));

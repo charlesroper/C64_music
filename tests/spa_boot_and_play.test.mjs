@@ -388,6 +388,7 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
   assert.match(sourceTab, />\s*Source\s*</);
   const docsButton = buttonHtml("btn-directives-modal");
   assert.match(docsButton, />\s*Ocean assembler docs\s*</);
+  assert.match(docsButton, /title="Ocean assembler docs"/);
 
   const keypadLabel = fragment(
     /<span\b[^>]*id="c64-keypad-label"[^>]*>[\s\S]*?<\/span\s*>/,
@@ -436,33 +437,39 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
   const previous = buttonTag("btn-prev");
   assert.match(previous, /title="Previous track \(press \[\)"/);
   assert.match(previous, /aria-label="Previous track"/);
+  assert.match(previous, /aria-keyshortcuts="\["/);
   const next = buttonTag("btn-next");
   assert.match(next, /title="Next track \(press \]\)"/);
   assert.match(next, /aria-label="Next track"/);
+  assert.match(next, /aria-keyshortcuts="\]"/);
   assert.match(buttonTag("btn-play"), /title="Play or pause \(press space\)"/);
+  assert.match(buttonTag("btn-play"), /aria-keyshortcuts="Space"/);
 
   for (let voice = 0; voice < 3; voice += 1) {
     const number = voice + 1;
     const mute = dataButton("mute", voice);
     assert.match(mute, new RegExp(`title="Mute voice ${number} \\(press ${number}\\)"`));
     assert.match(mute, new RegExp(`aria-label="Mute voice ${number}"`));
+    assert.match(mute, new RegExp(`aria-keyshortcuts="${number}"`));
     const solo = dataButton("solo", voice);
     assert.match(solo, new RegExp(`aria-label="Solo voice ${number}"`));
   }
   const digiMute = dataButton("mute", 3);
   assert.match(digiMute, /title="Mute digi drums \(press 4\)"/);
   assert.match(digiMute, /aria-label="Mute digi drums"/);
+  assert.match(digiMute, /aria-keyshortcuts="4"/);
 
   const searchTag = fragment(
     /<input\b[^>]*id="input-source-search"[^>]*>/,
     "Source search input must exist",
   );
   assert.match(searchTag, /aria-label="Search source"/);
-  const symbolTag = fragment(
-    /<select\b[^>]*id="select-symbol-jump"[^>]*>/,
+  const symbolSelect = fragment(
+    /<select\b[^>]*id="select-symbol-jump"[\s\S]*?<\/select>/,
     "Symbol select must exist",
   );
-  assert.match(symbolTag, /aria-label="Jump to symbol"/);
+  assert.match(symbolSelect, /aria-label="Jump to symbol or label"/);
+  assert.match(symbolSelect, /<option value="">Jump to symbol or label\.\.\.<\/option>/);
 
   for (const id of ["btn-prev", "btn-play", "btn-restart", "btn-next", "btn-ffwd"]) {
     assert.match(

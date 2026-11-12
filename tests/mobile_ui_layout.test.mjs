@@ -279,7 +279,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     view.selectGameAndTrack("wizball.asm", "wiz-title", false);
     view.renderTelemetry(player.getTelemetry());
 
-    // 1. On 375px phones, HUD Row Guide defaults to hidden so C64 40x25 screen is legible
+    // 1. On 375px phones, HUD row guide defaults to hidden so C64 40x25 screen is legible
     assert.equal(elementsById.get("chk-hud-overlay").checked, false);
     assert.equal(elementsById.get("hud-guide-overlay").classList.contains("hidden"), true);
 
@@ -302,13 +302,13 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     );
     assert.ok(scrolledElements.length > 0, "Expected scrollIntoView on target ASM line");
 
-    // 4. Follow Voice starts unchecked by default, but clicking a voice chip selects voice and enables it
+    // 4. Follow voice starts unchecked by default, but clicking a voice chip selects voice and enables it
     const chkFollow = elementsById.get("chk-follow-pc");
-    assert.equal(chkFollow.checked, false, "Follow Voice must start unchecked by default");
+    assert.equal(chkFollow.checked, false, "Follow voice must start unchecked by default");
     const v1Chip = legendChips.find((c) => c.dataset.voice === "1");
     assert.ok(v1Chip, "Expected Voice 2 legend chip");
     v1Chip.click();
-    assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow Voice");
+    assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow voice");
     assert.equal(
       v1Chip.classList.contains("active-followed"),
       true,
@@ -473,19 +473,19 @@ test("C64 character ROM contains authentic 8x8 glyphs for all 256 characters wit
   }
 });
 
-test("HUD row guide and Follow Voice initial states match markup defaults and stay synchronized on boot", () => {
+test("HUD row guide and Follow voice initial states match markup defaults and stay synchronized on boot", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 
   // chk-hud-overlay must be unchecked by default, hud-guide-overlay hidden
   assert.match(
     html,
     /<input[^>]*type="checkbox"[^>]*id="chk-hud-overlay"[^>]*>/,
-    "HUD Row Guide checkbox must be unchecked by default in index.html",
+    "HUD row guide checkbox must be unchecked by default in index.html",
   );
   assert.match(
     html,
     /<div class="hud-guide-overlay hidden" id="hud-guide-overlay"><\/div>/,
-    "HUD Row Guide overlay element must start with 'hidden' class in index.html",
+    "HUD row guide overlay element must start with 'hidden' class in index.html",
   );
 
   // chk-follow-pc must be unchecked by default with 'Follow voice' label
