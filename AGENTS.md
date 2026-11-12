@@ -94,6 +94,7 @@ Follow Chris Beams' git commit message guidelines:
 - Separate the subject from the body with a blank line.
 - Limit the subject to 50 characters, capitalised, imperative mood, with no trailing full stop.
 - Wrap body text at 72 characters.
+- Reference the originating issue in the body when one exists, for example `Issue #90`.
 
 Completion: `git log -1` shows a compliant subject and body.
 

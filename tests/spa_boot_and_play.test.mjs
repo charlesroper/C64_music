@@ -355,21 +355,49 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
 
 test("Workbench View uses action labels, sentence case and accessible names", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const buttonTag = (id) => html.match(new RegExp(`<button\\b[^>]*id="${id}"[^>]*>`))[0];
+  const fragment = (pattern, message) => {
+    const match = html.match(pattern);
+    assert.ok(match, message);
+    return match[0];
+  };
+  const buttonTag = (id) =>
+    fragment(new RegExp(`<button\\b[^>]*id="${id}"[^>]*>`), `#${id} button must exist`);
+  const buttonHtml = (id) =>
+    fragment(
+      new RegExp(`<button\\b[^>]*id="${id}"[^>]*>[\\s\\S]*?</button>`),
+      `#${id} button must exist`,
+    );
+  const dataButton = (name, value) =>
+    fragment(
+      new RegExp(`<button\\b[^>]*data-${name}="${value}"[^>]*>`),
+      `button[data-${name}="${value}"] must exist`,
+    );
+  const plainText = (tag) =>
+    tag
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  assert.match(html, /id="btn-toggle-edit"[^>]*>\s*Edit source\s*<\/button>/);
-  assert.match(
-    html,
-    /id="btn-toggle-edit"[^>]*title="Edit \.asm source and re-assemble in browser"/,
+  const editButton = buttonHtml("btn-toggle-edit");
+  assert.match(editButton, />\s*Edit source\s*</);
+  assert.match(editButton, /title="Edit \.asm source and re-assemble in browser"/);
+  const sourceTab = fragment(
+    /<button\b[^>]*data-mobile-tab="asm"[^>]*>[\s\S]*?<\/button>/,
+    "Source mobile tab must exist",
   );
-  assert.match(html, /data-mobile-tab="asm">\s*Source\s*<\/button>/);
-  assert.match(html, /id="btn-directives-modal"[^>]*>\s*Ocean assembler docs\s*<\/button>/);
+  assert.match(sourceTab, />\s*Source\s*</);
+  const docsButton = buttonHtml("btn-directives-modal");
+  assert.match(docsButton, />\s*Ocean assembler docs\s*</);
 
-  const keypadLabel = html
-    .match(/<span\b[^>]*id="c64-keypad-label"[^>]*>([\s\S]*?)<\/span\s*>/)[1]
-    .trim();
-  assert.equal(keypadLabel, "Inject C64 key");
-  const keypadGroup = html.match(/<div\b[^>]*id="c64-keypad-buttons"[^>]*>/)[0];
+  const keypadLabel = fragment(
+    /<span\b[^>]*id="c64-keypad-label"[^>]*>[\s\S]*?<\/span\s*>/,
+    "Keypad label must exist",
+  );
+  assert.equal(plainText(keypadLabel), "Inject C64 key");
+  const keypadGroup = fragment(
+    /<div\b[^>]*id="c64-keypad-buttons"[^>]*>/,
+    "Keypad group must exist",
+  );
   assert.match(keypadGroup, /role="group"/);
   assert.match(keypadGroup, /aria-labelledby="c64-keypad-label"/);
 
@@ -378,26 +406,32 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
     "Panel 3 must name the screen and border registers",
   );
 
-  const ffwd = html.match(/<button\b[^>]*id="btn-ffwd"[^>]*>([\s\S]*?)<\/button>/)[0];
+  const ffwd = buttonHtml("btn-ffwd");
   assert.match(ffwd, /title="Fast-forward 4x"/);
-  assert.match(
-    ffwd
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim(),
-    /Fast-forward 4x$/,
-  );
+  assert.match(plainText(ffwd), /Fast-forward 4x$/);
 
-  assert.match(html, /<span>HUD row guide<\/span>/);
-  assert.match(html, /<span>CRT scanlines<\/span>/);
-  assert.match(html, /<span>Follow voice<\/span>/);
-  assert.match(html, /aria-label="Mobile studio panels"/);
-  assert.match(html, /aria-label="About audio mode"/);
-  assert.match(html, /aria-label="Close audio mode help"/);
-  assert.doesNotMatch(
-    html,
-    /HUD Row Guide|CRT Scanlines|Follow Voice|Mobile Studio Panels|About Audio Mode|Close Audio Mode help/,
-  );
+  for (const label of ["HUD row guide", "CRT scanlines", "Follow voice"]) {
+    assert.ok(
+      html.includes(`<span>${label}</span>`),
+      `Visible label "${label}" must use sentence case`,
+    );
+  }
+  for (const label of ["Mobile studio panels", "About audio mode", "Close audio mode help"]) {
+    assert.ok(
+      html.includes(`aria-label="${label}"`),
+      `Accessible name "${label}" must use sentence case`,
+    );
+  }
+  for (const label of [
+    "HUD Row Guide",
+    "CRT Scanlines",
+    "Follow Voice",
+    "Mobile Studio Panels",
+    "About Audio Mode",
+    "Close Audio Mode help",
+  ]) {
+    assert.ok(!html.includes(label), `index.html must not use retired UI label "${label}"`);
+  }
 
   const previous = buttonTag("btn-prev");
   assert.match(previous, /title="Previous track \(press \[\)"/);
@@ -409,20 +443,34 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
 
   for (let voice = 0; voice < 3; voice += 1) {
     const number = voice + 1;
-    const mute = html.match(new RegExp(`<button\\b[^>]*data-mute="${voice}"[^>]*>`))[0];
+    const mute = dataButton("mute", voice);
     assert.match(mute, new RegExp(`title="Mute voice ${number} \\(press ${number}\\)"`));
     assert.match(mute, new RegExp(`aria-label="Mute voice ${number}"`));
-    const solo = html.match(new RegExp(`<button\\b[^>]*data-solo="${voice}"[^>]*>`))[0];
+    const solo = dataButton("solo", voice);
     assert.match(solo, new RegExp(`aria-label="Solo voice ${number}"`));
   }
-  const digiMute = html.match(/<button\b[^>]*data-mute="3"[^>]*>/)[0];
+  const digiMute = dataButton("mute", 3);
   assert.match(digiMute, /title="Mute digi drums \(press 4\)"/);
   assert.match(digiMute, /aria-label="Mute digi drums"/);
 
-  const searchTag = html.match(/<input\b[^>]*id="input-source-search"[^>]*>/)[0];
+  const searchTag = fragment(
+    /<input\b[^>]*id="input-source-search"[^>]*>/,
+    "Source search input must exist",
+  );
   assert.match(searchTag, /aria-label="Search source"/);
-  const symbolTag = html.match(/<select\b[^>]*id="select-symbol-jump"[^>]*>/)[0];
+  const symbolTag = fragment(
+    /<select\b[^>]*id="select-symbol-jump"[^>]*>/,
+    "Symbol select must exist",
+  );
   assert.match(symbolTag, /aria-label="Jump to symbol"/);
+
+  for (const id of ["btn-prev", "btn-play", "btn-restart", "btn-next", "btn-ffwd"]) {
+    assert.match(
+      buttonHtml(id),
+      /<span[^>]*aria-hidden="true"/,
+      `#${id} must hide its decorative glyph`,
+    );
+  }
 
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();

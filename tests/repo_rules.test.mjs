@@ -226,6 +226,40 @@ test("documentation test counts in README.md and NARRATIVE.md match automated te
   );
 });
 
+test("current documentation avoids retired Workbench View labels", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
+  const blogStart = narrative.indexOf("## 8. Development blog");
+  assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
+  const narrativeCurrent = narrative.slice(0, blogStart);
+  const retiredLabels = [
+    "EDIT .ASM",
+    "VIEW LIVE ASM",
+    "LIVE .ASM",
+    "OCEAN ASM DOCS",
+    "C64 KEY INJECT",
+    "HUD Row Guide",
+    "CRT Scanlines",
+    "Follow Voice",
+    "Mobile Studio Panels",
+    "About Audio Mode",
+    "Close Audio Mode help",
+    "4x FFWD",
+  ];
+
+  for (const [documentName, text] of [
+    ["README.md", readme],
+    ["NARRATIVE.md sections 1 to 7", narrativeCurrent],
+  ]) {
+    for (const label of retiredLabels) {
+      assert.ok(
+        !text.includes(label),
+        `${documentName} must not use retired UI label "${label}". Describe the shipped label instead.`,
+      );
+    }
+  }
+});
+
 test("AGENTS.md search guidance stays harness agnostic", () => {
   const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
   const section = agents.match(/## 7\. Search tooling\n([\s\S]*?)(?=\n## )/);

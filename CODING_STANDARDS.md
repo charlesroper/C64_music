@@ -113,3 +113,10 @@ Commit messages must adhere to Chris Beams' guidelines:
 **Rule 9.1 (Test-First Bug Fixes)**: Every bug fix must begin with a reproduction test that fails at the baseline commit before any fix code is written.
 **Rule 9.2 (Seam-Driven Assertions)**: Tests must assert on external caller-observable behavior through module seams. Tests must not inspect internal private state or duplicate the implementation in assertions.
 **Rule 9.3 (Strict Element Identification)**: Browser harness mocks must throw on missing element IDs to prevent silent drift between test doubles and production markup.
+**Rule 9.4 (Bounded Failure Output)**: When asserting against a large fixture such as `index.html` or a full document, extract the relevant tag or slice first. A failing assertion must print the fragment under test, not the whole file.
+
+---
+
+## 10. Accessibility
+
+**Rule 10.1 (Control Names)**: Icon-only controls need an `aria-label`. Controls with visible text keep that text as the name, and decorative glyphs inside them use `aria-hidden="true"`.
