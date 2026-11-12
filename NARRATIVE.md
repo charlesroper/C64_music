@@ -760,4 +760,4 @@ The Workbench View label change shipped with stale control names in `README.md` 
 
 `tests/repo_rules.test.mjs` now rejects retired Workbench View labels in README and NARRATIVE Sections 1 to 7, while leaving Section 8 history untouched. CODING_STANDARDS records bounded failure output for large fixtures and accessible names for icon controls. Transport glyphs are hidden from assistive technology, the implement and code-review skills state their opening and fixed-point defaults, and a local pre-commit hook runs the same lint and test commands as CI.
 
-The suite rose to 110 checks across 12 files. Issue [#90](https://github.com/charlesroper/C64_music/issues/90) carries the label change.
+The suite rose to 110 checks across 12 files. Commit [b0aed12](https://github.com/charlesroper/C64_music/commit/b0aed12) carries the change. Issue [#90](https://github.com/charlesroper/C64_music/issues/90) carries the label change.
