@@ -861,9 +861,9 @@ export function createWorkbenchView({
 
     state.currentSourceFile = gameId;
 
-    const titleEl = getEl("source-file-title");
+    const titleEl = getEl("source-file-name");
     if (titleEl) {
-      titleEl.textContent = `5. OCEAN .ASM SOURCE: ${gameId.toUpperCase()}`;
+      titleEl.textContent = `: ${gameId}`;
     }
     const statsEl = getEl("source-stats");
     if (statsEl) {
@@ -1194,7 +1194,7 @@ export function createWorkbenchView({
     if (playing) {
       if (btnPlay) btnPlay.classList.add("playing");
       if (playIcon) playIcon.innerHTML = "&#10074;&#10074;";
-      if (playLabel) playLabel.textContent = "PAUSE";
+      if (playLabel) playLabel.textContent = "Pause";
       if (led) {
         led.classList.remove("ready");
         led.classList.add("playing");
@@ -1202,7 +1202,7 @@ export function createWorkbenchView({
     } else {
       if (btnPlay) btnPlay.classList.remove("playing");
       if (playIcon) playIcon.innerHTML = "&#9654;";
-      if (playLabel) playLabel.textContent = "PLAY";
+      if (playLabel) playLabel.textContent = "Play";
       if (led) {
         led.classList.remove("playing");
         led.classList.add("ready");
@@ -1331,7 +1331,7 @@ export function createWorkbenchView({
           state.pendingPlayOnBoot = !state.pendingPlayOnBoot;
           const playLabel = getEl("play-label");
           if (playLabel) {
-            playLabel.textContent = state.pendingPlayOnBoot ? "LOADING..." : "PLAY";
+            playLabel.textContent = state.pendingPlayOnBoot ? "Loading..." : "Play";
           }
           return;
         }
@@ -1647,18 +1647,18 @@ export function createWorkbenchView({
           state.sourceHtmlCache.delete(fileToUpdate);
           state.sourceRowCache.delete(fileToUpdate);
         } catch (err) {
-          const badge = getEl("asm-compile-badge");
-          if (badge) {
-            badge.textContent = `ERROR: ${err.message || String(err)}`;
-          }
+          const stateEl = getEl("asm-compile-state");
+          const detailEl = getEl("asm-compile-detail");
+          if (stateEl) stateEl.textContent = "Error:";
+          if (detailEl) detailEl.textContent = ` ${err.message || String(err)}`;
           return;
         }
 
         state.isEditorDirty = false;
-        const badge = getEl("asm-compile-badge");
-        if (badge) {
-          badge.textContent = "HOT-RELOADED OK";
-        }
+        const stateEl = getEl("asm-compile-state");
+        const detailEl = getEl("asm-compile-detail");
+        if (stateEl) stateEl.textContent = "Hot-reloaded OK";
+        if (detailEl) detailEl.textContent = "";
 
         state.isEditingSource = false;
         viewerEl.classList.remove("hidden");

@@ -91,7 +91,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
     harness.elementsById.get("btn-play").click();
 
     assert.equal(harness.audioState.audioSession.type, "playback");
-    assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
+    assert.equal(harness.elementsById.get("play-label").textContent, "Pause");
     assert.equal(player.getState().audioBackend, "in-thread");
 
     const stats = pullAudioFrames(player, 24);
@@ -487,6 +487,15 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
     player,
   });
   try {
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+    for (const selector of [".t-badge", ".game-item-badge", ".now-playing-pill"]) {
+      for (const element of globalThis.document.querySelectorAll(selector)) {
+        assert.ok(
+          !element.classList.contains("c64-caps"),
+          `${selector} carries its own case and must not gain c64-caps`,
+        );
+      }
+    }
     const toggle = harness.elementsById.get("btn-toggle-edit");
     assert.equal(toggle.textContent, "Edit source");
     toggle.click();
@@ -498,6 +507,156 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
   } finally {
     view.destroy();
     harness.restoreGlobals();
+  }
+});
+
+test("chrome labels use sentence case in source and uppercase through CSS", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const fragment = (pattern, message) => {
+    const match = html.match(pattern);
+    assert.ok(match, message);
+    return match[0];
+  };
+  const idTag = (id) =>
+    fragment(new RegExp(`<[a-z]+\\b[^>]*id="${id}"[^>]*>`), `#${id} must exist`);
+  const buttonHtml = (id) =>
+    fragment(new RegExp(`<button\\b[^>]*id="${id}"[^>]*>[\\s\\S]*?</button>`), `#${id} must exist`);
+  const dataTag = (name, value) =>
+    fragment(
+      new RegExp(`<[a-z]+\\b[^>]*data-${name}="${value}"[^>]*>`),
+      `[data-${name}="${value}"] must exist`,
+    );
+
+  assert.match(
+    fragment(/<span class="brand-accent c64-caps">[\s\S]*?<\/span>/, "Brand accent must exist"),
+    /\/\/ Ocean 6502-SID workbench/,
+  );
+  assert.match(
+    fragment(/<span[^>]*id="play-label"[^>]*>[\s\S]*?<\/span>/, "Play label must exist"),
+    />\s*Play\s*</,
+  );
+  assert.match(idTag("play-label"), /class="[^"]*c64-caps/);
+  assert.match(
+    fragment(/<span[^>]*id="sid-model-label"[^>]*>[\s\S]*?<\/span>/, "SID label must exist"),
+    />\s*SID chip\s*</,
+  );
+  assert.match(idTag("sid-model-label"), /class="[^"]*c64-caps/);
+  assert.match(
+    fragment(
+      /<span[^>]*id="latency-mode-label"[^>]*>[\s\S]*?<\/span>/,
+      "Audio mode label must exist",
+    ),
+    />\s*Audio mode\s*</,
+  );
+  assert.match(idTag("latency-mode-label"), /class="[^"]*c64-caps/);
+  assert.ok(
+    html.includes('<span class="c64-caps">Drum boost ($D418)</span>'),
+    "The drum boost label must wrap only its static text",
+  );
+  assert.match(buttonHtml("btn-restart"), /<span class="c64-caps">Restart<\/span>/);
+  assert.match(
+    fragment(/<button\b[^>]*id="btn-directives-modal"[\s\S]*?<\/button>/, "Docs button must exist"),
+    />\s*Ocean assembler docs\s*</,
+  );
+  assert.match(idTag("btn-directives-modal"), /class="[^"]*c64-caps/);
+  assert.match(idTag("asm-compile-state"), /class="[^"]*c64-caps/);
+  assert.match(
+    fragment(
+      /<span[^>]*id="asm-compile-state"[^>]*>[\s\S]*?<\/span\s*>/,
+      "The compile badge state must exist",
+    ),
+    />\s*Assembled OK\s*</,
+  );
+  assert.match(
+    fragment(/<button\b[^>]*id="btn-stats-nerds"[\s\S]*?<\/button>/, "Stats button must exist"),
+    />\s*Stats for nerds\s*</,
+  );
+  assert.match(idTag("btn-stats-nerds"), /class="[^"]*c64-caps/);
+  const sourcePrefix = fragment(
+    /<span class="c64-caps">5\. Ocean source<\/span\s*>/,
+    "The source title must wrap only its static prefix",
+  );
+  assert.match(sourcePrefix, /5\. Ocean source/);
+
+  for (const [tab, text] of [
+    ["all", "All panels"],
+    ["monitor", "Monitor"],
+    ["tunes", "Tunes"],
+    ["asm", "Source"],
+  ]) {
+    assert.match(dataTag("mobile-tab", tab), /class="[^"]*c64-caps/);
+    assert.match(
+      fragment(
+        new RegExp(`<button\\b[^>]*data-mobile-tab="${tab}"[^>]*>[\\s\\S]*?</button>`),
+        `Mobile tab ${tab} must exist`,
+      ),
+      new RegExp(`>\\s*${text}\\s*<`),
+    );
+  }
+  for (const [filter, text] of [
+    ["all", "All"],
+    ["music", "Music"],
+    ["sfx", "SFX / drums"],
+  ]) {
+    assert.match(dataTag("filter", filter), /class="[^"]*c64-caps/);
+    assert.match(
+      fragment(
+        new RegExp(`<button\\b[^>]*data-filter="${filter}"[^>]*>[\\s\\S]*?</button>`),
+        `Filter ${filter} must exist`,
+      ),
+      new RegExp(`>\\s*${text}\\s*<`),
+    );
+  }
+  for (const name of [
+    "Voice 1 ($D400)",
+    "Voice 2 ($D407)",
+    "Voice 3 ($D40E)",
+    "Filter and $D418 DAC",
+  ]) {
+    assert.ok(
+      html.includes(`<span class="voice-name c64-caps">${name}</span>`),
+      `Voice name "${name}" must wrap only its static text`,
+    );
+  }
+  for (const label of ["Frame:", "CPU PC:", "$D418 writes/frm:"]) {
+    assert.ok(
+      html.includes(`<span class="tel-lbl c64-caps">${label}</span>`),
+      `Telemetry label "${label}" must wrap only its static text`,
+    );
+  }
+  assert.ok(
+    html.includes('<span class="sid-hex-label c64-caps">SID registers ($D400-$D418):</span>'),
+    "The SID strip label must wrap only its static text",
+  );
+  assert.match(
+    fragment(/<span class="morse-badge c64-caps"[\s\S]*?<\/span\s*>/, "Morse badge must exist"),
+    /Secret Morse transmitter active/,
+  );
+  for (const id of ["btn-close-modal", "btn-close-narrative-modal"]) {
+    const closeButton = buttonHtml(id);
+    assert.match(closeButton, /class="[^"]*c64-caps/);
+    assert.match(closeButton, /\bClose\b/);
+  }
+
+  const capsRule = css.match(/\.c64-caps\s*\{[^}]*\}/)?.[0];
+  assert.ok(capsRule, "src/styles.css must define .c64-caps");
+  assert.match(capsRule, /text-transform:\s*uppercase/);
+
+  for (const id of [
+    "asm-compile-detail",
+    "digi-boost-val",
+    "source-file-name",
+    "latency-mode-value",
+    "sid-model-value",
+    "now-playing-pill",
+    "morse-state-readout",
+  ]) {
+    assert.doesNotMatch(
+      idTag(id),
+      /c64-caps/,
+      `#${id} carries dynamic content and must keep its case`,
+    );
   }
 });
 
@@ -746,6 +905,31 @@ test("Stats groups metrics and keeps each label with its value", () => {
         `Stats must render the ${id} group`,
       );
     }
+    assert.equal(
+      globalThis.document.querySelector(".diag-title").textContent,
+      "Stats for nerds",
+      "The Stats title must use sentence case in source",
+    );
+    assert.ok(
+      globalThis.document.querySelector(".diag-title").classList.contains("c64-caps"),
+      "The Stats title must gain uppercase through CSS",
+    );
+    assert.deepEqual(
+      Array.from(globalThis.document.querySelectorAll(".diag-group-title")).map(
+        (el) => el.children[0]?.textContent,
+      ),
+      ["Context", "Latency", "Process", "Deadlines", "Telemetry", "Events"],
+      "Every Stats group title must use sentence case in source",
+    );
+    const processTitle = globalThis.document.querySelector(
+      ".diag-group--process .diag-group-title",
+    );
+    assert.equal(processTitle.children[1].textContent, " (ms)");
+    assert.ok(!processTitle.children[1].classList.contains("c64-caps"));
+    assert.ok(
+      processTitle.children[0].classList.contains("c64-caps"),
+      "Only the Process word must gain uppercase through CSS",
+    );
     assert.equal(
       globalThis.document.querySelectorAll(".diag-group-description").length,
       6,
@@ -1172,13 +1356,13 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
     const { player } = await bootPromise;
     const deadline = Date.now() + 5000;
     while (
-      harness.elementsById.get("play-label").textContent === "LOADING..." &&
+      harness.elementsById.get("play-label").textContent === "Loading..." &&
       Date.now() < deadline
     ) {
       await new Promise((r) => setTimeout(r, 20));
     }
 
-    assert.equal(harness.elementsById.get("play-label").textContent, "PAUSE");
+    assert.equal(harness.elementsById.get("play-label").textContent, "Pause");
     const stats = pullAudioFrames(player, 16);
     assert.ok(stats.peakL > 0.1, `Expected audio after delayed load, got peak=${stats.peakL}`);
   } finally {
@@ -1197,7 +1381,7 @@ test("CalVer version number appears immediately after the title of the app", asy
   const titleContent = match[1];
   assert.match(
     titleContent,
-    /<span[^>]*class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[\s\S]*?<span class="sr-only">Galway 2664<\/span>[\s\S]*?<\/span>[\s\S]*?<span class="brand-accent">\/\/ OCEAN 6502-SID WORKBENCH<\/span>[\s\S]*?<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    /<span[^>]*class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[\s\S]*?<span class="sr-only">Galway 2664<\/span>[\s\S]*?<\/span>[\s\S]*?<span class="brand-accent c64-caps">\/\/ Ocean 6502-SID workbench<\/span>[\s\S]*?<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
     "Version badge must be placed immediately after the app title",
   );
 
@@ -1284,7 +1468,8 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     const btnToggle = harness.elementsById.get("btn-toggle-edit");
     const btnReassemble = harness.elementsById.get("btn-reassemble");
     const editorEl = harness.elementsById.get("source-editor");
-    const badge = harness.elementsById.get("asm-compile-badge");
+    const badgeState = harness.elementsById.get("asm-compile-state");
+    const badgeDetail = harness.elementsById.get("asm-compile-detail");
 
     // Open editor
     btnToggle.click();
@@ -1296,7 +1481,8 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     btnReassemble.click();
 
     // Badge should show error, editor should stay open, text preserved
-    assert.match(badge.textContent, /ERROR/i);
+    assert.equal(badgeState.textContent, "Error:");
+    assert.match(badgeDetail.textContent, /Unknown instruction or directive/);
     assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
     assert.ok(!editorEl.classList.contains("hidden"), "Editor should stay open on error");
 
@@ -1305,7 +1491,8 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     editorEl.value = validEdit;
     btnReassemble.click();
 
-    assert.equal(badge.textContent, "HOT-RELOADED OK");
+    assert.equal(badgeState.textContent, "Hot-reloaded OK");
+    assert.equal(badgeDetail.textContent, "");
     assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");
 
     // 3. Type edit, switch track, verify no silent data loss
@@ -1342,7 +1529,7 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
 
   try {
     const playLabel = harness.elementsById.get("play-label");
-    assert.equal(playLabel.textContent, "PLAY");
+    assert.equal(playLabel.textContent, "Play");
 
     // 1. Open narrative modal
     const btnNarrative = harness.elementsById.get("btn-narrative-modal");
@@ -1363,7 +1550,7 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
     // Playback must NOT start
     assert.equal(
       playLabel.textContent,
-      "PLAY",
+      "Play",
       "Space while modal is open must not toggle playback",
     );
     assert.equal(spacePrevented, false, "Space while modal is open must not preventDefault");
@@ -1376,7 +1563,7 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
     });
     assert.equal(
       playLabel.textContent,
-      "PLAY",
+      "Play",
       "Letter key while modal is open must not start playback",
     );
 
@@ -1401,7 +1588,7 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
       false,
       "Space on focused button must not be prevented by global shortcut",
     );
-    assert.equal(playLabel.textContent, "PLAY");
+    assert.equal(playLabel.textContent, "Play");
 
     // 3. Focus on body (no active element): global shortcut works
     globalThis.document.activeElement = null;
@@ -1410,7 +1597,7 @@ test("global keyboard shortcuts ignore Space and letter keys while modal is open
       key: " ",
       preventDefault: () => {},
     });
-    assert.equal(playLabel.textContent, "PAUSE", "Space on page body toggles playback");
+    assert.equal(playLabel.textContent, "Pause", "Space on page body toggles playback");
   } finally {
     view.destroy();
     harness.restoreGlobals();
@@ -1790,11 +1977,11 @@ test("workbench view mounts behind focused interface and importing modules cause
     // 5. Driving playback updates UI
     view.setPlaying(true);
     assert.equal(player.getState().isPlaying, true);
-    assert.equal(view.elements.get("play-label").textContent, "PAUSE");
+    assert.equal(view.elements.get("play-label").textContent, "Pause");
 
     view.setPlaying(false);
     assert.equal(player.getState().isPlaying, false);
-    assert.equal(view.elements.get("play-label").textContent, "PLAY");
+    assert.equal(view.elements.get("play-label").textContent, "Play");
   } finally {
     view.destroy();
     harness.restoreGlobals();

@@ -71,7 +71,7 @@ function classifyBackend(backend) {
 const GROUPS = [
   {
     id: "context",
-    title: "CONTEXT",
+    title: "Context",
     description: "What browser and audio setup is running.",
     items: [
       ["backend", "backend", "Audio engine in use. Worklet is normal playback."],
@@ -90,7 +90,7 @@ const GROUPS = [
   },
   {
     id: "latency",
-    title: "LATENCY",
+    title: "Latency",
     description:
       "Output delay and buffer hints. A larger buffer is safer but adds delay. Chromium playback and Firefox with a 4096-frame buffer are the clean options in testing.",
     items: [
@@ -113,7 +113,8 @@ const GROUPS = [
   },
   {
     id: "process",
-    title: "PROCESS (ms)",
+    title: "Process",
+    unit: "ms",
     description: "How long audio callbacks and main-thread frames take.",
     items: [
       ["p50", "p50", "Half of audio callbacks were faster than this."],
@@ -164,7 +165,7 @@ const GROUPS = [
   },
   {
     id: "deadlines",
-    title: "DEADLINES",
+    title: "Deadlines",
     description: "Audio work that missed its deadline.",
     items: [
       ["lateTotal", "late total", "Audio callbacks over budget since page load."],
@@ -187,7 +188,7 @@ const GROUPS = [
   },
   {
     id: "telemetry",
-    title: "TELEMETRY",
+    title: "Telemetry",
     description: "Health of the screen and scope update stream.",
     items: [
       [
@@ -211,7 +212,7 @@ const GROUPS = [
   },
   {
     id: "events",
-    title: "EVENTS",
+    title: "Events",
     description: "Recent audio-context state changes.",
     items: [["events", "events", "Recent audio-context state changes."]],
   },
@@ -318,8 +319,8 @@ function createDiagnosticsLayout(doc) {
   header.classList.add("diag-header");
 
   const title = doc.createElement("h2");
-  title.classList.add("diag-title");
-  title.textContent = "STATS FOR NERDS";
+  title.classList.add("diag-title", "c64-caps");
+  title.textContent = "Stats for nerds";
   header.appendChild(title);
 
   const helpButton = doc.createElement("button");
@@ -360,7 +361,15 @@ function createDiagnosticsLayout(doc) {
 
     const groupTitle = doc.createElement("div");
     groupTitle.classList.add("diag-group-title");
-    groupTitle.textContent = group.title;
+    const groupTitleText = doc.createElement("span");
+    groupTitleText.classList.add("c64-caps");
+    groupTitleText.textContent = group.title;
+    groupTitle.appendChild(groupTitleText);
+    if (group.unit) {
+      const unit = doc.createElement("span");
+      unit.textContent = ` (${group.unit})`;
+      groupTitle.appendChild(unit);
+    }
     groupEl.appendChild(groupTitle);
 
     const groupDescription = doc.createElement("p");

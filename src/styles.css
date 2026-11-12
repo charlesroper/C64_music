@@ -49,6 +49,10 @@ body {
   display: none !important;
 }
 
+.c64-caps {
+  text-transform: uppercase;
+}
+
 /* ==================== APP SHELL & TOP BAR ==================== */
 .app-shell {
   display: flex;
