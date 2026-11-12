@@ -116,22 +116,45 @@
         </div>
 
         <div class="transport-bar">
-          <button type="button" id="btn-prev" class="btn-icon" title="Previous track ([)">
+          <button
+            type="button"
+            id="btn-prev"
+            class="btn-icon"
+            title="Previous track (press [)"
+            aria-label="Previous track"
+          >
             <span>&#9664;&#9664;</span>
           </button>
-          <button type="button" id="btn-play" class="btn-primary" title="Play / pause (Space)">
+          <button
+            type="button"
+            id="btn-play"
+            class="btn-primary"
+            title="Play or pause (press space)"
+          >
             <span id="play-icon">&#9654;</span> <span id="play-label">PLAY</span>
           </button>
           <button type="button" id="btn-restart" class="btn-icon" title="Restart current track">
             <span>&#8634;</span>
             RESTART
           </button>
-          <button type="button" id="btn-next" class="btn-icon" title="Next track (])">
+          <button
+            type="button"
+            id="btn-next"
+            class="btn-icon"
+            title="Next track (press ])"
+            aria-label="Next track"
+          >
             <span>&#9654;&#9654;</span>
           </button>
-          <button type="button" id="btn-ffwd" class="btn-icon" title="Hold to fast-forward 4x">
+          <button
+            type="button"
+            id="btn-ffwd"
+            class="btn-icon"
+            title="Fast-forward 4x"
+            aria-label="Fast-forward 4x"
+          >
             <span>&#9654;&#9654;|</span>
-            4x FFWD
+            Fast-forward 4x
           </button>
         </div>
 
@@ -216,7 +239,7 @@
                 type="button"
                 class="hw-help-trigger icon-button"
                 id="latency-mode-help-trigger"
-                aria-label="About Audio Mode"
+                aria-label="About audio mode"
                 aria-haspopup="dialog"
                 aria-expanded="false"
                 aria-controls="latency-mode-help-panel"
@@ -256,7 +279,7 @@
                 type="button"
                 class="hw-help-close icon-button"
                 id="latency-mode-help-close"
-                aria-label="Close Audio Mode help"
+                aria-label="Close audio mode help"
               >
                 <svg class="icon" aria-hidden="true" focusable="false">
                   <use href="#icon-close"></use>
@@ -290,7 +313,7 @@
             class="btn-secondary"
             title="Ocean assembler manual and architecture"
           >
-            OCEAN ASM DOCS
+            Ocean assembler docs
           </button>
 
           <button
@@ -314,13 +337,13 @@
       </header>
 
       <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
-      <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile Studio Panels">
+      <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile studio panels">
         <button type="button" class="mobile-tab-btn active" data-mobile-tab="all">
           ALL PANELS
         </button>
         <button type="button" class="mobile-tab-btn" data-mobile-tab="monitor">MONITOR</button>
         <button type="button" class="mobile-tab-btn" data-mobile-tab="tunes">TUNES</button>
-        <button type="button" class="mobile-tab-btn" data-mobile-tab="asm">LIVE .ASM</button>
+        <button type="button" class="mobile-tab-btn" data-mobile-tab="asm">Source</button>
       </nav>
 
       <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
@@ -352,9 +375,7 @@
         <section class="panel panel-center">
           <div class="panel-header">
             <div class="header-left-group">
-              <span class="panel-title"
-                >3. Live C64 monitor ($0400 and VIC-II $D020 raster bars)</span
-              >
+              <span class="panel-title">3. Live C64 monitor ($0400 screen, $D020 border)</span>
               <span class="now-playing-pill" id="now-playing-pill">READY</span>
             </div>
             <div class="header-right-group">
@@ -363,11 +384,11 @@
                 title="Overlay labels explaining Martin Galway's raw memory dump rows on $0400"
               >
                 <input type="checkbox" id="chk-hud-overlay">
-                <span>HUD Row Guide</span>
+                <span>HUD row guide</span>
               </label>
               <label class="toggle-label" title="Show C64 CRT scanline effect">
                 <input type="checkbox" id="chk-crt-scanlines" checked>
-                <span>CRT Scanlines</span>
+                <span>CRT scanlines</span>
               </label>
             </div>
           </div>
@@ -395,11 +416,18 @@
             <div class="c64-keypad-bar">
               <span
                 class="keypad-label"
+                id="c64-keypad-label"
                 title="Inject PETSCII key directly into the C64 driver loop ($F13E / KeyScan)"
               >
-                C64 KEY INJECT:
+                Inject C64 key
               </span>
-              <div class="keypad-buttons" id="c64-keypad-buttons"></div>
+              <!-- biome-ignore lint/a11y/useSemanticElements: the group label sits in the surrounding bar; a fieldset would change the existing keypad layout -->
+              <div
+                class="keypad-buttons"
+                id="c64-keypad-buttons"
+                role="group"
+                aria-labelledby="c64-keypad-label"
+              ></div>
             </div>
           </div>
 
@@ -440,11 +468,18 @@
                     type="button"
                     class="btn-mini"
                     data-mute="0"
-                    title="Mute Voice 1 (Digit 1)"
+                    title="Mute voice 1 (press 1)"
+                    aria-label="Mute voice 1"
                   >
                     M
                   </button>
-                  <button type="button" class="btn-mini" data-solo="0" title="Solo Voice 1">
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-solo="0"
+                    title="Solo voice 1"
+                    aria-label="Solo voice 1"
+                  >
                     S
                   </button>
                 </div>
@@ -477,11 +512,18 @@
                     type="button"
                     class="btn-mini"
                     data-mute="1"
-                    title="Mute Voice 2 (Digit 2)"
+                    title="Mute voice 2 (press 2)"
+                    aria-label="Mute voice 2"
                   >
                     M
                   </button>
-                  <button type="button" class="btn-mini" data-solo="1" title="Solo Voice 2">
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-solo="1"
+                    title="Solo voice 2"
+                    aria-label="Solo voice 2"
+                  >
                     S
                   </button>
                 </div>
@@ -514,11 +556,18 @@
                     type="button"
                     class="btn-mini"
                     data-mute="2"
-                    title="Mute Voice 3 (Digit 3)"
+                    title="Mute voice 3 (press 3)"
+                    aria-label="Mute voice 3"
                   >
                     M
                   </button>
-                  <button type="button" class="btn-mini" data-solo="2" title="Solo Voice 3">
+                  <button
+                    type="button"
+                    class="btn-mini"
+                    data-solo="2"
+                    title="Solo voice 3"
+                    aria-label="Solo voice 3"
+                  >
                     S
                   </button>
                 </div>
@@ -551,7 +600,8 @@
                     type="button"
                     class="btn-mini"
                     data-mute="3"
-                    title="Mute $D418 digi-drums (Digit 4)"
+                    title="Mute digi drums (press 4)"
+                    aria-label="Mute digi drums"
                   >
                     DIGI M
                   </button>
@@ -581,7 +631,7 @@
                 title="Auto-scroll code viewer to follow selected voice or drum sequencer pattern"
               >
                 <input type="checkbox" id="chk-follow-pc">
-                <span>Follow Voice</span>
+                <span>Follow voice</span>
               </label>
               <button
                 type="button"
@@ -589,7 +639,7 @@
                 class="btn-mini-action"
                 title="Edit .asm source and re-assemble in browser"
               >
-                EDIT .ASM
+                Edit source
               </button>
               <button
                 type="button"
@@ -608,6 +658,7 @@
               id="select-symbol-jump"
               class="symbol-select"
               title="Jump to symbol / routine / data table"
+              aria-label="Jump to symbol"
             >
               <option value="">Jump to Symbol / Label...</option>
             </select>
@@ -616,6 +667,7 @@
               id="input-source-search"
               class="source-search"
               placeholder="Find label, opcode, comment..."
+              aria-label="Search source"
             >
             <!-- biome-ignore lint/a11y/useSemanticElements: this is a radio-style control group styled as a legend strip; fieldset semantics would change the existing layout and test contract -->
             <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
@@ -623,14 +675,14 @@
                 type="button"
                 class="legend-chip active-followed"
                 data-voice="0"
-                title="Follow Voice 1 (PC0)"
+                title="Follow voice 1 (PC0)"
               >
                 <i class="dot-v0"></i>V1
               </button>
-              <button type="button" class="legend-chip" data-voice="1" title="Follow Voice 2 (PC1)">
+              <button type="button" class="legend-chip" data-voice="1" title="Follow voice 2 (PC1)">
                 <i class="dot-v1"></i>V2
               </button>
-              <button type="button" class="legend-chip" data-voice="2" title="Follow Voice 3 (PC2)">
+              <button type="button" class="legend-chip" data-voice="2" title="Follow voice 3 (PC2)">
                 <i class="dot-v2"></i>V3
               </button>
               <button

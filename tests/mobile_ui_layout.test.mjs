@@ -488,11 +488,11 @@ test("HUD row guide and Follow Voice initial states match markup defaults and st
     "HUD Row Guide overlay element must start with 'hidden' class in index.html",
   );
 
-  // chk-follow-pc must be unchecked by default with 'Follow Voice' label
+  // chk-follow-pc must be unchecked by default with 'Follow voice' label
   assert.match(
     html,
-    /<input[^>]*type="checkbox"[^>]*id="chk-follow-pc"[^>]*>\s*<span>Follow Voice<\/span>/,
-    "Follow Voice checkbox must be unchecked by default in index.html",
+    /<input[^>]*type="checkbox"[^>]*id="chk-follow-pc"[^>]*>\s*<span>Follow voice<\/span>/,
+    "Follow voice checkbox must be unchecked by default in index.html",
   );
 
   // Interactive voice legend chips must be present with V1 active by default

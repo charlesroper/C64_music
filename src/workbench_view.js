@@ -1630,7 +1630,10 @@ export function createWorkbenchView({
         viewerEl.classList.toggle("hidden", state.isEditingSource);
         editorEl.classList.toggle("hidden", !state.isEditingSource);
         btnReassemble.classList.toggle("hidden", !state.isEditingSource);
-        btnToggleEdit.textContent = state.isEditingSource ? "VIEW LIVE ASM" : "EDIT .ASM";
+        btnToggleEdit.textContent = state.isEditingSource ? "View source" : "Edit source";
+        btnToggleEdit.title = state.isEditingSource
+          ? "Show the read-only source"
+          : "Edit .asm source and re-assemble in browser";
       });
     }
 
@@ -1661,7 +1664,8 @@ export function createWorkbenchView({
         viewerEl.classList.remove("hidden");
         editorEl.classList.add("hidden");
         btnReassemble.classList.add("hidden");
-        btnToggleEdit.textContent = "EDIT .ASM";
+        btnToggleEdit.textContent = "Edit source";
+        btnToggleEdit.title = "Edit .asm source and re-assemble in browser";
 
         renderSource(fileToUpdate);
         selectGameAndTrack(state.activeGameId, state.activeTrackId, true);

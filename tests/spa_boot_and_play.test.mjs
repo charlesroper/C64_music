@@ -297,7 +297,7 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   assert.doesNotMatch(summary, /0\.2|Interactive|Firefox/);
 
   const triggerTag = group.match(/<button\b[^>]*id="latency-mode-help-trigger"[^>]*>/)[0];
-  assert.match(triggerTag, /aria-label="About Audio Mode"/);
+  assert.match(triggerTag, /aria-label="About audio mode"/);
   assert.match(triggerTag, /aria-haspopup="dialog"/);
   assert.match(triggerTag, /aria-expanded="false"/);
   assert.match(triggerTag, /aria-controls="latency-mode-help-panel"/);
@@ -305,7 +305,7 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   assert.match(group, /id="latency-mode-help-trigger"[\s\S]*?<use href="#icon-help">/);
 
   const closeTag = group.match(/<button\b[^>]*id="latency-mode-help-close"[^>]*>/)[0];
-  assert.match(closeTag, /aria-label="Close Audio Mode help"/);
+  assert.match(closeTag, /aria-label="Close audio mode help"/);
   assert.match(group, /id="latency-mode-help-close"[\s\S]*?<use href="#icon-close">/);
 
   assert.match(html, /<symbol id="icon-help"/);
@@ -351,6 +351,99 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   assert.match(css, /\.hw-help-trigger\[aria-expanded="true"\]/);
   assert.match(css, /\.icon-button\s*\{[^}]*display:\s*inline-grid/);
   assert.match(css, /\.hw-help-panel\s*\{[^}]*position:\s*fixed/);
+});
+
+test("Workbench View uses action labels, sentence case and accessible names", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const buttonTag = (id) => html.match(new RegExp(`<button\\b[^>]*id="${id}"[^>]*>`))[0];
+
+  assert.match(html, /id="btn-toggle-edit"[^>]*>\s*Edit source\s*<\/button>/);
+  assert.match(
+    html,
+    /id="btn-toggle-edit"[^>]*title="Edit \.asm source and re-assemble in browser"/,
+  );
+  assert.match(html, /data-mobile-tab="asm">\s*Source\s*<\/button>/);
+  assert.match(html, /id="btn-directives-modal"[^>]*>\s*Ocean assembler docs\s*<\/button>/);
+
+  const keypadLabel = html
+    .match(/<span\b[^>]*id="c64-keypad-label"[^>]*>([\s\S]*?)<\/span\s*>/)[1]
+    .trim();
+  assert.equal(keypadLabel, "Inject C64 key");
+  const keypadGroup = html.match(/<div\b[^>]*id="c64-keypad-buttons"[^>]*>/)[0];
+  assert.match(keypadGroup, /role="group"/);
+  assert.match(keypadGroup, /aria-labelledby="c64-keypad-label"/);
+
+  assert.ok(
+    html.includes("3. Live C64 monitor ($0400 screen, $D020 border)"),
+    "Panel 3 must name the screen and border registers",
+  );
+
+  const ffwd = html.match(/<button\b[^>]*id="btn-ffwd"[^>]*>([\s\S]*?)<\/button>/)[0];
+  assert.match(ffwd, /title="Fast-forward 4x"/);
+  assert.match(
+    ffwd
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+    /Fast-forward 4x$/,
+  );
+
+  assert.match(html, /<span>HUD row guide<\/span>/);
+  assert.match(html, /<span>CRT scanlines<\/span>/);
+  assert.match(html, /<span>Follow voice<\/span>/);
+  assert.match(html, /aria-label="Mobile studio panels"/);
+  assert.match(html, /aria-label="About audio mode"/);
+  assert.match(html, /aria-label="Close audio mode help"/);
+  assert.doesNotMatch(
+    html,
+    /HUD Row Guide|CRT Scanlines|Follow Voice|Mobile Studio Panels|About Audio Mode|Close Audio Mode help/,
+  );
+
+  const previous = buttonTag("btn-prev");
+  assert.match(previous, /title="Previous track \(press \[\)"/);
+  assert.match(previous, /aria-label="Previous track"/);
+  const next = buttonTag("btn-next");
+  assert.match(next, /title="Next track \(press \]\)"/);
+  assert.match(next, /aria-label="Next track"/);
+  assert.match(buttonTag("btn-play"), /title="Play or pause \(press space\)"/);
+
+  for (let voice = 0; voice < 3; voice += 1) {
+    const number = voice + 1;
+    const mute = html.match(new RegExp(`<button\\b[^>]*data-mute="${voice}"[^>]*>`))[0];
+    assert.match(mute, new RegExp(`title="Mute voice ${number} \\(press ${number}\\)"`));
+    assert.match(mute, new RegExp(`aria-label="Mute voice ${number}"`));
+    const solo = html.match(new RegExp(`<button\\b[^>]*data-solo="${voice}"[^>]*>`))[0];
+    assert.match(solo, new RegExp(`aria-label="Solo voice ${number}"`));
+  }
+  const digiMute = html.match(/<button\b[^>]*data-mute="3"[^>]*>/)[0];
+  assert.match(digiMute, /title="Mute digi drums \(press 4\)"/);
+  assert.match(digiMute, /aria-label="Mute digi drums"/);
+
+  const searchTag = html.match(/<input\b[^>]*id="input-source-search"[^>]*>/)[0];
+  assert.match(searchTag, /aria-label="Search source"/);
+  const symbolTag = html.match(/<select\b[^>]*id="select-symbol-jump"[^>]*>/)[0];
+  assert.match(symbolTag, /aria-label="Jump to symbol"/);
+
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+  try {
+    const toggle = harness.elementsById.get("btn-toggle-edit");
+    assert.equal(toggle.textContent, "Edit source");
+    toggle.click();
+    assert.equal(toggle.textContent, "View source");
+    assert.equal(toggle.title, "Show the read-only source");
+    toggle.click();
+    assert.equal(toggle.textContent, "Edit source");
+    assert.equal(toggle.title, "Edit .asm source and re-assemble in browser");
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
 });
 
 test("Audio Mode help popover opens, closes and restores focus", () => {
