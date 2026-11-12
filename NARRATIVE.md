@@ -752,4 +752,4 @@ The markup test asserts the panel facts, the `#firefox` target and the link attr
 
 `.github/workflows/checks.yml` now runs `npm ci`, `npm run lint` and `npm test` on every push to `main` and every pull request. `scripts/deploy.mjs` runs `npm run check:help-popovers` after the test suite. A repository rules test rejects a remaining placeholder hash, and AGENTS records the two-commit hash workflow.
 
-The suite rose to 108 checks across 12 files.
+The suite rose to 108 checks across 12 files. Commit [f454fcc](https://github.com/charlesroper/C64_music/commit/f454fcc) carries the change.
