@@ -850,13 +850,81 @@ test("Stats latency help describes the audio trade-off and default", () => {
     assert.match(helpText, /crackle/);
     assert.match(helpText, /0\.2 seconds/);
     assert.match(helpText, /default/);
-    assert.match(helpText, /Firefox uses its own setting/);
+    assert.match(helpText, /Firefox uses its own buffer setting/);
+    assert.doesNotMatch(helpText, /Firefox uses its own setting/);
     assert.doesNotMatch(helpText, /Interactive is the default/);
 
+    const latencyDescription = globalThis.document.querySelector(
+      ".diag-group--latency .diag-group-description",
+    ).textContent;
+    assert.equal(
+      latencyDescription,
+      "Output delay and buffer hints. A larger buffer is safer but adds delay. In testing, Chromium playback and a 4096-frame Firefox buffer avoided crackles.",
+    );
+
+    const outHelp = globalThis.document
+      .querySelector('[data-metric="latency:out"]')
+      .closest(".diag-item").children[2].textContent;
+    assert.match(outHelp, /Very low values can cause clicks\./);
+    assert.doesNotMatch(outHelp, /Low values can pop/);
+
     const intro = globalThis.document.querySelector(".diag-help-intro").textContent;
-    assert.doesNotMatch(intro, /README explains/);
-    assert.doesNotMatch(intro, /Firefox Nightly/);
-    assert.match(intro, /Audio delay help/i);
+    assert.equal(
+      intro,
+      "A window is about one second, and window values reset each second. Session peaks last until you reload the page, so check peak when a spike has passed.",
+    );
+    assert.doesNotMatch(intro, /Audio delay help/i);
+  } finally {
+    overlay.stop();
+    harness.restoreGlobals();
+  }
+});
+
+test("Stats help defines the engine, deadlines and percentiles in plain language", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const overlay = createAudioDiagnosticsOverlay({
+    document: globalThis.document,
+    player: { getAudioDiagnostics: () => ({}) },
+    window: globalThis.window,
+  });
+
+  try {
+    const item = (metric) =>
+      globalThis.document.querySelector(`[data-metric="${metric}"]`).closest(".diag-item");
+    const helpText = (metric) => item(metric).children[2].textContent;
+
+    assert.equal(item("context:backend").children[0].textContent, "engine");
+    assert.equal(
+      helpText("context:backend"),
+      "Audio engine in use: worklet (normal) or in-thread (fallback).",
+    );
+    assert.equal(helpText("process:p50"), "Half of audio callbacks were faster.");
+    assert.equal(
+      helpText("process:p95"),
+      "95% of audio callbacks were faster, so this is a near-worst case.",
+    );
+    assert.equal(
+      helpText("deadlines:missedTotal"),
+      "Audio blocks dropped entirely since page load.",
+    );
+    assert.equal(
+      helpText("deadlines:missedWindow"),
+      "Audio blocks dropped entirely in the current window.",
+    );
+    assert.equal(
+      helpText("deadlines:missedPeak"),
+      "Worst dropped-block count in a window since page load.",
+    );
+
+    assert.equal(
+      globalThis.document.querySelector(".diag-group--events .diag-group-description").textContent,
+      "Recent audio-context state changes.",
+    );
+    assert.equal(
+      globalThis.document.querySelectorAll(".diag-group--events .diag-help").length,
+      0,
+      "The Events item help must not repeat the group description",
+    );
   } finally {
     overlay.stop();
     harness.restoreGlobals();
@@ -978,16 +1046,24 @@ test("Stats groups metrics and keeps each label with its value", () => {
     assert.equal(value("telemetry:volume"), "1.00");
 
     for (const item of globalThis.document.querySelectorAll(".diag-item")) {
-      assert.equal(item.children.length, 3, "Each metric must have label, value and help");
       assert.equal(item.children[0].className, "diag-label");
       assert.equal(item.children[1].className, "diag-value");
+      if (item.parentElement.classList.contains("diag-group--events")) {
+        assert.equal(
+          item.children.length,
+          2,
+          "The Events item must use the group description instead of duplicate help",
+        );
+        continue;
+      }
+      assert.equal(item.children.length, 3, "Each metric must have label, value and help");
       assert.equal(item.children[2].className, "diag-help");
       assert.ok(item.children[2].textContent.length > 0, "Every metric needs a help description");
     }
     assert.equal(
       globalThis.document.querySelectorAll(".diag-help").length,
-      38,
-      "All 38 metrics must have help text",
+      37,
+      "All metrics except Events must have help text",
     );
   } finally {
     overlay.stop();

@@ -7,7 +7,7 @@
 import { TELEMETRY_HZ_DEFAULT } from "./player_engine.js";
 
 const HELP_INTRO =
-  "A window is about one second. Window values reset every second. Session peaks last until reload. Use peak when a spike has already passed. The Audio delay help link explains the Firefox buffer setting.";
+  "A window is about one second, and window values reset each second. Session peaks last until you reload the page, so check peak when a spike has passed.";
 
 const AUDIO_DELAY_HELP_URL =
   "https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md";
@@ -74,7 +74,7 @@ const GROUPS = [
     title: "Context",
     description: "What browser and audio setup is running.",
     items: [
-      ["backend", "backend", "Audio engine in use. Worklet is normal playback."],
+      ["backend", "engine", "Audio engine in use: worklet (normal) or in-thread (fallback)."],
       ["ctx", "ctx", "Browser audio state. Running means sound can play."],
       ["rate", "rate", "Audio sample rate in Hz."],
       [
@@ -92,19 +92,19 @@ const GROUPS = [
     id: "latency",
     title: "Latency",
     description:
-      "Output delay and buffer hints. A larger buffer is safer but adds delay. Chromium playback and Firefox with a 4096-frame buffer are the clean options in testing.",
+      "Output delay and buffer hints. A larger buffer is safer but adds delay. In testing, Chromium playback and a 4096-frame Firefox buffer avoided crackles.",
     items: [
       [
         "mode",
         "mode",
-        "Interactive responds sooner but can crackle on slower devices. Playback waits about 0.2 seconds and is the default. Firefox uses its own setting.",
+        "Interactive responds sooner but can crackle on slower devices. Playback waits about 0.2 seconds and is the default. Firefox uses its own buffer setting.",
         { href: AUDIO_DELAY_HELP_URL, text: "Audio delay help" },
       ],
       ["base", "base", "Browser-reported base latency. Firefox usually reports 0ms."],
       [
         "out",
         "out",
-        "Total delay before you hear sound, not the callback buffer. Chromium playback is about 192ms, Chromium interactive about 16ms, Firefox default about 11ms. Low values can pop. Firefox with a 4096-frame buffer is about 190ms and clean.",
+        "Total delay before you hear sound, not the callback buffer. Chromium playback is about 192ms, Chromium interactive about 16ms, Firefox default about 11ms. Very low values can cause clicks. Firefox with a 4096-frame buffer is about 190ms and clean.",
       ],
     ],
     health: {
@@ -117,8 +117,8 @@ const GROUPS = [
     unit: "ms",
     description: "How long audio callbacks and main-thread frames take.",
     items: [
-      ["p50", "p50", "Half of audio callbacks were faster than this."],
-      ["p95", "p95", "95% of audio callbacks were faster. A near-worst case."],
+      ["p50", "p50", "Half of audio callbacks were faster."],
+      ["p95", "p95", "95% of audio callbacks were faster, so this is a near-worst case."],
       ["p99", "p99", "99% of audio callbacks were faster. The worst 1%."],
       ["max", "max", "Slowest audio callback in the current window."],
       ["peak", "peak", "Slowest audio callback since page load."],
@@ -175,9 +175,9 @@ const GROUPS = [
         "Over-budget callbacks in the current window, out of the callback count.",
       ],
       ["latePeak", "late peak", "Worst window count since page load."],
-      ["missedTotal", "missed total", "Whole audio blocks skipped since page load."],
-      ["missedWindow", "missed window", "Whole audio blocks skipped in the current window."],
-      ["missedPeak", "missed peak", "Worst skipped-block count in a window since page load."],
+      ["missedTotal", "missed total", "Audio blocks dropped entirely since page load."],
+      ["missedWindow", "missed window", "Audio blocks dropped entirely in the current window."],
+      ["missedPeak", "missed peak", "Worst dropped-block count in a window since page load."],
     ],
     health: {
       lateWindow: (diagnostics) => classifyCount(diagnostics.lateWindow, 2),
@@ -214,7 +214,7 @@ const GROUPS = [
     id: "events",
     title: "Events",
     description: "Recent audio-context state changes.",
-    items: [["events", "events", "Recent audio-context state changes."]],
+    items: [["events", "events"]],
   },
 ];
 
@@ -390,22 +390,23 @@ function createDiagnosticsLayout(doc) {
       valueEl.dataset.metric = `${group.id}:${key}`;
       valueEl.textContent = "-";
 
-      const helpEl = doc.createElement("span");
-      helpEl.classList.add("diag-help");
-      helpEl.textContent = link ? `${help} ` : help;
-      if (link) {
-        const linkEl = doc.createElement("a");
-        linkEl.classList.add("diag-help-link");
-        linkEl.setAttribute("href", link.href);
-        linkEl.setAttribute("target", "_blank");
-        linkEl.setAttribute("rel", "noopener noreferrer");
-        linkEl.textContent = link.text;
-        helpEl.appendChild(linkEl);
-      }
-
       item.appendChild(labelEl);
       item.appendChild(valueEl);
-      item.appendChild(helpEl);
+      if (help) {
+        const helpEl = doc.createElement("span");
+        helpEl.classList.add("diag-help");
+        helpEl.textContent = link ? `${help} ` : help;
+        if (link) {
+          const linkEl = doc.createElement("a");
+          linkEl.classList.add("diag-help-link");
+          linkEl.setAttribute("href", link.href);
+          linkEl.setAttribute("target", "_blank");
+          linkEl.setAttribute("rel", "noopener noreferrer");
+          linkEl.textContent = link.text;
+          helpEl.appendChild(linkEl);
+        }
+        item.appendChild(helpEl);
+      }
       groupEl.appendChild(item);
       valueNodes.set(`${group.id}:${key}`, valueEl);
     }
