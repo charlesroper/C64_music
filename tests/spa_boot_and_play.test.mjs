@@ -561,6 +561,16 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
   );
   assert.match(idTag("btn-directives-modal"), /class="[^"]*c64-caps/);
   assert.match(idTag("asm-compile-state"), /class="[^"]*c64-caps/);
+  assert.match(
+    idTag("asm-compile-badge"),
+    /aria-live="polite"/,
+    "The compile status badge must announce updates politely",
+  );
+  assert.match(
+    idTag("asm-compile-badge"),
+    /aria-atomic="true"/,
+    "The compile status badge must announce status and detail together",
+  );
   assert.doesNotMatch(
     idTag("asm-compile-badge"),
     /c64-caps/,
@@ -573,6 +583,8 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     ),
     />\s*Assembled OK\s*</,
   );
+  assert.match(buttonHtml("btn-reassemble"), />\s*Assemble and run\s*</);
+  assert.match(idTag("btn-reassemble"), /class="[^"]*c64-caps/);
   assert.match(
     fragment(/<button\b[^>]*id="btn-stats-nerds"[\s\S]*?<\/button>/, "Stats button must exist"),
     />\s*Stats for nerds\s*</,
@@ -1475,8 +1487,14 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     const btnToggle = harness.elementsById.get("btn-toggle-edit");
     const btnReassemble = harness.elementsById.get("btn-reassemble");
     const editorEl = harness.elementsById.get("source-editor");
+    const badge = harness.elementsById.get("asm-compile-badge");
     const badgeState = harness.elementsById.get("asm-compile-state");
     const badgeDetail = harness.elementsById.get("asm-compile-detail");
+    const recoveryEl = harness.elementsById.get("asm-compile-recovery");
+
+    assert.equal(badgeState.textContent, "Assembled OK");
+    assert.equal(badgeDetail.textContent, "");
+    assert.ok(recoveryEl.classList.contains("hidden"), "Recovery copy must start hidden");
 
     // Open editor
     btnToggle.click();
@@ -1487,20 +1505,42 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     editorEl.value = "SYNTAX_ERROR_UNKNOWN_OPCODE ???";
     btnReassemble.click();
 
-    // Badge should show error, editor should stay open, text preserved
-    assert.equal(badgeState.textContent, "Error:");
+    // Badge should show failure, recovery line visible, editor open, text preserved
+    assert.equal(badgeState.textContent, "Assembly failed:");
     assert.match(badgeDetail.textContent, /Unknown instruction or directive/);
+    assert.ok(badge.classList.contains("is-error"), "Badge should mark error state");
+    assert.equal(recoveryEl.textContent, "Fix the source, then select Assemble and run.");
+    assert.ok(!recoveryEl.classList.contains("hidden"), "Recovery copy must show on failure");
     assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
     assert.ok(!editorEl.classList.contains("hidden"), "Editor should stay open on error");
+    assert.ok(
+      !btnReassemble.classList.contains("hidden"),
+      "Assemble and run button should stay visible on error",
+    );
+
+    // Toggling editor closed hides recovery line; reopening restores it while error remains
+    btnToggle.click();
+    assert.ok(editorEl.classList.contains("hidden"), "View source should close editor");
+    assert.ok(recoveryEl.classList.contains("hidden"), "Closing editor hides recovery line");
+    btnToggle.click();
+    assert.ok(!editorEl.classList.contains("hidden"), "Edit source should reopen editor");
+    assert.ok(
+      !recoveryEl.classList.contains("hidden"),
+      "Reopening editor restores recovery line while failure remains",
+    );
 
     // 2. Submit valid edit
     const validEdit = `; Valid hot reload test\n${originalSource}`;
     editorEl.value = validEdit;
     btnReassemble.click();
 
-    assert.equal(badgeState.textContent, "Hot-reloaded OK");
+    assert.equal(badgeState.textContent, "Assembled and playing");
     assert.equal(badgeDetail.textContent, "");
+    assert.ok(!badge.classList.contains("is-error"), "Badge error state must clear on success");
+    assert.equal(recoveryEl.textContent, "");
+    assert.ok(recoveryEl.classList.contains("hidden"), "Recovery copy must hide on success");
     assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");
+    assert.ok(btnReassemble.classList.contains("hidden"), "Assemble button should hide on success");
 
     // 3. Type edit, switch track, verify no silent data loss
     btnToggle.click();

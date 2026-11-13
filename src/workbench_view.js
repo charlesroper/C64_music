@@ -1611,6 +1611,22 @@ export function createWorkbenchView({
     const btnReassemble = getEl("btn-reassemble");
     const viewerEl = getEl("source-viewer");
     const editorEl = getEl("source-editor");
+    const recoveryEl = getEl("asm-compile-recovery");
+    let hasAssemblyError = false;
+
+    const setEditorOpen = (isOpen) => {
+      state.isEditingSource = isOpen;
+      viewerEl.classList.toggle("hidden", isOpen);
+      editorEl.classList.toggle("hidden", !isOpen);
+      btnReassemble.classList.toggle("hidden", !isOpen);
+      if (recoveryEl) {
+        recoveryEl.classList.toggle("hidden", !isOpen || !hasAssemblyError);
+      }
+      btnToggleEdit.textContent = isOpen ? "View source" : "Edit source";
+      btnToggleEdit.title = isOpen
+        ? "Show the read-only source"
+        : "Edit .asm source and re-assemble in browser";
+    };
 
     if (viewerEl) {
       addListener(viewerEl, "pointerdown", cancelViewerSmoothScroll, { passive: true });
@@ -1626,14 +1642,7 @@ export function createWorkbenchView({
 
     if (btnToggleEdit && viewerEl && editorEl && btnReassemble) {
       addListener(btnToggleEdit, "click", () => {
-        state.isEditingSource = !state.isEditingSource;
-        viewerEl.classList.toggle("hidden", state.isEditingSource);
-        editorEl.classList.toggle("hidden", !state.isEditingSource);
-        btnReassemble.classList.toggle("hidden", !state.isEditingSource);
-        btnToggleEdit.textContent = state.isEditingSource ? "View source" : "Edit source";
-        btnToggleEdit.title = state.isEditingSource
-          ? "Show the read-only source"
-          : "Edit .asm source and re-assemble in browser";
+        setEditorOpen(!state.isEditingSource);
       });
     }
 
@@ -1642,6 +1651,7 @@ export function createWorkbenchView({
         if (!state.player) return;
         const fileToUpdate = state.currentSourceFile || state.activeGameId;
         const editedText = editorEl.value;
+        const badgeEl = getEl("asm-compile-badge");
         const stateEl = getEl("asm-compile-state");
         const detailEl = getEl("asm-compile-detail");
         try {
@@ -1649,22 +1659,27 @@ export function createWorkbenchView({
           state.sourceHtmlCache.delete(fileToUpdate);
           state.sourceRowCache.delete(fileToUpdate);
         } catch (err) {
-          if (stateEl) stateEl.textContent = "Error:";
+          hasAssemblyError = true;
+          if (badgeEl) badgeEl.classList.add("is-error");
+          if (stateEl) stateEl.textContent = "Assembly failed:";
           if (detailEl) detailEl.textContent = ` ${err.message || String(err)}`;
+          if (recoveryEl) {
+            recoveryEl.textContent = "Fix the source, then select Assemble and run.";
+            recoveryEl.classList.remove("hidden");
+          }
           return;
         }
 
+        hasAssemblyError = false;
         state.isEditorDirty = false;
-        if (stateEl) stateEl.textContent = "Hot-reloaded OK";
+        if (badgeEl) badgeEl.classList.remove("is-error");
+        if (stateEl) stateEl.textContent = "Assembled and playing";
         if (detailEl) detailEl.textContent = "";
+        if (recoveryEl) {
+          recoveryEl.textContent = "";
+        }
 
-        state.isEditingSource = false;
-        viewerEl.classList.remove("hidden");
-        editorEl.classList.add("hidden");
-        btnReassemble.classList.add("hidden");
-        btnToggleEdit.textContent = "Edit source";
-        btnToggleEdit.title = "Edit .asm source and re-assemble in browser";
-
+        setEditorOpen(false);
         renderSource(fileToUpdate);
         selectGameAndTrack(state.activeGameId, state.activeTrackId, true);
       });

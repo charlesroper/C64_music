@@ -654,6 +654,12 @@ button.active {
   border: 1px solid rgba(69, 240, 139, 0.35);
 }
 
+.panel-badge.is-error {
+  background: rgba(255, 107, 107, 0.14);
+  color: #ff8e8e;
+  border-color: rgba(255, 107, 107, 0.4);
+}
+
 /* ==================== LEFT PANEL: GAMES & TRACKS ==================== */
 .game-list {
   display: flex;
@@ -1551,6 +1557,17 @@ button.active {
 
 .asm-directive {
   color: var(--accent-yellow);
+}
+
+.asm-recovery {
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: #ffb4b4;
+  background: rgba(255, 107, 107, 0.12);
+  border-bottom: 1px solid rgba(255, 107, 107, 0.35);
+  flex-shrink: 0;
 }
 
 .source-editor {

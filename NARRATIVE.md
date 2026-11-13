@@ -285,7 +285,7 @@ Martin Galway uploaded his original assembly files to GitHub in April and May 20
 * **Character ROM and logo.** All 256 character codes produce authentic 8x8 glyphs with readable letters and punctuation and the white Galway 2664 brand logo sparkles through valid VIC-II colours.
 * **Telemetry and controls.** Section 4 telemetry values render with tabular numbers to prevent jitter, control checkboxes synchronise on boot with Follow voice off by default, interactive chips select the voice to follow and the bottom SID register strip groups voices responsively. The register-strip test checks the responsive `#sid-group-*` DOM grouping rather than the active sound lights.
 * **Smooth code tracking.** The assembly viewer uses adaptive `requestAnimationFrame` timing to follow fast 16th notes without lag, pre-positions large leaps near their targets and yields immediately on user gestures.
-* **Source editor safety.** Reassembly surfaces syntax errors in the status badge and preserves text and unsaved edits survive track changes.
+* **Source editor safety.** Reassembly reports `Assembled and playing` in the polite status badge on success. On syntax errors, the badge reports `Assembly failed:` with the detail, keeps the editor open with recovery guidance and preserves unsaved edits across track loads.
 * **Modal keyboard isolation.** Keyboard shortcuts ignore modal dialogs and preserve native button activation.
 * **Track-aware drum following.** Drum sequencer tracking enables only on songs with percussion, reads through the seqPC symbol and preserves user follow state across track switches.
 * **Source gutter address fidelity.** Address gutters hide empty statement sentinels while preserving authentic $0000 locations.
@@ -769,3 +769,11 @@ Every all-caps label was literal in the DOM, so the interface shouted in source 
 `src/styles.css` now has `.c64-caps` with `text-transform: uppercase`. Brand, transport, hardware, header, tab, filter, badge, source title, key bar, voice, telemetry, SID strip, Morse, modal, Stats title and Stats group labels now read in sentence case in source, with acronyms and units kept. The source file name, mode values, drum boost value and error detail keep their case. The Stats group heading splits `Process` from a lowercase `(ms)` span.
 
 Tests assert the source text, the CSS rule, the class on representative labels and the absence of the class on dynamic or unit-bearing values. The suite rose to 111 checks across 12 files. Commits [9db1eae](https://github.com/charlesroper/C64_music/commit/9db1eae) and [3c883d5](https://github.com/charlesroper/C64_music/commit/3c883d5) carry the change. Issue [#88](https://github.com/charlesroper/C64_music/issues/88) carries the casing change.
+
+### 13 November 2026: assembly status and recovery guidance
+
+Previously, reassembly showed `Hot-reloaded OK` on success and `Error:` on failure without saying how to recover or announcing status updates politely to assistive technology. `README.md` still named `RE-ASSEMBLE` and `HOT-RELOADED OK`.
+
+`index.html` now marks the `#asm-compile-badge` status region with `aria-live="polite"`, renders `#btn-reassemble` in sentence case as `Assemble and run` with `.c64-caps` and adds a hidden `#asm-compile-recovery` status line above the editor. `src/workbench_view.js` reports `Assembled and playing` on success and `Assembly failed:` with the error detail on failure, while keeping the editor open and showing `Fix the source, then select Assemble and run.` until the error clears or the editor closes.
+
+Tests in `tests/spa_boot_and_play.test.mjs` verify the idle `Assembled OK` badge, the `aria-live="polite"` attribute, `Assemble and run` casing, the success and failure states, the recovery line visibility across editor toggles and preservation of unsaved edits. Issue [#91](https://github.com/charlesroper/C64_music/issues/91) carries the change.

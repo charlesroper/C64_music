@@ -358,7 +358,7 @@
         <section class="panel panel-left">
           <div class="panel-header">
             <span class="panel-title">1. Source files (.asm)</span>
-            <span class="panel-badge" id="asm-compile-badge"
+            <span class="panel-badge" id="asm-compile-badge" aria-live="polite" aria-atomic="true"
               ><span class="c64-caps" id="asm-compile-state">Assembled OK</span
               ><span id="asm-compile-detail"></span></span
             >
@@ -662,10 +662,10 @@
               <button
                 type="button"
                 id="btn-reassemble"
-                class="btn-mini-action btn-accent hidden"
+                class="btn-mini-action btn-accent c64-caps hidden"
                 title="Assemble modified source and hot-reload into C64 RAM"
               >
-                ASSEMBLE AND RUN
+                Assemble and run
               </button>
             </div>
           </div>
@@ -713,6 +713,9 @@
               </button>
             </div>
           </div>
+
+          <!-- Assembly failure recovery guidance -->
+          <div class="asm-recovery hidden" id="asm-compile-recovery"></div>
 
           <!-- Read-Only Live Execution Code Viewer -->
           <div class="source-viewer" id="source-viewer"></div>
