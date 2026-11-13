@@ -784,4 +784,4 @@ A retrospective on the copy pass found four gaps. `tests/helpers/browser_harness
 
 The browser harness now parses `aria-*` and `role` attributes and matches selectors against them. `tests/repo_rules.test.mjs` adds `RE-ASSEMBLE` and `HOT-RELOADED OK` to the retired labels, guards high-signal `_Avoid_` terms from `GLOSSARY.md` in README and NARRATIVE Sections 1 to 7, checks that every `docs/agents` pointer in `AGENTS.md` resolves and asserts the stylesheet and script `?v=` query strings. The prose rules moved to `docs/agents/prose-and-narrative.md` and the release steps to `docs/agents/deployment.md`, behind pointers. CI now runs the help-popover check.
 
-The suite rose to 114 checks across 12 files. Issue [#91](https://github.com/charlesroper/C64_music/issues/91) prompted the review.
+The suite rose to 114 checks across 12 files. Commit [aea8e85](https://github.com/charlesroper/C64_music/commit/aea8e85) carries the guardrails. Issue [#91](https://github.com/charlesroper/C64_music/issues/91) prompted the review.
