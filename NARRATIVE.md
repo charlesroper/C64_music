@@ -808,4 +808,4 @@ Renaming the lint script exposed a gap. The local pre-commit hook lives in `.git
 
 `scripts/install_hooks.mjs` is now the tracked source. It writes `.git/hooks/pre-commit`, marks it executable and resolves the hooks directory through `git rev-parse --git-path hooks`, so worktrees work. The generated hook runs the project memory precheck when available, runs `npm run check:lint` on every commit and runs `npm test` when a staged file is under `src/`, `tests/`, `scripts/`, or is `index.html` or a package file. `npm run hooks:install` reinstalls it, and `README.md` names that step after cloning.
 
-A test installs the hook into a temporary directory and asserts the shebang, the executable bit, the `check:lint` call and the absent `lint` call. The suite rose to 117 checks across 12 files.
+A test installs the hook into a temporary directory and asserts the shebang, the executable bit, the `check:lint` call and the absent `lint` call. The suite rose to 117 checks across 12 files. Commit [739f465](https://github.com/charlesroper/C64_music/commit/739f465) carries the installer.
