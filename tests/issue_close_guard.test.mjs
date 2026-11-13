@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { auditChecklist } from "../scripts/close_issue.mjs";
+import { auditChecklist, isTransientGhError } from "../scripts/close_issue.mjs";
 
 test("issue close guard blocks unchecked acceptance criteria", () => {
   const { total, unchecked } = auditChecklist(`
@@ -28,4 +28,14 @@ test("issue close guard reports an empty checklist", () => {
 
   assert.equal(total, 0);
   assert.deepEqual(unchecked, []);
+});
+
+test("issue close guard retries transient GitHub API errors only", () => {
+  assert.equal(
+    isTransientGhError({ stderr: 'Post "https://api.github.com/graphql": unexpected EOF' }),
+    true,
+  );
+  assert.equal(isTransientGhError({ stderr: "HTTP 503 Service Unavailable" }), true);
+  assert.equal(isTransientGhError({ stderr: "HTTP 404 Not Found" }), false);
+  assert.equal(isTransientGhError(new Error("spawn gh ENOENT")), false);
 });

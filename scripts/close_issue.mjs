@@ -7,6 +7,8 @@ import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const CHECKBOX_RE = /^\s*[-*]\s+\[([ xX])\]\s+(.+)$/gm;
+const GH_ATTEMPTS = 3;
+const GH_RETRY_DELAY_MS = 1000;
 
 export function auditChecklist(body) {
   const unchecked = [];
@@ -18,12 +20,28 @@ export function auditChecklist(body) {
   return { total, unchecked };
 }
 
+export function isTransientGhError(error) {
+  const text = `${error?.stderr ?? ""} ${error?.message ?? ""}`;
+  return /unexpected EOF|ECONNRESET|ETIMEDOUT|EAI_AGAIN|HTTP (?:502|503|504)/i.test(text);
+}
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
 function gh(args, input) {
-  return execFileSync("gh", args, {
-    encoding: "utf8",
-    input,
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+  for (let attempt = 1; attempt <= GH_ATTEMPTS; attempt++) {
+    try {
+      return execFileSync("gh", args, {
+        encoding: "utf8",
+        input,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (error) {
+      if (attempt === GH_ATTEMPTS || !isTransientGhError(error)) throw error;
+      sleep(GH_RETRY_DELAY_MS * attempt);
+    }
+  }
 }
 
 function usage() {
