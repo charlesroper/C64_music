@@ -792,4 +792,4 @@ The retro wired `npm run check:help-popovers` into the CI workflow, then review 
 
 `scripts/deploy.mjs` already runs the check before every push to `fork/main`, so the regression still blocks a release. `CODING_STANDARDS.md` Rule 6.4 records the split, `docs/agents/browser-verification.md` gains a Release-only checks section with the three reasons, and `scripts/check_help_popovers.mjs` carries the same note at the top. `tests/repo_rules.test.mjs` asserts the workflow omits the check and the deploy preflight keeps it, so a later retro cannot re-add it by reflex.
 
-Re-adding it to CI needs a pinned Chromium, `CHROME_PATH` and font-independent tolerances. The suite rose to 115 checks across 12 files.
+Re-adding it to CI needs a pinned Chromium, `CHROME_PATH` and font-independent tolerances. The suite rose to 115 checks across 12 files. Commit [9259fee](https://github.com/charlesroper/C64_music/commit/9259fee) carries the reversal.
