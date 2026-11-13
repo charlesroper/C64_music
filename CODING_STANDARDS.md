@@ -94,6 +94,10 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 **Rule 7.2 (Mandatory Dev Blog Entries)**:
 * Every story-changing milestone (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md`.
 * Trivial maintenance and chore commits (typo fixes, CalVer version bumps, routine formatting) must be excluded from the dev blog.
+**Rule 7.3 (Documentation Accuracy)**:
+* Name a control by its visible label. When the accessible name differs, say so explicitly.
+* A Section 8 entry must describe only changes present in the diff under review.
+* Give each UI concept one term and one explanation. Do not repeat the same facts across Sections 3 and 5.
 
 ---
 

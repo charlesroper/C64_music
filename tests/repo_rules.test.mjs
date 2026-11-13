@@ -276,6 +276,54 @@ test("current documentation avoids retired Workbench View labels", () => {
   }
 });
 
+test("README names the shipped workbench controls", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const start = readme.indexOf("## Workbench controls");
+  assert.ok(start > -1, "README.md must keep a Workbench controls section");
+  const end = readme.indexOf("\n## ", start + 3);
+  const section = readme.slice(start, end === -1 ? undefined : end);
+  const labels = [
+    "**Previous track**",
+    "**Play**",
+    "**Pause**",
+    "**Restart**",
+    "**Next track**",
+    "**Fast-forward 4x**",
+    "**M**",
+    "**S**",
+    "**DIGI M**",
+    "**Mute voice 1**",
+    "**Mute voice 3**",
+    "**Solo voice 1**",
+    "**Solo voice 3**",
+    "**Edit source**",
+    "**View source**",
+    "**Assemble and run**",
+    "**Follow voice**",
+    "**Jump to symbol or label**",
+    "**Search source**",
+    "**Ocean assembler docs**",
+    "**SID chip**",
+    "**Audio mode**",
+    "**Playback**",
+    "**Interactive**",
+    "**Drum boost (`$D418`)**",
+    "**HUD row guide**",
+    "**CRT scanlines**",
+    "**Inject C64 key**",
+    "**All panels**",
+    "**Monitor**",
+    "**Tunes**",
+    "**Source**",
+  ];
+  for (const label of labels) {
+    assert.ok(
+      section.includes(label),
+      `README Workbench controls must name the shipped control "${label}".`,
+    );
+  }
+});
+
 test("current documentation avoids retired domain terms", () => {
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");

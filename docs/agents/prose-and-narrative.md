@@ -2,6 +2,15 @@
 
 Read this file before editing `README.md`, `NARRATIVE.md`, UI copy or track catalogue descriptions. House rules override the general writing skills.
 
+## Where the UI labels live
+
+Read the shipped labels before describing a control:
+
+* `index.html`: static labels, tooltips, panel titles and accessible names.
+* `src/workbench_view.js`: dynamic labels, assembly status and recovery copy.
+* `src/audio_diagnostics.js`: Stats help and metric descriptions.
+* `src/tracks_catalog.js`: track descriptions and summaries.
+
 ## Stage 1: drafting
 
 | Surface | Skill |
