@@ -10,6 +10,7 @@
     "check:lint": "biome check .",
     "format": "biome check --write .",
     "check:help-popovers": "node scripts/check_help_popovers.mjs",
+    "hooks:install": "node scripts/install_hooks.mjs",
     "bump": "node scripts/bump_version.mjs",
     "deploy": "node scripts/deploy.mjs",
     "issue:close": "node scripts/close_issue.mjs"

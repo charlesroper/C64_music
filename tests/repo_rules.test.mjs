@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { deploy, verifyCleanTree, verifyRemote } from "../scripts/deploy.mjs";
+import { installHooks } from "../scripts/install_hooks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -360,6 +362,31 @@ test("lint runs through a script name that harness proxies leave alone", () => {
     deployScript.includes("npm run check:lint"),
     "scripts/deploy.mjs must lint through `npm run check:lint`",
   );
+});
+
+test("hook installer writes an executable pre-commit hook with the safe lint script", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-hooks-"));
+  try {
+    const target = installHooks({ exec: () => dir, log: () => {} });
+    assert.equal(target, path.join(dir, "pre-commit"), "installer must target the hooks directory");
+
+    const content = fs.readFileSync(target, "utf8");
+    assert.match(content, /^#!\/bin\/sh/, "hook must start with a POSIX shebang");
+    assert.match(content, /npm run check:lint/, "hook must lint through check:lint");
+    assert.doesNotMatch(content, /npm run lint/, "hook must not call the removed lint script");
+    assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert.equal(
+    pkg.scripts["hooks:install"],
+    "node scripts/install_hooks.mjs",
+    "package.json must expose npm run hooks:install",
+  );
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.ok(readme.includes("npm run hooks:install"), "README must document the hook install step");
 });
 
 test("help popover browser check stays a release gate, not a CI job", () => {
