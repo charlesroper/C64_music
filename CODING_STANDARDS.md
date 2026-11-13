@@ -81,7 +81,7 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 
 **Rule 6.1 (Clean Tree Preflight)**: Automated deployment (`scripts/deploy.mjs`) must refuse to deploy if the git working tree has uncommitted or untracked changes.
 **Rule 6.2 (Remote Verification)**: Deployment must verify that the target git remote (`fork`) exists before attempting a push.
-**Rule 6.3 (Quality Gate Preflight)**: Deployment must execute `npm run lint` and `npm test` before pushing to `fork/main`. If any check fails, the deployment must abort immediately and distinguish push failure from success.
+**Rule 6.3 (Quality Gate Preflight)**: Deployment must execute `npm run check:lint` and `npm test` before pushing to `fork/main`. If any check fails, the deployment must abort immediately and distinguish push failure from success.
 **Rule 6.4 (Release-Only Browser Checks)**: `npm run check:help-popovers` runs in the deploy preflight only. It needs a real Chromium build and asserts font-sensitive pixel geometry across five viewports, so a GitHub runner without pinned browser and fonts makes it flaky. Do not add it to `.github/workflows/checks.yml` without pinning Chromium and removing the font-dependent tolerances. The rationale lives in `docs/agents/browser-verification.md` and a test enforces the split.
 
 ---

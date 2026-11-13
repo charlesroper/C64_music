@@ -46,7 +46,7 @@ Append a dated entry (`### DD Month YYYY: title`) to `NARRATIVE.md` Section 8 fo
 
 A Section 8 entry cannot know its own commit hash. Commit the entry without a commit link, then add the short hash in a follow-up `Record ... commit` commit. The suite rejects a `[HASH]` placeholder.
 
-Run `npm test` before committing. When tests change, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly. Completion: both documents state the same test count as the suite.
+Run `npm test` and `npm run check:lint` before committing. When tests change, update the test counts and bulleted check lists in both `README.md` and `NARRATIVE.md` to match `npm test` exactly. Completion: both documents state the same test count as the suite.
 
 ## 5. Commit standards
 

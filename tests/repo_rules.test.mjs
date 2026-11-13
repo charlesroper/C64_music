@@ -82,7 +82,7 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
   assert.deepEqual(executed, [
     "git status --porcelain",
     "git remote get-url fork",
-    "npm run lint",
+    "npm run check:lint",
     "npm test",
     "npm run check:help-popovers",
     "git push fork main",
@@ -335,6 +335,30 @@ test("AGENTS.md search guidance stays harness agnostic", () => {
     guidance,
     /Where RTK is wired, it rewrites shell commands, not built-in tools/,
     "Search guidance must not assume RTK is wired in every harness",
+  );
+});
+
+test("lint runs through a script name that harness proxies leave alone", () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  assert.equal(
+    pkg.scripts["check:lint"],
+    "biome check .",
+    "package.json must expose the lint check as `check:lint`",
+  );
+  assert.ok(
+    !("lint" in pkg.scripts),
+    "Do not add a `lint` script. RTK rewrites `npm run lint` to `rtk lint`, which shells out to ESLint and fails on a Biome project.",
+  );
+
+  const workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/checks.yml"), "utf8");
+  const deployScript = fs.readFileSync(path.join(ROOT, "scripts/deploy.mjs"), "utf8");
+  assert.ok(
+    workflow.includes("npm run check:lint"),
+    "checks.yml must lint through `npm run check:lint`",
+  );
+  assert.ok(
+    deployScript.includes("npm run check:lint"),
+    "scripts/deploy.mjs must lint through `npm run check:lint`",
   );
 });
 

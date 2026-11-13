@@ -31,7 +31,7 @@ export function deploy(options = {}) {
   verifyRemote(remote, exec);
 
   log("3. Running lint and format check...");
-  exec("npm run lint", { stdio: "inherit" });
+  exec("npm run check:lint", { stdio: "inherit" });
 
   log("4. Running automated test suite...");
   exec("npm test", { stdio: "inherit" });
