@@ -104,6 +104,16 @@ class Probe extends AudioWorkletProcessor {
 registerProcessor("probe", Probe);
 ```
 
+## Release-only checks
+
+`npm run check:help-popovers` is a release gate, not a CI job. `scripts/deploy.mjs` runs it before every push to `fork/main`. It stays out of `.github/workflows/checks.yml` for three reasons:
+
+- It needs a real Chromium build with the Popover API. `scripts/check_help_popovers.mjs` launches a browser, drives DevTools over a websocket and navigates five viewports. The GitHub runner supplies whichever Chrome version the image carries that week.
+- It asserts pixel geometry. The bottom-sheet tolerance is 14px and icon centring is 1px. Those numbers were tuned against this machine's fonts; a runner without JetBrains Mono and Inter falls back to different metrics.
+- A release gate catches the regression when it matters and keeps per-push CI fast and deterministic. A flaky check that people learn to ignore is worse than no check.
+
+Re-adding it to CI needs a pinned Chromium, `CHROME_PATH`, and font-independent tolerances. Until then, keep it in the deploy preflight. `tests/repo_rules.test.mjs` enforces that split.
+
 ## Engine guidance
 
 - **WebKit**: use for full headless verification, including the worklet pipeline.

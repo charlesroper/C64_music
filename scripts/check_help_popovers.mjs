@@ -5,6 +5,10 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Release gate, not a CI job. This check needs a real Chromium build and asserts
+// font-sensitive pixel geometry, so it runs in the deploy preflight only.
+// See docs/agents/browser-verification.md and CODING_STANDARDS Rule 6.4.
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_CHROME =
   "/root/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell";

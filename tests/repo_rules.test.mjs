@@ -338,6 +338,26 @@ test("AGENTS.md search guidance stays harness agnostic", () => {
   );
 });
 
+test("help popover browser check stays a release gate, not a CI job", () => {
+  const workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/checks.yml"), "utf8");
+  const deployScript = fs.readFileSync(path.join(ROOT, "scripts/deploy.mjs"), "utf8");
+  const docs = fs.readFileSync(path.join(ROOT, "docs/agents/browser-verification.md"), "utf8");
+
+  assert.ok(
+    deployScript.includes("check:help-popovers"),
+    "scripts/deploy.mjs must run the help popover check before pushing",
+  );
+  assert.ok(
+    !workflow.includes("check:help-popovers"),
+    "checks.yml must not run check:help-popovers. It needs a pinned Chromium and font-independent tolerances; see CODING_STANDARDS Rule 6.4.",
+  );
+  assert.match(
+    docs,
+    /## Release-only checks/,
+    "browser-verification.md must keep the release-only rationale so the split is discoverable",
+  );
+});
+
 test("agent steering pointers resolve to existing docs", () => {
   const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
   const pointers = new Set(
