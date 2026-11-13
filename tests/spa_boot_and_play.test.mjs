@@ -1549,6 +1549,25 @@ test("CalVer version number appears immediately after the title of the app", asy
   );
 });
 
+test("brand header, document title and package description agree on the 1985-87 range", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const subtitle =
+    "Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64 soundtracks, with a live assembler.";
+  const renderedSubtitle = html
+    .match(/<div class="brand-subtitle">([\s\S]*?)<\/div>/)?.[1]
+    .replace(/\s+/g, " ")
+    .trim();
+
+  assert.equal(renderedSubtitle, subtitle, "Brand subtitle must describe the 1985-87 catalogue");
+  assert.equal(pkg.description, `Galway 2664: ${subtitle}`);
+  assert.ok(
+    html.match(/<title>([^<]+)<\/title>/)?.[1]?.includes("(1985-87)"),
+    "Document title must use the 1985-87 range",
+  );
+  assert.doesNotMatch(html, /1985-1987/, "index.html must use the 1985-87 range style");
+});
+
 test("source editor surfaces assembly errors, preserves edits on syntax failure, and protects dirty edits on track change", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();

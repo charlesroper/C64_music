@@ -4,7 +4,7 @@
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
-  "description": "Galway 2664: WebAssembly MOS 6510 and 6581/8580 SID emulator and live 1985-87 Ocean Software 6502 cross-assembler",
+  "description": "Galway 2664: Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64 soundtracks, with a live assembler.",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check:lint": "biome check .",

@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { computeNextVersion } from "../scripts/bump_version.mjs";
+import { computeNextVersion, updateHtmlVersion } from "../scripts/bump_version.mjs";
 import { deploy, verifyCleanTree, verifyRemote } from "../scripts/deploy.mjs";
 import { installHooks } from "../scripts/install_hooks.mjs";
 
@@ -22,6 +22,17 @@ test("computeNextVersion refuses to lower version when package.json holds a futu
     () => computeNextVersion("2026.11.01.3", mockDate),
     /Refusing to lower version from future date 2026\.11\.01\.3 to 2026\.10\.30/,
   );
+});
+
+test("updateHtmlVersion rewrites the title with the 1985-87 range", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const updated = updateHtmlVersion(html, "2099.01.02");
+
+  assert.match(
+    updated,
+    /<title>Galway 2664 \/\/ Ocean 6502-SID Workbench \(1985-87\) v2099\.01\.02<\/title>/,
+  );
+  assert.doesNotMatch(updated, /1985-1987/);
 });
 
 test("deploy preflight aborts when working tree is dirty", () => {
@@ -450,7 +461,7 @@ test("calendar version is synchronized across all seven release locations", () =
   assert.equal(verJsMatch[1], calver, "src/version.js APP_VERSION must match package.json");
 
   const titleMatch = html.match(
-    /<title>Galway 2664 \/\/ Ocean 6502-SID Workbench \(1985-1987\) v([^<]+)<\/title>/,
+    /<title>Galway 2664 \/\/ Ocean 6502-SID Workbench \(1985-87\) v([^<]+)<\/title>/,
   );
   assert.ok(titleMatch, "index.html title must declare CalVer version");
   assert.equal(titleMatch[1], calver, "index.html title version must match package.json");

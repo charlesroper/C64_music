@@ -67,7 +67,7 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 **Rule 5.1 (Seven-Location Synchronization)**: Every version change must update all seven locations in lockstep:
 1. `package.json`: `"version": "YYYY.MM.DD"` or `"YYYY.MM.DD.MICRO"`
 2. `package-lock.json`: root package `"version": "YYYY.MM.DD"`
-3. `index.html`: document title (`(1985-1987) vYYYY.MM.DD`)
+3. `index.html`: document title (`(1985-87) vYYYY.MM.DD`)
 4. `index.html`: header badge (`<span class="brand-version" id="app-version">vYYYY.MM.DD</span>`)
 5. `index.html`: stylesheet query string (`href="./src/styles.css?v=YYYY.MM.DD"`)
 6. `index.html`: script query string (`src="./src/main.js?v=YYYY.MM.DD"`)

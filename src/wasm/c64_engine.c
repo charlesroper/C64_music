@@ -9,7 +9,7 @@
 
 // ============================================================================
 // C64 / 6510 / VIC-II / MOS 6581-8580 SID WebAssembly Core
-// Designed for Martin Galway's 1985-1987 Ocean Software Audio Source Files
+// Designed for Martin Galway's 1985-87 Ocean Software Audio Source Files
 // ============================================================================
 
 #define PAL_CLOCK_HZ   985248

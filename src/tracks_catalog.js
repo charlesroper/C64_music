@@ -1,5 +1,5 @@
 // ============================================================================
-// Martin Galway's 1985-1987 Ocean Software C64 Audio Source Catalogue
+// Martin Galway's 1985-87 Ocean Software C64 Audio Source Catalogue
 // ============================================================================
 
 export const GAME_FILES = [

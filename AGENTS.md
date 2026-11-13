@@ -5,7 +5,7 @@
 Every deployment updates the calendar version in seven synchronised places:
 - `package.json`: `"version": "YYYY.MM.DD"` or `"YYYY.MM.DD.MICRO"`.
 - `package-lock.json`: root `"version": "YYYY.MM.DD"`.
-- `index.html` document title: `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-1987) vYYYY.MM.DD</title>`.
+- `index.html` document title: `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) vYYYY.MM.DD</title>`.
 - `index.html` header badge: `<span class="brand-version" id="app-version">vYYYY.MM.DD</span>` next to the app title inside `<div class="brand-title">`.
 - `index.html` stylesheet query string: `href="./src/styles.css?v=YYYY.MM.DD"`.
 - `index.html` script query string: `src="./src/main.js?v=YYYY.MM.DD"`.
