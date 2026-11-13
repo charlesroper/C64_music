@@ -245,6 +245,9 @@ test("current documentation avoids retired Workbench View labels", () => {
     "About Audio Mode",
     "Close Audio Mode help",
     "4x FFWD",
+    "RE-ASSEMBLE",
+    "HOT-RELOADED OK",
+    "Hot-reloaded OK",
   ];
 
   for (const [documentName, text] of [
@@ -255,6 +258,54 @@ test("current documentation avoids retired Workbench View labels", () => {
       assert.ok(
         !text.includes(label),
         `${documentName} must not use retired UI label "${label}". Describe the shipped label instead.`,
+      );
+    }
+  }
+});
+
+test("current documentation avoids retired domain terms", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
+  const blogStart = narrative.indexOf("## 8. Development blog");
+  assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
+  const narrativeCurrent = narrative.slice(0, blogStart);
+
+  // Multi-word _Avoid_ terms from GLOSSARY.md whose meaning stays unambiguous in prose.
+  const retiredTerms = [
+    "Track switch",
+    "Track switching",
+    "Audio service",
+    "emulator backend",
+    "Worklet engine",
+    "Telemetry DTO",
+    "all-time max",
+    "historical maximum",
+    "UI container",
+    "frontend app",
+    "Song selection",
+    "track model",
+    "splash screen",
+    "loading overlay",
+    "Boot game",
+    "Autoplay prompt",
+    "Boot branch",
+    "track init script",
+    "Line lookup table",
+    "symbol resolver",
+    "Tick stopper",
+    "frame skipper",
+    "Frame state",
+    "debug data",
+  ];
+
+  for (const [documentName, text] of [
+    ["README.md", readme],
+    ["NARRATIVE.md sections 1 to 7", narrativeCurrent],
+  ]) {
+    for (const term of retiredTerms) {
+      assert.ok(
+        !text.toLowerCase().includes(term.toLowerCase()),
+        `${documentName} must not use the GLOSSARY _Avoid_ term "${term}". Use the canonical term instead.`,
       );
     }
   }
@@ -287,7 +338,21 @@ test("AGENTS.md search guidance stays harness agnostic", () => {
   );
 });
 
-test("calendar version is synchronized across package.json, package-lock.json, index.html, and src/version.js", () => {
+test("agent steering pointers resolve to existing docs", () => {
+  const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
+  const pointers = new Set(
+    Array.from(agents.matchAll(/docs\/agents\/[a-z0-9-]+\.md/g), (match) => match[0]),
+  );
+  assert.ok(pointers.size > 0, "AGENTS.md must point at docs/agents references");
+  for (const pointer of pointers) {
+    assert.ok(
+      fs.existsSync(path.join(ROOT, pointer)),
+      `AGENTS.md points at missing doc "${pointer}"`,
+    );
+  }
+});
+
+test("calendar version is synchronized across all seven release locations", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const lock = JSON.parse(fs.readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -322,4 +387,16 @@ test("calendar version is synchronized across package.json, package-lock.json, i
   const badgeMatch = html.match(/<span class="brand-version" id="app-version">v([^<]+)<\/span>/);
   assert.ok(badgeMatch, "index.html header badge must declare CalVer version");
   assert.equal(badgeMatch[1], calver, "index.html header badge version must match package.json");
+
+  const stylesMatch = html.match(/href="\.\/src\/styles\.css\?v=([^"]+)"/);
+  assert.ok(stylesMatch, "index.html stylesheet must carry a CalVer query string");
+  assert.equal(
+    stylesMatch[1],
+    calver,
+    "index.html stylesheet query string must match package.json",
+  );
+
+  const mainMatch = html.match(/src="\.\/src\/main\.js\?v=([^"]+)"/);
+  assert.ok(mainMatch, "index.html script must carry a CalVer query string");
+  assert.equal(mainMatch[1], calver, "index.html script query string must match package.json");
 });

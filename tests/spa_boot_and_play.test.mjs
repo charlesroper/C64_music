@@ -1494,6 +1494,8 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
 
     assert.equal(badgeState.textContent, "Assembled OK");
     assert.equal(badgeDetail.textContent, "");
+    assert.equal(badge.getAttribute("aria-live"), "polite");
+    assert.equal(badge.getAttribute("aria-atomic"), "true");
     assert.ok(recoveryEl.classList.contains("hidden"), "Recovery copy must start hidden");
 
     // Open editor

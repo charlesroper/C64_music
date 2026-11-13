@@ -30,49 +30,9 @@ Implement catalogue fixes, bug fixes and timing changes in `src/` or `src/tracks
 
 ## 3. Style and prose rules
 
-Write for the surface. Run Stage 1 before drafting, then Stage 2 before delivery.
+Write for the surface. Run Stage 1 before drafting, then the Stage 2 sub-editor gate before delivery.
 
-### Stage 1: Drafting
-
-| Surface | Skill |
-|---|---|
-| `README.md` introduction, architecture, capabilities and developer workflow | `on-writing-well`. Keep the voice human and enticing. |
-| `README.md` install, build and command instructions | `on-writing-well` for voice, then `ste-80` for the steps: one action per step, one meaning per term, explicit outcome. Do not flatten the surrounding prose. |
-| UI copy and catalogue descriptions | `on-writing-well` and `guardian-style-guide`. |
-| `NARRATIVE.md` | `project-narrative`, then the eight-section rules below. |
-| `AGENTS.md` and skill files | `writing-for-agents`. |
-| Commit messages | `cbeams-git-commit-messages`. |
-
-Skills resolve by name. Repo copies live under `.agents/skills/`. `project-narrative`, `cbeams-git-commit-messages` and `ste-80` are installed globally.
-
-### Stage 2: Sub-editor gate
-
-Pass drafted prose, UI copy and documentation through `guardian-style-guide` before delivery. Enforce British English, sentence case and the AI trope check. Commit messages are exempt, as are Martin Galway's verbatim quotations.
-
-### House rules
-
-These override the general skills.
-
-Apply Guardian British English and Zinsser clarity:
-- Use `licence` as a noun and `licensed` as a verb. Use `catalogue`, `analogue`, `colour`, `centre`, `artefact`, `modelled`, `labelled`, `focused`, `synthesise`, `synthesiser`, `digitised`, `synchronise`, `synchronisation` and `program` for computer code.
-- Use sentence case for headings, tooltips and descriptive labels.
-- Omit Oxford commas in straightforward lists. End every bullet with a full stop. Avoid exclamation marks.
-- Spell out one to nine in general prose. Use numerals from 10 upward and with units.
-- Leave no space before abbreviated units: `50Hz`, `200Hz`, `44.1kHz`, `1.023MHz`, `20ms`, `40px`. Use a space before spelled-out units: `40 pixels`.
-- Format dates as `23 April 1987` and times as `4.31pm`.
-- Use commas, colons, parentheses or full stops for pauses. Never use em-dashes (U+2014). En-dashes (U+2013) are allowed in Markdown prose.
-- Use backticks around code identifiers and registers such as `$D400` and `requestAnimationFrame`. Use `->` rather than arrow glyphs.
-- Keep active voice, concrete verbs and one controlling idea per sentence. Remove brochure adjectives and AI tropes.
-- Prioritise scannability in technical documentation (`README.md`, developer guides and reference lists). Use bold lead-in tags on reference items, numbered steps with action verbs and fenced syntax blocks for before and after code. These visual scannability conventions override general essay anti-bullet-bolding rules.
-
-### Project narrative
-
-`NARRATIVE.md` powers the in-app THE STORY modal. Keep its eight-section progressive layout:
-- Sections 1 to 3 orient non-technical listeners with no assumed 6502 knowledge.
-- Sections 4 to 8 move into hardware, assembly and build detail.
-- Do not replace the layout with the nine-section template in `project-narrative`.
-- Keep Martin Galway's quotations verbatim.
-- Respect `src/markdown.js`: full `https://` URLs only, `#`, `##` and `###` headings only, single-line unwrapped paragraphs and code spans around `*` expressions.
+Before editing `README.md`, `NARRATIVE.md`, UI copy or catalogue descriptions, read `docs/agents/prose-and-narrative.md`. It carries the drafting skills, the sub-editor gate, the house rules and the eight-section narrative layout.
 
 Completion: the edited prose passes the repository rules test, with zero em-dashes and no broken Markdown rendering.
 
@@ -100,28 +60,7 @@ Completion: `git log -1` shows a compliant subject and body.
 
 ## 6. GitHub Pages deployment
 
-When the user says "ship it", "deploy" or asks to publish, release to GitHub Pages.
-
-Repository remotes:
-- `origin` points to upstream `MartinGalway/C64_music`.
-- `fork` points to `charlesroper/C64_music`.
-- Pass `-R charlesroper/C64_music` to every `gh` command.
-- Push releases only to `fork main`.
-- Live URL: `https://charlesroper.github.io/C64_music/`.
-- GitHub Pages serves the root `/` of `main` on `fork`.
-
-Release sequence:
-1. Run `npm run bump`. Completion: all seven version locations show the new CalVer.
-2. Run `npm test`. Completion: every check passes and the documented test counts match.
-3. Commit the release. Completion: the working tree is clean.
-4. Run `npm run deploy`. Completion: the push succeeds on `fork/main`.
-5. Verify the live build from the Pages workflow run:
-   - Run `gh run list -R charlesroper/C64_music --limit 5` and find the `pages build and deployment` run for the release commit.
-   - Run `gh run view <run-id> -R charlesroper/C64_music --json headSha,status,conclusion,jobs`. Confirm the SHA matches the release commit, the run is completed and successful, and the `deploy` job succeeded.
-   - Confirm the live version with `curl -s https://charlesroper.github.io/C64_music/src/version.js`.
-   - Do not rely on `gh api repos/charlesroper/C64_music/pages/builds/latest` alone. It can lag behind, or attribute a build to the previous commit even when the workflow run is for the new one.
-
-   Completion: report the live URL, CalVer version, commit hash and workflow run ID.
+When the user says "ship it", "deploy" or asks to publish, follow `docs/agents/deployment.md`. It carries the remotes, release sequence, live-build verification and tag rules.
 
 ### Release tags
 

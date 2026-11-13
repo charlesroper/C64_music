@@ -57,7 +57,7 @@ export function matchesSelector(el, sel) {
       const camel = rawAttr.slice(5).replace(/-([a-z0-9])/g, (_, ch) => ch.toUpperCase());
       actualVal = el.dataset ? el.dataset[camel] : undefined;
     } else {
-      actualVal = el[rawAttr];
+      actualVal = el.getAttribute?.(rawAttr) ?? el[rawAttr];
     }
     if (val === undefined) {
       if (actualVal === undefined || actualVal === null || actualVal === false) return false;
@@ -302,6 +302,10 @@ export function createBrowserHarness({
     for (const dataMatch of attrs.matchAll(/\bdata-([a-zA-Z0-9-]+)="([^"]*)"/g)) {
       const camel = dataMatch[1].replace(/-([a-z0-9])/g, (_, ch) => ch.toUpperCase());
       el.dataset[camel] = dataMatch[2];
+    }
+
+    for (const attrMatch of attrs.matchAll(/\b(aria-[a-zA-Z0-9-]+|role)="([^"]*)"/g)) {
+      el.attributes[attrMatch[1]] = attrMatch[2];
     }
 
     if (/\bchecked\b/.test(attrs)) {

@@ -64,11 +64,14 @@ The system follows John Ousterhout's philosophy of deep modules: small, simple i
 
 Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`).
 
-**Rule 5.1 (Four-File Synchronization)**: Every version change must update all four files in lockstep:
-1. `package.json`: `"version": "YYYY.MM.DD"`
+**Rule 5.1 (Seven-Location Synchronization)**: Every version change must update all seven locations in lockstep:
+1. `package.json`: `"version": "YYYY.MM.DD"` or `"YYYY.MM.DD.MICRO"`
 2. `package-lock.json`: root package `"version": "YYYY.MM.DD"`
-3. `index.html`: document title and header badge (`<span class="brand-version" id="app-version">vYYYY.MM.DD</span>`)
-4. `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`
+3. `index.html`: document title (`(1985-1987) vYYYY.MM.DD`)
+4. `index.html`: header badge (`<span class="brand-version" id="app-version">vYYYY.MM.DD</span>`)
+5. `index.html`: stylesheet query string (`href="./src/styles.css?v=YYYY.MM.DD"`)
+6. `index.html`: script query string (`src="./src/main.js?v=YYYY.MM.DD"`)
+7. `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`
 **Rule 5.2 (Same-Day Micro Increments)**: Multiple releases on the same date append `.1`, `.2`, `.3`. A new calendar day resets to `YYYY.MM.DD`.
 **Rule 5.3 (Monotonicity Guard)**: Version bump scripts must refuse to lower a version if local machine time skew reports a date earlier than the current version in `package.json`.
 
