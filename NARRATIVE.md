@@ -851,4 +851,4 @@ The #95 docs sync passed the count checks while naming accessible labels as visi
 
 `tests/repo_rules.test.mjs` now requires a README Workbench controls section and every shipped control label in it. `CODING_STANDARDS.md` Rule 7.3 makes documentation accuracy a review check: visible labels, accessible names stated separately, Section 8 claims limited to the diff, and one explanation per UI concept. `docs/agents/prose-and-narrative.md` points at the label sources in `index.html`, `src/workbench_view.js`, `src/audio_diagnostics.js` and `src/tracks_catalog.js`.
 
-The suite rose to 122 checks across 12 files. Issue [#95](https://github.com/charlesroper/C64_music/issues/95) prompted the retro.
+The suite rose to 122 checks across 12 files. Commit [3e76824](https://github.com/charlesroper/C64_music/commit/3e76824) carries the guardrail. Issue [#95](https://github.com/charlesroper/C64_music/issues/95) prompted the retro.
