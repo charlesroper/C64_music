@@ -800,4 +800,4 @@ The shell wrapper rewrites `npm run lint` to `rtk lint`, which shells out to `np
 
 `package.json` now names the check `check:lint`. The wrapper proxies `npm run check:lint` through `rtk npm`, which preserves the exit code. CI, the deploy preflight, the pre-commit hook, `AGENTS.md`, `README.md` and Rule 6.3 use the new name. The `lint` script is gone, so a bare `npm run lint` fails loudly rather than pretending to lint.
 
-`tests/repo_rules.test.mjs` asserts `check:lint` exists, `lint` does not, and CI and the deploy preflight call the new name. The suite rose to 116 checks across 12 files.
+`tests/repo_rules.test.mjs` asserts `check:lint` exists, `lint` does not, and CI and the deploy preflight call the new name. The suite rose to 116 checks across 12 files. Commit [9ed2eab](https://github.com/charlesroper/C64_music/commit/9ed2eab) carries the rename.
