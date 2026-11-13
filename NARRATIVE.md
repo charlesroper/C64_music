@@ -251,7 +251,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in April and May 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
 
-`npm test` runs 118 automated checks across 12 test files:
+`npm test` runs 119 automated checks across 12 test files:
 
 * **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, that sample-rate negotiation leaves loaded C64 RAM intact, that a Track Load freezes the clock at frame 0 and emits silence without a pre-render, that commands received during a load apply in exact order afterwards and that fast-forward adds 3 frames per 2048 samples at any render block size.
 * **PETSCII screen rasteriser.** The shared renderer paints screen RAM, colour RAM and border scanlines into the VIC-II palette for both the workbench CRT monitor and the Boot Sequence. Tests cover border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
@@ -276,6 +276,7 @@ Martin Galway uploaded his original assembly files to GitHub in April and May 20
 * **Pitch.** Fourier analysis confirms that generated tones match the datasheet pitch formula in three configurations: 44.1kHz PAL, 48kHz PAL and 48kHz NTSC.
 * **Catalogue.** All 73 tunes and sound effects across the six source files render audio without invalid values, clipping or a stuck output level.
 * **Metadata.** All 73 tracks carry non-empty descriptions, valid duration hints, authentic keys and unique identifiers.
+* **Catalogue copy.** Descriptions add detail beyond the duration badge, use voice for SID parts, stay in third person and start with the cue's identity.
 * **Drums.** The isolated `$D418` test runs Arkadrum and the 73-track sweep covers Game Over's PCM drums. The volume control works on both paths.
 * **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download and starts playback cleanly.
 * **AudioWorklet verification gate.** Headless WebKit under PRoot verifies the worklet pipeline. Chromium 153 also works, Chromium 156 and later crash at startup and Firefox loads modules but keeps its audio context suspended. `npm test` verifies the Engine Core in-thread and a manual listen in a real mobile browser provides the final audio check.
@@ -817,3 +818,11 @@ The expanded Stats guide still used internal shorthand. It called the audio tran
 `src/audio_diagnostics.js` now uses the approved help copy. The intro explains the one-second window and the session peak, the p50 and p95 descriptions state the callback share plainly, the `engine` label defines worklet (normal) or in-thread (fallback) once, and the deadline help says audio blocks were dropped entirely. The latency group names Chromium playback and a 4096-frame Firefox buffer as the clean test result, the mode help names the Firefox buffer setting, and the output help says very low values can cause clicks. The Events item no longer repeats its group description. The `STATS FOR NERDS` title and trigger keep the Chrome joke through the `.c64-caps` rule.
 
 Tests in `tests/spa_boot_and_play.test.mjs` assert the exact intro, p50 and p95 copy, the `engine` label and worklet definition, the deadline wording, the Firefox buffer and clicks wording, the Events duplication and the title casing. The suite rose to 118 checks across 12 files. Commit [8caf8c8](https://github.com/charlesroper/C64_music/commit/8caf8c8) and issue [#92](https://github.com/charlesroper/C64_music/issues/92) carry the change.
+
+### 13 November 2026: catalogue copy stops repeating the track row
+
+Every catalogue description ended with `It plays once and stops.` or `It loops until stopped.`, repeating the duration or `Loops` badge on the same row. The Arkanoid sound effects called SID voices channels, a few descriptions opened with a navigation verb, and one addressed the reader as you.
+
+All 73 descriptions now add detail beyond the badge, use voice for SID parts, stay in third person and start with the cue's identity. The Arkanoid, Game Over and Rambo summaries are full sentences. Visible `(3-Ch)` labels became `(3 Voices)`, the ROCKBASS entry reads `about 0:33`, and the warp gate and sound effect noun clusters are shorter.
+
+A catalogue copy lint in `tests/player_audio_and_pitch.test.mjs` rejects the redundant play and loop sentences, channel terms and shorthand, second person, action-first descriptions and summary fragments. The suite rose to 119 checks across 12 files. Issue [#93](https://github.com/charlesroper/C64_music/issues/93) carries the change.

@@ -341,6 +341,65 @@ test("track catalog metadata integrity: unique IDs, valid duration hints, authen
   assert.deepEqual(keys, ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]);
 });
 
+test("track catalogue copy follows voice, person, identity and redundancy rules", () => {
+  const redundantPlay = /\bIt plays once and stops\b/i;
+  const redundantLoop = /\bIt loops until stopped\b/i;
+  const secondPerson = /\byou(?:r|rs|rself)?\b/i;
+  const channelTerm = /\bchannels?\b(?!\s+mask\b)/i;
+  const channelShorthand = /\b\d+-Ch\b/i;
+  const actionStart = /^(?:Mutes|Isolates|Runs|Jumps?|Starts|Loads|Plays|Opens)\b/i;
+  const finiteVerb =
+    /\b(?:is|are|was|were|has|have|had|uses|use|includes|include|combines|combine|created|creates|features|feature|runs|run|spells|spell|returns|return|plays|play|links|link|holds|hold|adds|add|keeps|keep|loads|load|forms|form|covers|cover|drives|drive|writes|write)\b/i;
+
+  const assertCopySurface = (text, label) => {
+    assert.doesNotMatch(text, channelTerm, `${label} must use voice, not channel`);
+    assert.doesNotMatch(text, channelShorthand, `${label} must not use channel shorthand`);
+    assert.doesNotMatch(text, secondPerson, `${label} must use third person`);
+  };
+
+  for (const game of GAME_FILES) {
+    assert.match(game.summary, /[.!?]$/, `${game.id} summary must end with punctuation`);
+    assertCopySurface(game.summary, `${game.id} summary`);
+    for (const sentence of game.summary.split(/(?<=[.!?])\s+/)) {
+      assert.match(sentence, finiteVerb, `${game.id} summary sentence must be a full sentence`);
+    }
+
+    for (const track of game.tracks) {
+      assertCopySurface(track.name, `${track.id} name`);
+      assertCopySurface(track.description, track.id);
+      assert.doesNotMatch(
+        track.description,
+        redundantPlay,
+        `${track.id} must not repeat the duration badge`,
+      );
+      assert.doesNotMatch(
+        track.description,
+        redundantLoop,
+        `${track.id} must not repeat the loop badge`,
+      );
+      assert.doesNotMatch(
+        track.description,
+        actionStart,
+        `${track.id} must start with the cue identity, not an action`,
+      );
+      assert.doesNotMatch(
+        track.description,
+        /sound-effect/,
+        `${track.id} must write sound effect without a hyphen`,
+      );
+    }
+  }
+
+  const gameOver = GAME_FILES.find((g) => g.id === "gameover.asm");
+  const drop2 = gameOver.tracks.find((t) => t.id === "go-title-drop2");
+  assert.match(drop2.description, /ROCKBASS enters at about 0:33\./);
+
+  const arkanoid = GAME_FILES.find((g) => g.id === "arkanoid.asm");
+  const warp = arkanoid.tracks.find((t) => t.id === "ark-sfx-breakthrough");
+  assert.match(warp.description, /warp gate transition/);
+  assert.doesNotMatch(warp.description, /stage warp gate transition effect/);
+});
+
 test("player engine encapsulates telemetry snapshot, reuses buffers, and removes wasm from interface", async () => {
   const mod = await WebAssembly.compile(wasmBytes);
   const instance = await WebAssembly.instantiate(mod, {});

@@ -31,7 +31,7 @@ export const GAME_FILES = [
         refsp: 0x0100,
         durationHint: "Loops",
         description:
-          "Title screen theme (TITLE0..2) at 200Hz: fast arpeggios, sweeping resonant filter and a guitar-like lead. It loops until stopped.",
+          "Title screen theme (TITLE0..2) at 200Hz: fast arpeggios, sweeping resonant filter and a guitar-like lead.",
       },
       {
         id: "wiz-filth",
@@ -43,7 +43,7 @@ export const GAME_FILES = [
         refsp: 0x0040,
         durationHint: "0:05",
         description:
-          "The short 50Hz alarm from the FILTH ALARM MUSIC DATA (Voice 3 only). It plays once and stops, as in the game.",
+          "Short 50Hz alarm from the FILTH ALARM MUSIC DATA (Voice 3 only), as in the game.",
       },
       {
         id: "wiz-bonus",
@@ -55,7 +55,7 @@ export const GAME_FILES = [
         refsp: 0x0080,
         durationHint: "Loops",
         description:
-          "Three-voice bonus screen music at 100Hz, used when the player has chosen music. It loops until stopped.",
+          "Three-voice bonus screen music at 100Hz, used when the player has chosen music.",
       },
       {
         id: "wiz-bonus-bass",
@@ -67,7 +67,7 @@ export const GAME_FILES = [
         refsp: 0x0100,
         durationHint: "Loops",
         description:
-          "Single-channel bass line (BBASS2) at 200Hz, used on the bonus screen when music is not selected. It loops until stopped.",
+          "Single-voice bass line (BBASS2) at 200Hz, used on the bonus screen when music is not selected.",
       },
       {
         id: "wiz-endoflevel",
@@ -78,8 +78,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:02",
-        description:
-          "Short 50Hz jingle (ENDOFLEVEL0..2) played when a level is completed. It plays once and stops.",
+        description: "Short 50Hz jingle (ENDOFLEVEL0..2) played when a level is completed.",
       },
       {
         id: "wiz-getready",
@@ -90,7 +89,7 @@ export const GAME_FILES = [
         hz: 200,
         refsp: 0x0100,
         durationHint: "0:06",
-        description: "Short 200Hz level-start jingle (GETREADY0..2). It plays once and stops.",
+        description: "Short 200Hz level-start jingle (GETREADY0..2).",
       },
       {
         id: "wiz-inputname",
@@ -102,7 +101,7 @@ export const GAME_FILES = [
         refsp: 0x0100,
         durationHint: "Loops",
         description:
-          "Music for the name entry screen (INPUTNAME0..2) at 200Hz, with fast pitch ornaments and tight three-voice counterpoint. It loops until stopped.",
+          "Music for the name entry screen (INPUTNAME0..2) at 200Hz, with fast pitch ornaments and tight three-voice counterpoint.",
       },
       {
         id: "wiz-gameover",
@@ -113,7 +112,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:06",
-        description: "Short 50Hz Game Over jingle (OVER0..2). It plays once and stops.",
+        description: "Short 50Hz Game Over jingle (OVER0..2).",
       },
       {
         id: "wiz-laboratory",
@@ -124,8 +123,7 @@ export const GAME_FILES = [
         hz: 200,
         refsp: 0x0100,
         durationHint: "Loops",
-        description:
-          "Ambient background sound for the laboratory (LABORATORY0..2) at 200Hz. It loops until stopped.",
+        description: "Ambient background sound for the laboratory (LABORATORY0..2) at 200Hz.",
       },
       {
         id: "wiz-endofbonus",
@@ -136,8 +134,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:26",
-        description:
-          "50Hz jingle (ENDOFBONUS2, Voice 3 only) played when the bonus level ends. It plays once and stops.",
+        description: "50Hz jingle (ENDOFBONUS2, Voice 3 only) played when the bonus level ends.",
       },
     ],
   },
@@ -152,7 +149,7 @@ export const GAME_FILES = [
     chipDefault: "6581",
     badge: "$D418 real-time drum synth",
     summary:
-      "Martin Galway's custom $D418 volume-register percussion synthesiser and sequencer (arkadrum.asm at $4000 and $5000), linked dynamically over arkanoid.asm at $2000-$3FFF. Instead of large PCM samples, MAIN continuously runs algorithmic drum synthesis (BASS, SNARE, HIHAT, TOMhig/med/low) writing 4-bit waveforms to $D418 while a 50Hz raster IRQ drives the three SID voices.",
+      "This is Martin Galway's custom $D418 volume-register percussion synthesiser and sequencer (arkadrum.asm at $4000 and $5000), linked dynamically over arkanoid.asm at $2000-$3FFF. Instead of large PCM samples, MAIN continuously runs algorithmic drum synthesis (BASS, SNARE, HIHAT, TOMhig/med/low) writing 4-bit waveforms to $D418 while a 50Hz raster IRQ drives the three SID voices.",
     architecture: {
       org: "$4000 (IRQ Harness) / $5000 (Drum Synth and Sequencer) / $2000-$3FFF (Arkanoid Link)",
       zeroPage: "$0010-$002F (SID Voices), $0050-$0054 (seqPC, seqCLK, seqSP, synwksp)",
@@ -171,7 +168,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Complete Arkanoid Title Theme combining three-voice SID synthesis (TITLE0..2) with real-time $D418 algorithmic percussion (TITLEDATA). It loops until stopped.",
+          "Complete Arkanoid Title Theme combining three-voice SID synthesis (TITLE0..2) with real-time $D418 algorithmic percussion (TITLEDATA).",
       },
       {
         id: "arkd-enter",
@@ -184,7 +181,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "High score entry music (eNTER0..2) backed by the eNTERDATA $D418 drum sequence. It loops until stopped.",
+          "High score entry music (eNTER0..2) backed by the eNTERDATA $D418 drum sequence.",
       },
       {
         id: "arkd-title-drums-only",
@@ -198,7 +195,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Mutes the three SID oscillators to isolate Galway's real-time four-bit $D418 drum synthesiser running TITLEDATA. It loops until stopped.",
+          "Isolated Galway's real-time four-bit $D418 drum synthesiser running TITLEDATA, with the three SID oscillators muted.",
       },
       {
         id: "arkd-enter-drums-only",
@@ -212,7 +209,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Isolated four-bit $D418 percussion sequence for the high score and name entry screen. It loops until stopped.",
+          "Isolated four-bit $D418 percussion sequence for the high score and name entry screen.",
       },
     ],
   },
@@ -227,7 +224,7 @@ export const GAME_FILES = [
     chipDefault: "6581",
     badge: "6 Tunes and 12 Arcade SFX",
     summary:
-      "The core Arkanoid SID music and sound-effect driver. Includes the Opening Sequence story fanfare, Level Start jingle, Game Over, Extra Life fanfare and 12 three-channel arcade sound effects.",
+      "This is the core Arkanoid SID music and sound effect driver. It includes the Opening Sequence story fanfare, Level Start jingle, Game Over, Extra Life fanfare and 12 three-voice arcade sound effects.",
     architecture: {
       org: "$0803 (Driver) / $2000 (SID Engine and SFX) / $3E00 (Music Data) / $3F00 (Jump Vector Table)",
       zeroPage: "$0010-$002F (PC0..2, CLOCK0..2, SP0..2, TR0..2, IN, S0..2PCURR/FCURR)",
@@ -244,7 +241,7 @@ export const GAME_FILES = [
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:07",
-        description: "Mothership escape fanfare at 100Hz (Taito #0A). It plays once and stops.",
+        description: "Mothership escape fanfare at 100Hz (Taito #0A).",
       },
       {
         id: "ark-startlevel",
@@ -255,8 +252,7 @@ export const GAME_FILES = [
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:03",
-        description:
-          "Taito round start and next life fanfare at 100Hz (Taito #0B). It plays once and stops.",
+        description: "Taito round start and next life fanfare at 100Hz (Taito #0B).",
       },
       {
         id: "ark-title-sid",
@@ -268,7 +264,7 @@ export const GAME_FILES = [
         refsp: 0x0040,
         durationHint: "Loops",
         description:
-          "Three-voice SID arrangement of the Arkanoid Title Theme at 50Hz in Galway's diagnostic monitor mode. It loops until stopped.",
+          "Three-voice SID arrangement of the Arkanoid Title Theme at 50Hz in Galway's diagnostic monitor mode.",
       },
       {
         id: "ark-enter-sid",
@@ -280,7 +276,7 @@ export const GAME_FILES = [
         refsp: 0x0040,
         durationHint: "Loops",
         description:
-          "Three-voice SID arrangement of the high score entry tune (Taito #0F) at 50Hz. It loops every 1:17 until stopped.",
+          "Three-voice SID arrangement of the high score entry tune (Taito #0F) at 50Hz. It loops every 1:17.",
       },
       {
         id: "ark-gameover",
@@ -291,7 +287,7 @@ export const GAME_FILES = [
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:02",
-        description: "Short 100Hz Game Over jingle (Taito #0E). It plays once and stops.",
+        description: "Short 100Hz Game Over jingle (Taito #0E).",
       },
       {
         id: "ark-sfx-extralife",
@@ -302,139 +298,130 @@ export const GAME_FILES = [
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description:
-          "Short 100Hz extra player capsule fanfare (Taito #10). It plays once and stops.",
+        description: "Short 100Hz extra player capsule fanfare (Taito #10).",
       },
-      // three-channel arcade sound effects
+      // three-voice arcade sound effects
       {
         id: "ark-sfx-batbounce",
-        name: "SFX: Bat-Ball Bounce (3-Ch)",
+        name: "SFX: Bat-Ball Bounce (3 Voices)",
         category: "sfx",
         key: "B",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description:
-          "Three-channel Vaus paddle bounce and ball launch ping (Taito #03). It plays once and stops.",
+        description: "Three-voice Vaus paddle bounce and ball launch ping (Taito #03).",
       },
       {
         id: "ark-sfx-brickhit",
-        name: "SFX: Brick Knocked Away (3-Ch)",
+        name: "SFX: Brick Knocked Away (3 Voices)",
         category: "sfx",
         key: "C",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description: "Three-channel brick destruction chime (Taito #04). It plays once and stops.",
+        description: "Three-voice brick destruction chime (Taito #04).",
       },
       {
         id: "ark-sfx-vausexp",
-        name: "SFX: Vaus Expanding (3-Ch)",
+        name: "SFX: Vaus Expanding (3 Voices)",
         category: "sfx",
         key: "F",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description:
-          "Three-channel Vaus craft expansion sound effect (Taito #09). It plays once and stops.",
+        description: "Three-voice Vaus expansion sound (Taito #09).",
       },
       {
         id: "ark-sfx-laser",
-        name: "SFX: Laser Fire (3-Ch)",
+        name: "SFX: Laser Fire (3 Voices)",
         category: "sfx",
         key: "N",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description: "Three-channel Vaus twin laser blast (Taito #11). It plays once and stops.",
+        description: "Three-voice Vaus twin laser blast (Taito #11).",
       },
       {
         id: "ark-sfx-openfx",
-        name: "SFX: Mothership Opening Alert (3-Ch)",
+        name: "SFX: Mothership Opening Alert (3 Voices)",
         category: "sfx",
         key: "O",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:02",
         description:
-          "Three-channel opening sequence emergency siren effect (Taito #13). It plays once and stops.",
+          "Three-voice Mothership emergency siren from the Opening Sequence (Taito #13).",
       },
       {
         id: "ark-sfx-alien",
-        name: "SFX: Alien Exploding (3-Ch)",
+        name: "SFX: Alien Exploding (3 Voices)",
         category: "sfx",
         key: "P",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description:
-          "Three-channel enemy obstacle explosion effect (Taito #14). It plays once and stops.",
+        description: "Three-voice enemy obstacle explosion (Taito #14).",
       },
       {
         id: "ark-sfx-goldbrick",
-        name: "SFX: Gold / Silver Brick Hit (3-Ch)",
+        name: "SFX: Gold / Silver Brick Hit (3 Voices)",
         category: "sfx",
         key: "Q",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
         description:
-          "Three-channel metallic clang when hitting an unbreakable or multi-hit brick (Taito #16). It plays once and stops.",
+          "Three-voice metallic clang when hitting an unbreakable or multi-hit brick (Taito #16).",
       },
       {
         id: "ark-sfx-breakthrough",
-        name: "SFX: Breakthrough Warp (3-Ch)",
+        name: "SFX: Breakthrough Warp (3 Voices)",
         category: "sfx",
         key: "S",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:02",
-        description:
-          "Three-channel stage warp gate transition effect (Taito #18). It plays once and stops.",
+        description: "Three-voice warp gate transition (Taito #18).",
       },
       {
         id: "ark-sfx-catch",
-        name: "SFX: Bat Catching Ball (3-Ch)",
+        name: "SFX: Bat Catching Ball (3 Voices)",
         category: "sfx",
         key: "T",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:00",
-        description:
-          "Three-channel magnetic catch adhesion sound (Taito #19). It plays once and stops.",
+        description: "Three-voice magnetic catch adhesion (Taito #19).",
       },
       {
         id: "ark-sfx-vausexplode",
-        name: "SFX: Vaus Exploding (3-Ch)",
+        name: "SFX: Vaus Exploding (3 Voices)",
         category: "sfx",
         key: "U",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:02",
-        description:
-          "Three-channel Vaus destruction explosion (Taito #1A). It plays once and stops.",
+        description: "Three-voice Vaus destruction explosion (Taito #1A).",
       },
       {
         id: "ark-sfx-bosshit",
-        name: "SFX: DOH Boss Hit (3-Ch)",
+        name: "SFX: DOH Boss Hit (3 Voices)",
         category: "sfx",
         key: "V",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:01",
-        description:
-          "Three-channel impact on DOH statue head on the final stage (Taito #1B). It plays once and stops.",
+        description: "Three-voice impact on the DOH statue head on the final stage (Taito #1B).",
       },
       {
         id: "ark-sfx-bossdest",
-        name: "SFX: DOH Boss Exploding (3-Ch)",
+        name: "SFX: DOH Boss Exploding (3 Voices)",
         category: "sfx",
         key: "W",
         hz: 100,
         refsp: 0x0080,
         durationHint: "0:05",
-        description:
-          "Three-channel DOH final explosion sequence (Taito #1C). It plays once and stops.",
+        description: "Three-voice DOH final explosion sequence (Taito #1C).",
       },
     ],
   },
@@ -449,7 +436,7 @@ export const GAME_FILES = [
     chipDefault: "6581",
     badge: "4-bit PCM Sampled Rock Drums",
     summary:
-      "Created for Dinamic and Ocean's sci-fi action game. Combines three-voice SID synthesis (with FOM pitch tables and dynamic filter routing) with packed 4-bit digitised PCM rock drum samples (ROCKBASS, ROCKSNARE, ROCKCOWBELL) and algorithmic synth toms/hi-hats streamed to $D418.",
+      "Galway created this soundtrack for Dinamic and Ocean's sci-fi action game. It combines three-voice SID synthesis (with FOM pitch tables and dynamic filter routing) with packed 4-bit digitised PCM rock drum samples (ROCKBASS, ROCKSNARE, ROCKCOWBELL) and algorithmic synth toms and hi-hats streamed to $D418.",
     architecture: {
       org: "$0800 (Driver and IRQ Harness) / $1000 (SID Engine, PCM Samples and Music Data)",
       zeroPage: "$0010-$002F (SID Voices), $0050-$0054 (seqPC, seqCLK, seqSP, synwksp)",
@@ -466,7 +453,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Full Title Screen suite: opens with an atmospheric 19-second synth prelude before introducing 4-bit sampled cowbells and rock drums. It loops until stopped.",
+          "Full Title Screen suite: opens with an atmospheric 19-second synth prelude before introducing 4-bit sampled cowbells and rock drums.",
       },
       {
         id: "go-title-drop1",
@@ -477,7 +464,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Jumps directly to bar 11 (0:19) where the 4-bit PCM ROCKCOWBELL sample and algorithmic synth toms enter. It loops until stopped.",
+          "Title Screen from bar 11 (0:19), where the 4-bit PCM ROCKCOWBELL sample and algorithmic synth toms enter.",
       },
       {
         id: "go-title-drop2",
@@ -488,7 +475,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Jumps directly to the main bass and lead groove backed by 4-bit PCM ROCKBASS, ROCKSNARE and ROCKCOWBELL samples. ROCKBASS enters shortly after 0:31, around 0:33. It loops until stopped.",
+          "Main bass and lead groove from the Title Screen, backed by 4-bit PCM ROCKBASS, ROCKSNARE and ROCKCOWBELL samples. ROCKBASS enters at about 0:33.",
       },
       {
         id: "go-gameover",
@@ -499,8 +486,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:05",
-        description:
-          "Three-voice cascading canon played on the Game Over screen. It plays once and stops.",
+        description: "Three-voice cascading canon played on the Game Over screen.",
       },
       {
         id: "go-title-sidonly",
@@ -512,7 +498,7 @@ export const GAME_FILES = [
         refsp: 0x0040,
         durationHint: "Loops",
         description:
-          "Runs Title Screen in diagnostic monitor mode without IRQ drums, keeping C64 timer clocks and keyboard controls active. It loops until stopped.",
+          "Title Screen in diagnostic monitor mode without IRQ drums, keeping C64 timer clocks and keyboard controls active.",
       },
       // 13 Sound Effects
       {
@@ -523,7 +509,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Fast pitch-swept laser beam on Voice 3. It plays once and stops.",
+        description: "Fast pitch-swept laser beam on Voice 3.",
       },
       {
         id: "go-sfx-boomerang",
@@ -533,7 +519,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Warbling boomerang projectile on Voice 2. It plays once and stops.",
+        description: "Warbling boomerang projectile on Voice 2.",
       },
       {
         id: "go-sfx-grenade",
@@ -543,8 +529,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description:
-          "Falling pitch arc when throwing a grenade on Voice 3. It plays once and stops.",
+        description: "Falling pitch arc when throwing a grenade on Voice 3.",
       },
       {
         id: "go-sfx-grenexp",
@@ -554,7 +539,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:00",
-        description: "Heavy noise-channel explosion on Voice 1. It plays once and stops.",
+        description: "Heavy noise blast on Voice 1.",
       },
       {
         id: "go-sfx-thud",
@@ -564,7 +549,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Low-frequency monster footstep thud on Voice 2. It plays once and stops.",
+        description: "Low-frequency monster footstep thud on Voice 2.",
       },
       {
         id: "go-sfx-alien",
@@ -574,7 +559,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Enemy plasma shot on Voice 3. It plays once and stops.",
+        description: "Enemy plasma shot on Voice 3.",
       },
       {
         id: "go-sfx-drain",
@@ -584,8 +569,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description:
-          "Noise burst when player energy is drained on Voice 1. It plays once and stops.",
+        description: "Noise burst when player energy is drained on Voice 1.",
       },
       {
         id: "go-sfx-heart",
@@ -595,8 +579,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description:
-          "Rising chime when collecting an energy heart on Voice 2. It plays once and stops.",
+        description: "Rising chime when collecting an energy heart on Voice 2.",
       },
       {
         id: "go-sfx-turret",
@@ -606,7 +589,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:00",
-        description: "Rapid turret blaster on Voice 3. It plays once and stops.",
+        description: "Rapid turret blaster on Voice 3.",
       },
       {
         id: "go-sfx-kangaroo",
@@ -616,7 +599,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Upward bounce sweep on Voice 2. It plays once and stops.",
+        description: "Upward bounce sweep on Voice 2.",
       },
       {
         id: "go-sfx-imps",
@@ -626,7 +609,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "High-pitched teleport whine on Voice 3. It plays once and stops.",
+        description: "High-pitched teleport whine on Voice 3.",
       },
       {
         id: "go-sfx-lift",
@@ -636,7 +619,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:01",
-        description: "Metallic lift bell ding on Voice 2. It plays once and stops.",
+        description: "Metallic lift bell ding on Voice 2.",
       },
       {
         id: "go-sfx-statue",
@@ -646,8 +629,7 @@ export const GAME_FILES = [
         hz: 50,
         refsp: 0x0040,
         durationHint: "0:00",
-        description:
-          "Resonant impact when hitting the statue eyes on Voice 3. It plays once and stops.",
+        description: "Resonant impact when hitting the statue eyes on Voice 3.",
       },
     ],
   },
@@ -662,7 +644,7 @@ export const GAME_FILES = [
     chipDefault: "6581",
     badge: "12 Tunes and 8 Arcade SFX",
     summary:
-      "Martin Galway's 5 April 1986 soundtrack for the C64 conversion of Konami's Green Beret. Features the military snare-march title theme, two in-game stage siren cues, high score music, stage clear fanfares and eight in-game sound effects and vehicle loops.",
+      "This is Martin Galway's 5 April 1986 soundtrack for the C64 conversion of Konami's Green Beret. It features the military snare-march title theme, two in-game stage siren cues, high score music, stage clear fanfares and eight in-game sound effects and vehicle loops.",
     architecture: {
       org: "$1000 (Driver) / $3E00 (Jump Vector Table) / $5000 (Music Engine and Data)",
       zeroPage:
@@ -680,7 +662,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "Loops",
         description:
-          "Military march. Voice 1 plays arpeggiated chords, bass and lead with no drum patches. Voices 2 and 3 play the DRUM snare and bass percussion and brass fanfares. It loops until stopped.",
+          "Military march. Voice 1 plays arpeggiated chords, bass and lead with no drum patches. Voices 2 and 3 play the DRUM snare and bass percussion and brass fanfares.",
       },
       {
         id: "gb-game1",
@@ -691,7 +673,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "0:03 / Loop",
         description:
-          "Stage background cue (GAM10, EXIT, GAM12). Voices 1 and 3 sound the 2.7-second siren while Voice 2 is EXIT, so it stays silent. In Galway's source, the subsequent snare routine is stubbed with an immediate RTS (line 2126), so the driver continues cycling through silent snare calls.",
+          "Stage background cue (GAM10, EXIT, GAM12). Voices 1 and 3 sound the siren while Voice 2 is EXIT, so it stays silent. In Galway's source, the subsequent snare routine is stubbed with an immediate RTS (line 2126), so the driver continues cycling through silent snare calls.",
       },
       {
         id: "gb-game3",
@@ -702,7 +684,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "0:08 / Loop",
         description:
-          "Three-siren stage cue (GAM30 and GAM32). It plays three siren bursts for 7.9 seconds before entering the same looping snare pattern stubbed by Galway's SNARE RTS.",
+          "Three-siren stage cue (GAM30 and GAM32). It plays three siren bursts before entering the same looping snare pattern stubbed by Galway's SNARE RTS.",
       },
       {
         id: "gb-challenge",
@@ -712,8 +694,7 @@ export const GAME_FILES = [
         tuneExpr: "11*6+5",
         hz: 50,
         durationHint: "0:06",
-        description:
-          "End-of-stage challenge fanfare (CHAL0, CHAL2). It plays three repeats and stops.",
+        description: "End-of-stage challenge fanfare (CHAL0, CHAL2) with three repeats.",
       },
       {
         id: "gb-highscore",
@@ -723,8 +704,7 @@ export const GAME_FILES = [
         tuneExpr: "7*6+5",
         hz: 50,
         durationHint: "Loops",
-        description:
-          "High score celebration tune (HIGH0..2). It loops every 13 seconds until stopped.",
+        description: "High score celebration tune (HIGH0..2). It loops every 13 seconds.",
       },
       {
         id: "gb-missionac",
@@ -734,7 +714,7 @@ export const GAME_FILES = [
         tuneExpr: "2*6+5",
         hz: 50,
         durationHint: "0:12",
-        description: "End-of-game victory march (ACCO0..2). It plays once and stops.",
+        description: "End-of-game victory march (ACCO0..2).",
       },
       {
         id: "gb-gamestart",
@@ -744,7 +724,7 @@ export const GAME_FILES = [
         tuneExpr: "0*6+5",
         hz: 50,
         durationHint: "0:07",
-        description: "Mission start brass fanfare (STRT0..2). It plays once and stops.",
+        description: "Mission start brass fanfare (STRT0..2).",
       },
       {
         id: "gb-comlevel1",
@@ -754,7 +734,7 @@ export const GAME_FILES = [
         tuneExpr: "3*6+5",
         hz: 50,
         durationHint: "0:08",
-        description: "Stage 1 clear fanfare (COL10..2). It plays once and stops.",
+        description: "Stage 1 clear fanfare (COL10..2).",
       },
       {
         id: "gb-comlevel2",
@@ -764,7 +744,7 @@ export const GAME_FILES = [
         tuneExpr: "4*6+5",
         hz: 50,
         durationHint: "0:06",
-        description: "Stage 2 clear fanfare (COL20..2). It plays once and stops.",
+        description: "Stage 2 clear fanfare (COL20..2).",
       },
       {
         id: "gb-comlevel3",
@@ -774,7 +754,7 @@ export const GAME_FILES = [
         tuneExpr: "9*6+5",
         hz: 50,
         durationHint: "0:10",
-        description: "Stage 3 clear fanfare (COL30..2). It plays once and stops.",
+        description: "Stage 3 clear fanfare (COL30..2).",
       },
       {
         id: "gb-gameover",
@@ -784,7 +764,7 @@ export const GAME_FILES = [
         tuneExpr: "5*6+5",
         hz: 50,
         durationHint: "0:11",
-        description: "Game Over dirge (OVER0..2). It plays once and stops.",
+        description: "Game Over dirge (OVER0..2).",
       },
       {
         id: "gb-lifelost",
@@ -794,7 +774,7 @@ export const GAME_FILES = [
         tuneExpr: "6*6+5",
         hz: 50,
         durationHint: "0:02",
-        description: "Cue played when losing a life (LIFE0..2). It plays once and stops.",
+        description: "Cue played when losing a life (LIFE0..2).",
       },
       // SFX
       {
@@ -805,7 +785,7 @@ export const GAME_FILES = [
         tuneExpr: "13*6+5",
         hz: 50,
         durationHint: "Loops",
-        description: "Gyrocopter blade loop (AUTO0). It loops until stopped.",
+        description: "Gyrocopter rotor loop (AUTO0).",
       },
       {
         id: "gb-sfx-dog",
@@ -815,7 +795,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "0:01",
         description:
-          "Attack dog bark (DOG0). LFC is a round-robin SID voice selector that cycles Voices 2, 3 and 1. It plays once and stops.",
+          "Attack dog bark (DOG0). LFC is a round-robin SID voice selector that cycles Voices 2, 3 and 1.",
       },
       {
         id: "gb-sfx-flamethrower",
@@ -824,8 +804,7 @@ export const GAME_FILES = [
         key: "O",
         hz: 50,
         durationHint: "0:01",
-        description:
-          "Two-channel heavy weapon discharge (FLAME1 and FLAME2). It plays once and stops.",
+        description: "Two-voice heavy weapon discharge (FLAME1 and FLAME2).",
       },
       {
         id: "gb-sfx-truck",
@@ -835,8 +814,7 @@ export const GAME_FILES = [
         tuneExpr: "12*6+5",
         hz: 50,
         durationHint: "Loops",
-        description:
-          "Continuous rumble loop for the troop carrier (TRUK0). It loops until stopped.",
+        description: "Troop carrier rumble loop (TRUK0).",
       },
       {
         id: "gb-sfx-jet",
@@ -845,7 +823,7 @@ export const GAME_FILES = [
         key: "T",
         hz: 50,
         durationHint: "0:02",
-        description: "Two-channel jet flyby roar (JET0 and JET1). It plays once and stops.",
+        description: "Two-voice jet flyby roar (JET0 and JET1).",
       },
       {
         id: "gb-sfx-kill",
@@ -854,7 +832,7 @@ export const GAME_FILES = [
         key: "U",
         hz: 50,
         durationHint: "0:00",
-        description: "Combat knife enemy hit sound effect (KILL0). It plays once and stops.",
+        description: "Combat knife hit on an enemy (KILL0).",
       },
       {
         id: "gb-sfx-gun",
@@ -863,16 +841,16 @@ export const GAME_FILES = [
         key: "V",
         hz: 50,
         durationHint: "0:01",
-        description: "Two-channel gunshot effect (GUN0 and GUN1). It plays once and stops.",
+        description: "Two-voice rifle shot (GUN0 and GUN1).",
       },
       {
         id: "gb-sfx-explosion",
-        name: "SFX: Mortar / Explosion (3-Ch)",
+        name: "SFX: Mortar / Explosion (3 Voices)",
         category: "sfx",
         key: "W",
         hz: 50,
         durationHint: "0:01",
-        description: "Three-channel detonation sound effect (EXPL0..2). It plays once and stops.",
+        description: "Three-voice detonation sound (EXPL0..2).",
       },
     ],
   },
@@ -887,7 +865,7 @@ export const GAME_FILES = [
     chipDefault: "6581",
     badge: "Secret Morse Code Easter Egg",
     summary:
-      "Earliest source file in the repository (12 November 1985). From about 1.02 to 31.16 seconds, Voice 1 runs DFB Code: DFW STARTMC, replacing the main refresh jump vector (MUS+1) with MCREFR. The custom Morse transmitter spells out the development team's names from the Secret table at line 1246 in 516Hz PAL (535Hz NTSC) CW, stepping down to 409Hz and 386Hz PAL, before Voice 1 returns to the Rambo lead melody.",
+      "This is the earliest source file in the repository (12 November 1985). From about 1.02 to 31.16 seconds, Voice 1 runs DFB Code: DFW STARTMC, replacing the main refresh jump vector (MUS+1) with MCREFR. The custom Morse transmitter spells out the development team's names from the Secret table at line 1246 in 516Hz PAL (535Hz NTSC) CW, stepping down to 409Hz and 386Hz PAL, before Voice 1 returns to the Rambo lead melody.",
     architecture: {
       org: "$1000 (Driver and Music Engine)",
       zeroPage:
@@ -906,7 +884,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "3:32",
         description:
-          "Complete 1985 Rambo: First Blood Part II Ocean Loader theme. Voice 1 transmits the hidden Morse code message for about 30 seconds before launching into the lead melody. It finishes around 3:32 and stops.",
+          "Complete 1985 Rambo: First Blood Part II Ocean Loader theme. Voice 1 transmits the hidden Morse code message for about 30 seconds before launching into the lead melody.",
       },
       {
         id: "rambo-lead-drop",
@@ -917,7 +895,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "3:01",
         description:
-          "Jumps to the end of the Morse transmission (x5 finishes at frame 1558, 0:31). Voice 1 enters at frame 1587 (0:32) with the Rambo: First Blood Part II lead theme. It plays to the end and stops.",
+          "Ocean Loader theme from the end of the Morse transmission (x5 finishes at frame 1558, 0:31). Voice 1 enters at frame 1587 (0:32) with the Rambo: First Blood Part II lead theme and continues to the end.",
       },
       {
         id: "rambo-morse-solo",
@@ -928,7 +906,7 @@ export const GAME_FILES = [
         hz: 50,
         durationHint: "0:30",
         description:
-          "Isolates Voice 1 (STARTMC, MCREFR) so you can hear and watch the live Morse code transmission of Secret (BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID) for about 30 seconds.",
+          "Isolated Voice 1 (STARTMC, MCREFR): the live Morse code transmission of Secret (BILL BARNA, DAVID COLLIER, MARTIN GALWAY, TONY POMFRET, STEVE WAHID), audible and visible for about 30 seconds.",
       },
     ],
   },
