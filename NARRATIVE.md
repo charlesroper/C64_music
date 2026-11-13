@@ -834,4 +834,4 @@ The header subtitle called the workbench a WebAssembly emulator and live Ocean c
 
 The subtitle now reads `Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64 soundtracks, with a live assembler.` The document title, package description, glossary and agent notes use the same range. `scripts/bump_version.mjs` rewrites the title through a tested `updateHtmlVersion` seam, so a release cannot skip the new range. Tests compare the brand subtitle in the markup, the document title and the package description.
 
-The suite rose to 121 checks across 12 files. Issue [#94](https://github.com/charlesroper/C64_music/issues/94) carries the change.
+The suite rose to 121 checks across 12 files. Commit [fc1ef00](https://github.com/charlesroper/C64_music/commit/fc1ef00) and issue [#94](https://github.com/charlesroper/C64_music/issues/94) carry the change.
