@@ -760,7 +760,7 @@ The Workbench View label change shipped with stale control names in `README.md` 
 
 `tests/repo_rules.test.mjs` now rejects retired Workbench View labels in README and NARRATIVE Sections 1 to 7, while leaving Section 8 history untouched. CODING_STANDARDS records bounded failure output for large fixtures and accessible names for icon controls. Transport glyphs are hidden from assistive technology, transport and mute controls expose `aria-keyshortcuts`, and the symbol select name matches its visible text. The implement and code-review skills state their opening and fixed-point defaults, the issue-close script retries transient GitHub API errors, and a local pre-commit hook runs lint always and tests when code or tests change.
 
-The suite rose to 110 checks across 12 files. Commits [b0aed12](https://github.com/charlesroper/C64_music/commit/b0aed12) and [2cdb7e6](https://github.com/charlesroper/C64_music/commit/2cdb7e6) carry the change. Issue [#90](https://github.com/charlesroper/C64_music/issues/90) carries the label change.
+The suite rose to 110 checks across 12 files. Commits [b0aed12](https://github.com/charlesroper/C64_music/commit/b0aed12), [2cdb7e6](https://github.com/charlesroper/C64_music/commit/2cdb7e6) and [4974597](https://github.com/charlesroper/C64_music/commit/4974597) carry the change. Issue [#90](https://github.com/charlesroper/C64_music/issues/90) carries the label change.
 
 ### 12 November 2026: chrome casing moves to CSS
 
