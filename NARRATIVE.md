@@ -843,4 +843,4 @@ The UI copy pass changed control labels, audio guidance and catalogue descriptio
 
 `README.md` now has a Workbench controls list for the transport, track, voice, source, hardware, key injection and mobile controls. Its Audio mode section uses the shipped **Playback**, **Interactive** and **Firefox buffer setting** terms, explains the 0.2-second delay, the live-readout lead and the crackle risk, and says Firefox ignores Audio mode. `NARRATIVE.md` Section 3 and Section 5 now name the source actions and audio copy, the track filter pills use sentence case, and the SID hardware bullet also names the 6581 target. Both documents state 121 checks across 12 test files.
 
-`npm test` passes 121 checks across 12 test files and `npm run check:lint` passes. Issue [#95](https://github.com/charlesroper/C64_music/issues/95) carries the sync.
+`npm test` passes 121 checks across 12 test files and `npm run check:lint` passes. Commit [7cb4c25](https://github.com/charlesroper/C64_music/commit/7cb4c25) and issue [#95](https://github.com/charlesroper/C64_music/issues/95) carry the sync.
