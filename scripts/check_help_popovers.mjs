@@ -168,9 +168,24 @@ async function openPanel(send, id) {
   await new Promise((resolve) => setTimeout(resolve, 180));
 }
 
-async function closePanel(send, id) {
+async function closePanel(send, id, expectedBorder) {
   await evaluate(send, `document.getElementById("${id}-help-panel").hidePopover?.()`);
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const settled = await evaluate(
+      send,
+      `(() => {
+        const button = document.getElementById("${id}-help-trigger");
+        return {
+          expanded: button.getAttribute("aria-expanded"),
+          border: getComputedStyle(button).borderColor,
+        };
+      })()`,
+    );
+    if (settled.expanded === "false" && settled.border === expectedBorder) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`${id} help trigger did not settle after close`);
 }
 
 async function readLayout(send, id) {
@@ -299,7 +314,7 @@ async function checkWidth({ client, appUrl, width, height }) {
   if (closeButtonCentring.dx > 1 || closeButtonCentring.dy > 1) {
     throw new Error(`${width}px close icon is not centred`);
   }
-  await closePanel(client.send, "latency-mode");
+  await closePanel(client.send, "latency-mode", closedIcon.border);
   const closedState = await readIconCentring(client.send, "latency-mode-help-trigger");
   if (closedState.expanded !== "false" || closedState.border !== closedIcon.border) {
     throw new Error(

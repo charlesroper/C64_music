@@ -38,11 +38,13 @@ Completion: the edited prose passes the repository rules test, with zero em-dash
 
 ## 4. Documentation and test suite synchronisation
 
-Reflect every feature, UI change, workflow script, bug fix or catalogue adjustment in both `README.md` and `NARRATIVE.md`:
+Reflect every feature, workflow script, bug fix or catalogue adjustment that changes documented behaviour in both `README.md` and `NARRATIVE.md`:
 - `README.md`: technical setup, architecture, capabilities and developer workflow.
 - `NARRATIVE.md`: the in-app story overlay, including Sections 3, 5, 7 and 8.
 
-Append a dated entry (`### DD Month YYYY: title`) to `NARRATIVE.md` Section 8 for every story-changing event: a new feature, significant bug fix, architectural seam, performance optimisation or notable failure or reversal. Explain the problem, the change, how it was verified and link commit hashes, issues and ADRs. Skip routine chores such as typo fixes, CalVer bumps, formatting and dependency updates.
+Pixel, spacing and other routine corrections that change no documented behaviour are exempt. Update the documents only when a control, command, capability or explanation changes.
+
+Append a dated entry (`### DD Month YYYY: title`) to `NARRATIVE.md` Section 8 for every story-changing event: a new feature, significant bug fix, architectural seam, performance optimisation or notable failure or reversal. Explain the problem, the change, how it was verified and link commit hashes, issues and ADRs. Skip routine chores such as typo fixes, pixel or spacing corrections, CalVer bumps, formatting and dependency updates.
 
 A Section 8 entry cannot know its own commit hash. Commit the entry without a commit link, then add the short hash in a follow-up `Record ... commit` commit. The suite rejects a `[HASH]` placeholder.
 
@@ -77,6 +79,10 @@ Use shell `fd` only when the built-in file discovery lacks a needed filter, such
 
 Do not run shell `grep` or `find` merely to get output compression. Where RTK is wired, it rewrites shell commands, not built-in tools.
 
+## 8. Bug fixes start with a failing check
+
+For every bug fix, add the failing automated test or repeatable visual check before changing the fix code. Run it red against the baseline, then make it pass. See `CODING_STANDARDS.md` Rule 9.1.
+
 ## Agent skills
 
 ### Issue tracker
@@ -95,4 +101,4 @@ Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/ag
 
 ### Browser verification
 
-Read `docs/agents/browser-verification.md` before running headless browser checks. Use WebKit or Chromium 153 for worklet verification, and Firefox for UI checks only.
+Read `docs/agents/browser-verification.md` before running headless browser checks. It records the engine matrix, per-host constraints and screenshot locations.

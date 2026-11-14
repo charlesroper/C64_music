@@ -89,11 +89,12 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 ## 7. Documentation and Dev Blog Synchronization
 
 **Rule 7.1 (Dual-Document Lockstep)**:
-* Feature additions, defect fixes, workflow scripts, or test suite alterations must update `README.md` and `NARRATIVE.md` simultaneously.
+* Feature additions, behaviour-changing defect fixes, workflow scripts, or test suite alterations must update `README.md` and `NARRATIVE.md` simultaneously.
+* Pixel, spacing and other routine corrections that change no documented behaviour are exempt.
 * The test counts and check lists in both documents must match the output of `npm test` exactly.
 **Rule 7.2 (Mandatory Dev Blog Entries)**:
 * Every story-changing milestone (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md`.
-* Trivial maintenance and chore commits (typo fixes, CalVer version bumps, routine formatting) must be excluded from the dev blog.
+* Trivial maintenance and chore commits (typo fixes, pixel or spacing corrections, CalVer version bumps, routine formatting) must be excluded from the dev blog.
 **Rule 7.3 (Documentation Accuracy)**:
 * Name a control by its visible label. When the accessible name differs, say so explicitly.
 * A Section 8 entry must describe only changes present in the diff under review.
@@ -118,7 +119,7 @@ Commit messages must adhere to Chris Beams' guidelines:
 
 ## 9. Test-Driven Development (TDD)
 
-**Rule 9.1 (Test-First Bug Fixes)**: Every bug fix must begin with a reproduction test that fails at the baseline commit before any fix code is written.
+**Rule 9.1 (Test-First Bug Fixes)**: Every bug fix must begin with a reproduction that fails at the baseline commit before any fix code is written. For a visual defect, a repeatable rendered check that measures the defect counts as the reproduction.
 **Rule 9.2 (Seam-Driven Assertions)**: Tests must assert on external caller-observable behavior through module seams. Tests must not inspect internal private state or duplicate the implementation in assertions.
 **Rule 9.3 (Strict Element Identification)**: Browser harness mocks must throw on missing element IDs to prevent silent drift between test doubles and production markup.
 **Rule 9.4 (Bounded Failure Output)**: When asserting against a large fixture such as `index.html` or a full document, extract the relevant tag or slice first. A failing assertion must print the fragment under test, not the whole file.
