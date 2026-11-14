@@ -170,7 +170,7 @@ async function openPanel(send, id) {
 
 async function closePanel(send, id) {
   await evaluate(send, `document.getElementById("${id}-help-panel").hidePopover?.()`);
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 300));
 }
 
 async function readLayout(send, id) {
@@ -217,6 +217,31 @@ async function readIconCentring(send, triggerId) {
   );
 }
 
+async function readHintLineAlignment(send, triggerId) {
+  return evaluate(
+    send,
+    `(() => {
+      const button = document.getElementById("${triggerId}");
+      const hint = button.parentElement.querySelector(".hw-hint");
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      hint.prepend(probe);
+      const baseline = probe.getBoundingClientRect().bottom;
+      probe.remove();
+      const style = getComputedStyle(hint);
+      const ctx = document.createElement("canvas").getContext("2d");
+      ctx.font = style.fontStyle + " " + style.fontWeight + " " + style.fontSize + " " + style.fontFamily;
+      const cap = ctx.measureText("M").actualBoundingBoxAscent;
+      const b = button.getBoundingClientRect();
+      return {
+        dy: Math.abs(b.top + b.height / 2 - (baseline - cap / 2)),
+        cap,
+        baseline,
+      };
+    })()`,
+  );
+}
+
 async function checkWidth({ client, appUrl, width, height }) {
   await client.send("Emulation.setDeviceMetricsOverride", {
     width,
@@ -228,6 +253,7 @@ async function checkWidth({ client, appUrl, width, height }) {
   await waitForApp(client.send);
 
   const closedIcon = await readIconCentring(client.send, "latency-mode-help-trigger");
+  const hintAlignment = await readHintLineAlignment(client.send, "latency-mode-help-trigger");
   await openPanel(client.send, "latency-mode");
   const layout = await readLayout(client.send, "latency-mode");
   const openIcon = await readIconCentring(client.send, "latency-mode-help-trigger");
@@ -264,6 +290,11 @@ async function checkWidth({ client, appUrl, width, height }) {
   );
   if (closedIcon.dx > 1 || closedIcon.dy > 1 || openIcon.dx > 1 || openIcon.dy > 1) {
     throw new Error(`${width}px help trigger icon is not centred`);
+  }
+  if (hintAlignment.dy > 1) {
+    throw new Error(
+      `${width}px help trigger is not centred on the hint line: ${JSON.stringify(hintAlignment)}`,
+    );
   }
   if (closeButtonCentring.dx > 1 || closeButtonCentring.dy > 1) {
     throw new Error(`${width}px close icon is not centred`);

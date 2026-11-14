@@ -452,6 +452,8 @@ button.active {
 
 .hw-help-trigger {
   position: relative;
+  /* Centre the 20px circle on the cap height of the 9px hint text. */
+  top: -5.1px;
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
