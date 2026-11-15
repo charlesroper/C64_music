@@ -44,23 +44,34 @@ export async function bootWorkbench(options = {}) {
   let bootTarget = null;
   let bootTargetLoaded = false;
   let prewarmDone = false;
+  const fetchFn = options.fetch || (typeof fetch !== "undefined" ? fetch : globalThis.fetch);
   const tapeSound =
     options.tapeSound ||
     createTapeLoadingSound({
       getContext: () =>
         player?.getAudioContext?.() || audioManager.getPreUnlockedContext?.() || null,
+      fetchFn,
     });
+  if (!skipBoot && !reducedMotion) tapeSound.preload?.();
 
-  // A tap before the player exists still unlocks audio. The manager hands the
-  // running context to the player when it finishes loading, which lets the tape
-  // sound start late instead of losing the gate gesture.
-  const unlockOnce = () => {
-    audioManager.unlock();
-    doc.removeEventListener("pointerdown", unlockOnce, true);
-    doc.removeEventListener("keydown", unlockOnce, true);
+  // Touch pointerdown does not grant user activation in mobile browsers, so keep
+  // listening across pointerup, touchend and click until the context runs.
+  const gestureEvents = ["pointerdown", "pointerup", "touchend", "click", "keydown"];
+  const addGestureListeners = (fn) => {
+    for (const type of gestureEvents) doc.addEventListener(type, fn, true);
   };
-  doc.addEventListener("pointerdown", unlockOnce, true);
-  doc.addEventListener("keydown", unlockOnce, true);
+  const removeGestureListeners = (fn) => {
+    for (const type of gestureEvents) doc.removeEventListener(type, fn, true);
+  };
+  const unlockOnce = () => {
+    if (!player?.getAudioContext?.()) {
+      audioManager.unlock();
+      boot?.startTapeSound?.();
+    }
+    const ctx = player?.getAudioContext?.() || audioManager.getPreUnlockedContext?.();
+    if (ctx?.state === "running") removeGestureListeners(unlockOnce);
+  };
+  addGestureListeners(unlockOnce);
 
   function loadBootTargetPaused() {
     if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
@@ -81,6 +92,37 @@ export async function bootWorkbench(options = {}) {
     bootTargetLoaded = true;
   }
 
+  function waitForBootScopes(ready) {
+    const tel = player?.getTelemetry?.();
+    if (tel && tel.frameCount > 0) {
+      view?.renderTelemetry(tel);
+      ready();
+      return;
+    }
+    const ctx = player?.getAudioContext?.();
+    const playerState = player?.getState?.();
+    if (
+      ctx?.state !== "running" ||
+      !ctx.audioWorklet ||
+      playerState?.audioBackend === "in-thread"
+    ) {
+      ready();
+      return;
+    }
+    const deadline = Date.now() + 3000;
+    const poll = () => {
+      if (!doc.body.dataset.bootState) return;
+      const current = player?.getTelemetry?.();
+      if ((current && current.frameCount > 0) || Date.now() >= deadline) {
+        if (current) view?.renderTelemetry(current);
+        ready();
+        return;
+      }
+      setTimeout(poll, 16);
+    };
+    setTimeout(poll, 16);
+  }
+
   const boot = createBootSequence({
     document: doc,
     target: { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" },
@@ -91,6 +133,7 @@ export async function bootWorkbench(options = {}) {
       bootTarget = target;
       loadBootTargetPaused();
     },
+    waitBeforeFade: waitForBootScopes,
     onComplete(outcome) {
       bootActive = false;
       view?.setRenderingPaused(false);
@@ -108,8 +151,6 @@ export async function bootWorkbench(options = {}) {
     "greenberet.asm",
     "rambload.asm",
   ];
-
-  const fetchFn = options.fetch || (typeof fetch !== "undefined" ? fetch : globalThis.fetch);
 
   // Mount view early so UI handlers (including early first-tap unlock) are active
   view = createWorkbenchView({
@@ -165,17 +206,15 @@ export async function bootWorkbench(options = {}) {
   });
   view.setDiagnostics(diagnostics);
 
-  let audioPrepared = false;
   const prepareAudio = () => {
-    if (audioPrepared) return;
-    audioPrepared = true;
     player.prepareAudio();
     boot.startTapeSound();
-    doc.removeEventListener("pointerdown", prepareAudio, true);
-    doc.removeEventListener("keydown", prepareAudio, true);
+    if (player.getAudioContext()?.state === "running") {
+      removeGestureListeners(unlockOnce);
+      removeGestureListeners(prepareAudio);
+    }
   };
-  doc.addEventListener("pointerdown", prepareAudio, true);
-  doc.addEventListener("keydown", prepareAudio, true);
+  addGestureListeners(prepareAudio);
 
   const led = view.elements.get("status-led");
   if (led) led.classList.add("ready");

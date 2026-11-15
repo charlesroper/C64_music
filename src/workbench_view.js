@@ -1917,17 +1917,19 @@ export function createWorkbenchView({
     recordFrameWork(nowMs() - frameStarted);
   }
 
+  function paintCurrentTelemetry() {
+    if (!state.player) return;
+    const tel = state.player.getTelemetry();
+    if (!tel) return;
+    lastRenderedFrame = tel.frameCount;
+    lastRenderedSessionId = state.currentSession ? state.currentSession.id : null;
+    renderTelemetry(tel);
+  }
+
   function handleVisibilityChange() {
     if (!isRenderLoopActive()) return;
     resetTelemetryCaches();
-    if (state.player) {
-      const tel = state.player.getTelemetry();
-      if (tel) {
-        lastRenderedFrame = tel.frameCount;
-        lastRenderedSessionId = state.currentSession ? state.currentSession.id : null;
-        renderTelemetry(tel);
-      }
-    }
+    paintCurrentTelemetry();
     scheduleRenderFrame();
   }
 
@@ -1947,6 +1949,7 @@ export function createWorkbenchView({
     if (!renderingPaused) {
       resetTelemetryCaches();
       lastFrameTimestamp = 0;
+      paintCurrentTelemetry();
       scheduleRenderFrame();
     }
   }

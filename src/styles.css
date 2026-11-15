@@ -2603,6 +2603,7 @@ html[data-boot-mode="immediate"] body[data-boot-state="booting"] .app-shell {
   justify-content: center;
   overflow: hidden;
   background: #000;
+  opacity: 1;
 }
 
 .boot-sequence.is-fading {

@@ -3,6 +3,10 @@ import { createC64ScreenRenderer } from "./c64_screen.js";
 const SCREEN_COLS = 40;
 const CURSOR_CHAR = 0xa0;
 export const BOOT_FADE_MS = 2400;
+export const BOOT_LOADER_MS = 4800;
+export const BOOT_READY_MS = 3000;
+const LOADER_TICK_MS = 120;
+const LOADER_PROGRESS_TICKS = BOOT_LOADER_MS / LOADER_TICK_MS;
 const DEFAULT_TARGET = {
   gameId: "wizball.asm",
   trackId: "wiz-title",
@@ -57,6 +61,7 @@ export function createBootSequence({
   onPhase = () => {},
   onGate = () => {},
   onComplete = () => {},
+  waitBeforeFade = null,
   schedule = (fn, ms) => setTimeout(fn, ms),
   cancel = (id) => clearTimeout(id),
   setIntervalFn = (fn, ms) => setInterval(fn, ms),
@@ -87,6 +92,8 @@ export function createBootSequence({
   let loaderTimer = null;
   let loaderTick = 0;
   let loaderMinimumElapsed = false;
+  let destroyed = false;
+  let revealStarted = false;
 
   const state = {
     phase: BOOT_PHASES.IDLE,
@@ -172,7 +179,7 @@ export function createBootSequence({
   }
 
   function drawLoaderScreen() {
-    const progress = Math.min(1, (loaderTick + 1) / 20);
+    const progress = Math.min(1, (loaderTick + 1) / LOADER_PROGRESS_TICKS);
     screenRam.fill(0x20);
     colorRam.fill(14);
     border.fill(0);
@@ -204,11 +211,11 @@ export function createBootSequence({
       if (state.completed || state.phase !== BOOT_PHASES.LOADING) return;
       loaderTick++;
       drawLoaderScreen();
-    }, 120);
+    }, LOADER_TICK_MS);
     later(() => {
       loaderMinimumElapsed = true;
       maybeFinishLoad();
-    }, 2400);
+    }, BOOT_LOADER_MS);
   }
 
   function stopLoader() {
@@ -284,10 +291,10 @@ export function createBootSequence({
     stopLoader();
     if (tapeSound && typeof tapeSound.stop === "function") tapeSound.stop();
     resetScreen(14, 6, 14);
-    writeCentered(12, "READY.", 14);
+    writeCentered(12, "READY?", 14);
     setPhase(BOOT_PHASES.READY);
     render(6);
-    later(collapse, 500);
+    later(collapse, BOOT_READY_MS);
   }
 
   function collapse() {
@@ -331,6 +338,15 @@ export function createBootSequence({
     later(() => complete({ autoPlay: true, reason: "gate" }), 0);
   }
 
+  function startFade() {
+    if (revealStarted || destroyed) return;
+    revealStarted = true;
+    delete doc.body.dataset.bootState;
+    overlay.style.transitionDuration = `${BOOT_FADE_MS}ms`;
+    overlay.classList.add("is-fading");
+    later(hideOverlay, BOOT_FADE_MS);
+  }
+
   function complete({ autoPlay, reason }) {
     if (state.completed) return;
     state.completed = true;
@@ -346,12 +362,14 @@ export function createBootSequence({
     try {
       onComplete({ target, autoPlay: state.autoPlay, reason });
     } finally {
-      delete doc.body.dataset.bootState;
       if (reason === "gate") {
-        overlay.style.transitionDuration = `${BOOT_FADE_MS}ms`;
-        overlay.classList.add("is-fading");
-        later(hideOverlay, BOOT_FADE_MS);
+        if (typeof waitBeforeFade === "function") {
+          waitBeforeFade(startFade);
+        } else {
+          startFade();
+        }
       } else {
+        delete doc.body.dataset.bootState;
         hideOverlay();
       }
     }
@@ -371,7 +389,7 @@ export function createBootSequence({
 
   function handleInput(event) {
     if (state.completed) return;
-    event.preventDefault?.();
+    if (event?.type === "keydown") event.preventDefault?.();
     if (state.phase === BOOT_PHASES.GATE) {
       activateGate();
       return;
@@ -433,7 +451,13 @@ export function createBootSequence({
   }
 
   function destroy() {
-    if (state.completed) return;
+    destroyed = true;
+    if (state.completed) {
+      clearTimers();
+      hideOverlay();
+      delete doc.body.dataset.bootState;
+      return;
+    }
     state.completed = true;
     clearTimers();
     stopBlink();

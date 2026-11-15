@@ -337,7 +337,7 @@ export function createBrowserHarness({
   const audioState = {
     ctx: null,
     audioSession: { type: "ambient" },
-    oscillators: 0,
+    bufferSources: 0,
     gains: 0,
   };
 
@@ -357,11 +357,11 @@ export function createBrowserHarness({
     }
   }
 
-  class StrictOscillatorNode extends StrictNode {
+  class StrictBufferSourceNode extends StrictNode {
     constructor(context) {
       super(context);
-      this.frequency = new StrictParam();
-      this.type = "";
+      this.buffer = null;
+      this.loop = false;
     }
     start() {}
     stop() {}
@@ -371,15 +371,6 @@ export function createBrowserHarness({
     constructor(context) {
       super(context);
       this.gain = new StrictParam();
-    }
-  }
-
-  class StrictBiquadFilterNode extends StrictNode {
-    constructor(context) {
-      super(context);
-      this.frequency = new StrictParam();
-      this.Q = new StrictParam();
-      this.type = "";
     }
   }
 
@@ -401,18 +392,24 @@ export function createBrowserHarness({
       return Promise.resolve();
     }
 
-    createOscillator() {
-      audioState.oscillators++;
-      return new StrictOscillatorNode(this);
+    decodeAudioData(arrayBuffer) {
+      const length = Math.max(1, arrayBuffer?.byteLength || 1);
+      return Promise.resolve({
+        sampleRate: this.sampleRate,
+        length,
+        duration: length / this.sampleRate,
+        numberOfChannels: 1,
+      });
+    }
+
+    createBufferSource() {
+      audioState.bufferSources++;
+      return new StrictBufferSourceNode(this);
     }
 
     createGain() {
       audioState.gains++;
       return new StrictGainNode(this);
-    }
-
-    createBiquadFilter() {
-      return new StrictBiquadFilterNode(this);
     }
   }
 

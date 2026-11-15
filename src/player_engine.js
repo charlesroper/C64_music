@@ -76,15 +76,16 @@ export function createAudioContextManager({
         // Ignore on browsers where audioSession.type is read-only
       }
     }
-    if (preUnlocked) return;
-    const AudioCtx = getConstructor();
-    if (!AudioCtx) return;
-    try {
-      preUnlocked = new AudioCtx({ sampleRate: 48000, latencyHint: hint });
-      preUnlockedHint = hint;
-    } catch (_) {
-      preUnlocked = new AudioCtx();
-      preUnlockedHint = null;
+    if (!preUnlocked || preUnlocked.state === "closed") {
+      const AudioCtx = getConstructor();
+      if (!AudioCtx) return;
+      try {
+        preUnlocked = new AudioCtx({ sampleRate: 48000, latencyHint: hint });
+        preUnlockedHint = hint;
+      } catch (_) {
+        preUnlocked = new AudioCtx();
+        preUnlockedHint = null;
+      }
     }
     if (preUnlocked.state !== "running") preUnlocked.resume?.();
   }

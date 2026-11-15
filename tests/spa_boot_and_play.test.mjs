@@ -1522,14 +1522,17 @@ test("gate tap before the player loads unlocks audio and the player adopts it", 
     globalThis.document.dispatchEvent("pointerdown");
     assert.ok(harness.audioState.ctx, "The gate tap must unlock audio inside the gesture");
     assert.equal(harness.audioState.ctx.state, "running");
-    await Promise.resolve();
-    assert.equal(
-      harness.audioState.oscillators,
-      4,
-      "Tape sound must start at the gate without the player",
-    );
 
     const { player } = await bootPromise;
+    const tapeDeadline = Date.now() + 2000;
+    while (harness.audioState.bufferSources < 1 && Date.now() < tapeDeadline) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(
+      harness.audioState.bufferSources,
+      1,
+      "Tape sound must play the loading recording at the gate without the player",
+    );
     const ctx = harness.audioState.ctx;
     const readyDeadline = Date.now() + 5000;
     while (!player.getAudioContext() && Date.now() < readyDeadline) {
@@ -1537,6 +1540,66 @@ test("gate tap before the player loads unlocks audio and the player adopts it", 
     }
     assert.equal(player.getAudioContext(), ctx, "Player must adopt the gate-unlocked context");
     assert.equal(player.getAudioContext().state, "running");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("touch gate tap unlocks audio on pointerup when pointerdown has no user activation", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    let userActivationActive = false;
+    let constructedContexts = 0;
+    const OrigCtx = globalThis.window.AudioContext;
+    globalThis.window.AudioContext = class TouchGatedAudioContext extends OrigCtx {
+      constructor(opts) {
+        super(opts);
+        constructedContexts++;
+        if (userActivationActive) this.state = "running";
+      }
+      resume() {
+        if (userActivationActive) this.state = "running";
+        return Promise.resolve();
+      }
+    };
+
+    await bootWorkbench();
+    const live = harness.elementsById.get("boot-live");
+    const gateDeadline = Date.now() + 4000;
+    while (
+      live.textContent !== "Press play on tape to start Wizball" &&
+      Date.now() < gateDeadline
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(live.textContent, "Press play on tape to start Wizball");
+
+    userActivationActive = false;
+    globalThis.document.dispatchEvent("pointerdown", { pointerType: "touch" });
+    globalThis.document.dispatchEvent("touchstart");
+    await Promise.resolve();
+
+    userActivationActive = true;
+    globalThis.document.dispatchEvent("pointerup", { pointerType: "touch" });
+    globalThis.document.dispatchEvent("touchend");
+    globalThis.document.dispatchEvent("click", { pointerType: "touch" });
+    await Promise.resolve();
+
+    assert.equal(
+      constructedContexts,
+      1,
+      "Touch tap must not construct a second AudioContext on pointerup",
+    );
+    assert.equal(
+      harness.audioState.ctx?.state,
+      "running",
+      "Pointerup must resume the AudioContext for tape sound",
+    );
+    const tapeDeadline = Date.now() + 1000;
+    while (harness.audioState.bufferSources < 1 && Date.now() < tapeDeadline) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    assert.equal(harness.audioState.bufferSources, 1, "Tape sound buffer source must be running");
   } finally {
     harness.restoreGlobals();
   }

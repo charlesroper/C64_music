@@ -1,93 +1,129 @@
-export function createTapeLoadingSound({ getContext }) {
+export function createTapeLoadingSound({
+  getContext,
+  fetchFn = null,
+  url = "./assets/c64_loading_noise.m4a",
+} = {}) {
+  let rawBytesPromise = null;
+  let decodedContext = null;
+  let decodedBuffer = null;
+  let decodePromise = null;
   let context = null;
   let gain = null;
-  let nodes = [];
+  let source = null;
   let started = false;
+
+  function resolveFetch() {
+    if (typeof fetchFn === "function") return fetchFn;
+    return typeof fetch === "function" ? fetch : null;
+  }
+
+  function fetchBytes() {
+    if (rawBytesPromise) return rawBytesPromise;
+    const loader = resolveFetch();
+    if (!loader) return Promise.resolve(null);
+    rawBytesPromise = (async () => {
+      try {
+        const resp = await loader(url);
+        if (!resp || resp.ok === false) {
+          rawBytesPromise = null;
+          return null;
+        }
+        return await resp.arrayBuffer();
+      } catch (_) {
+        rawBytesPromise = null;
+        return null;
+      }
+    })();
+    return rawBytesPromise;
+  }
+
+  function preload() {
+    return fetchBytes();
+  }
+
+  async function loadBuffer(ctx) {
+    if (decodedBuffer && decodedContext === ctx) return decodedBuffer;
+    if (decodePromise && decodedContext === ctx) return decodePromise;
+    decodedContext = ctx;
+    decodePromise = (async () => {
+      const bytes = await fetchBytes();
+      if (!bytes || typeof ctx.decodeAudioData !== "function") return null;
+      const buffer = await ctx.decodeAudioData(bytes.slice(0));
+      if (decodedContext === ctx) decodedBuffer = buffer;
+      return buffer;
+    })();
+    try {
+      return await decodePromise;
+    } catch (_) {
+      if (decodedContext === ctx) {
+        decodedContext = null;
+        decodedBuffer = null;
+        decodePromise = null;
+      }
+      return null;
+    }
+  }
 
   function stop() {
     if (!started) return;
     started = false;
     const ctx = context;
     const master = gain;
-    const activeNodes = nodes;
+    const activeSource = source;
     context = null;
     gain = null;
-    nodes = [];
-    if (!ctx || !master) return;
+    source = null;
+    if (!ctx || !master || !activeSource) return;
     try {
       master.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
     } catch (_) {}
-    for (const node of activeNodes) {
-      try {
-        node.stop(ctx.currentTime + 0.12);
-      } catch (_) {}
-    }
+    try {
+      activeSource.stop(ctx.currentTime + 0.12);
+    } catch (_) {}
+  }
+
+  function resumeContext(ctx) {
+    if (!ctx || ctx.state === "running" || ctx.state === "closed") return;
+    try {
+      ctx.resume?.();
+    } catch (_) {}
   }
 
   function start() {
+    const initialContext = context || (getContext ? getContext() : null);
+    resumeContext(initialContext);
     if (started) return;
+    if (!initialContext || initialContext.state === "closed") return;
     started = true;
-    queueMicrotask(() => {
-      if (!started) return;
+    loadBuffer(initialContext).then((buffer) => {
+      if (!started || !buffer) {
+        if (!buffer) started = false;
+        return;
+      }
+      const activeCtx = (getContext ? getContext() : null) || initialContext;
+      if (!activeCtx || activeCtx.state === "closed") {
+        started = false;
+        return;
+      }
+      resumeContext(activeCtx);
       try {
-        context = getContext ? getContext() : null;
-        if (!context || context.state === "closed") {
-          started = false;
-          return;
-        }
-        if (context.state === "suspended") context.resume?.();
+        context = activeCtx;
+        gain = activeCtx.createGain();
+        gain.gain.value = 0.35;
 
-        gain = context.createGain();
-        gain.gain.value = 0.16;
-
-        const filter = context.createBiquadFilter();
-        filter.type = "bandpass";
-        filter.frequency.value = 1700;
-        filter.Q.value = 0.7;
-
-        const carrier = context.createOscillator();
-        carrier.type = "sawtooth";
-        carrier.frequency.value = 1100;
-
-        const carrierLfo = context.createOscillator();
-        carrierLfo.type = "sine";
-        carrierLfo.frequency.value = 6;
-        const carrierDepth = context.createGain();
-        carrierDepth.gain.value = 260;
-
-        const chirp = context.createOscillator();
-        chirp.type = "square";
-        chirp.frequency.value = 2200;
-
-        const chirpLfo = context.createOscillator();
-        chirpLfo.type = "triangle";
-        chirpLfo.frequency.value = 17;
-        const chirpDepth = context.createGain();
-        chirpDepth.gain.value = 380;
-
-        const chirpGain = context.createGain();
-        chirpGain.gain.value = 0.35;
-
-        carrierLfo.connect(carrierDepth).connect(carrier.frequency);
-        chirpLfo.connect(chirpDepth).connect(chirp.frequency);
-        carrier.connect(filter);
-        chirp.connect(chirpGain).connect(filter);
-        filter.connect(gain).connect(context.destination);
-
-        carrier.start();
-        carrierLfo.start();
-        chirp.start();
-        chirpLfo.start();
-
-        nodes = [carrier, carrierLfo, chirp, chirpLfo, carrierDepth, chirpDepth, chirpGain, filter];
+        source = activeCtx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(gain).connect(activeCtx.destination);
+        source.start(0);
       } catch (_) {
         started = false;
         context = null;
         gain = null;
-        nodes = [];
+        source = null;
       }
     });
   }
 
-  return { start, stop };
+  return { preload, start, stop };
 }
