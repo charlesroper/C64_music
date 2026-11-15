@@ -463,37 +463,41 @@
             <!-- Voice 1 -->
             <div class="voice-card" data-voice="0">
               <div class="voice-card-header">
-                <div class="voice-title-group">
-                  <span class="voice-dot v-cyan"></span>
-                  <span class="voice-name c64-caps">Voice 1 ($D400)</span>
-                  <span class="voice-note" id="v0-note">---</span>
+                <div class="voice-header-row">
+                  <div class="voice-title-group">
+                    <span class="voice-dot v-cyan"></span>
+                    <span class="voice-name c64-caps">Voice 1 ($D400)</span>
+                  </div>
+                  <div class="voice-controls">
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-mute="0"
+                      title="Mute voice 1 (press 1)"
+                      aria-label="Mute voice 1"
+                      aria-keyshortcuts="1"
+                    >
+                      M
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-solo="0"
+                      title="Solo voice 1"
+                      aria-label="Solo voice 1"
+                    >
+                      S
+                    </button>
+                  </div>
                 </div>
-                <div class="voice-controls">
+                <div class="voice-telemetry-row">
+                  <span class="voice-note" id="v0-note">---</span>
                   <span
                     class="voice-pc-tag"
                     id="v0-pc"
                     title="Click to jump to Voice 1 sequence pointer in source"
                     >PC0: $----</span
                   >
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-mute="0"
-                    title="Mute voice 1 (press 1)"
-                    aria-label="Mute voice 1"
-                    aria-keyshortcuts="1"
-                  >
-                    M
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-solo="0"
-                    title="Solo voice 1"
-                    aria-label="Solo voice 1"
-                  >
-                    S
-                  </button>
                 </div>
               </div>
               <canvas class="scope-canvas" id="scope-v0" width="260" height="68"></canvas>
@@ -508,37 +512,41 @@
             <!-- Voice 2 -->
             <div class="voice-card" data-voice="1">
               <div class="voice-card-header">
-                <div class="voice-title-group">
-                  <span class="voice-dot v-magenta"></span>
-                  <span class="voice-name c64-caps">Voice 2 ($D407)</span>
-                  <span class="voice-note" id="v1-note">---</span>
+                <div class="voice-header-row">
+                  <div class="voice-title-group">
+                    <span class="voice-dot v-magenta"></span>
+                    <span class="voice-name c64-caps">Voice 2 ($D407)</span>
+                  </div>
+                  <div class="voice-controls">
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-mute="1"
+                      title="Mute voice 2 (press 2)"
+                      aria-label="Mute voice 2"
+                      aria-keyshortcuts="2"
+                    >
+                      M
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-solo="1"
+                      title="Solo voice 2"
+                      aria-label="Solo voice 2"
+                    >
+                      S
+                    </button>
+                  </div>
                 </div>
-                <div class="voice-controls">
+                <div class="voice-telemetry-row">
+                  <span class="voice-note" id="v1-note">---</span>
                   <span
                     class="voice-pc-tag"
                     id="v1-pc"
                     title="Click to jump to Voice 2 sequence pointer in source"
                     >PC1: $----</span
                   >
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-mute="1"
-                    title="Mute voice 2 (press 2)"
-                    aria-label="Mute voice 2"
-                    aria-keyshortcuts="2"
-                  >
-                    M
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-solo="1"
-                    title="Solo voice 2"
-                    aria-label="Solo voice 2"
-                  >
-                    S
-                  </button>
                 </div>
               </div>
               <canvas class="scope-canvas" id="scope-v1" width="260" height="68"></canvas>
@@ -553,37 +561,41 @@
             <!-- Voice 3 -->
             <div class="voice-card" data-voice="2">
               <div class="voice-card-header">
-                <div class="voice-title-group">
-                  <span class="voice-dot v-yellow"></span>
-                  <span class="voice-name c64-caps">Voice 3 ($D40E)</span>
-                  <span class="voice-note" id="v2-note">---</span>
+                <div class="voice-header-row">
+                  <div class="voice-title-group">
+                    <span class="voice-dot v-yellow"></span>
+                    <span class="voice-name c64-caps">Voice 3 ($D40E)</span>
+                  </div>
+                  <div class="voice-controls">
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-mute="2"
+                      title="Mute voice 3 (press 3)"
+                      aria-label="Mute voice 3"
+                      aria-keyshortcuts="3"
+                    >
+                      M
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-solo="2"
+                      title="Solo voice 3"
+                      aria-label="Solo voice 3"
+                    >
+                      S
+                    </button>
+                  </div>
                 </div>
-                <div class="voice-controls">
+                <div class="voice-telemetry-row">
+                  <span class="voice-note" id="v2-note">---</span>
                   <span
                     class="voice-pc-tag"
                     id="v2-pc"
                     title="Click to jump to Voice 3 sequence pointer in source"
                     >PC2: $----</span
                   >
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-mute="2"
-                    title="Mute voice 3 (press 3)"
-                    aria-label="Mute voice 3"
-                    aria-keyshortcuts="3"
-                  >
-                    M
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-solo="2"
-                    title="Solo voice 3"
-                    aria-label="Solo voice 3"
-                  >
-                    S
-                  </button>
                 </div>
               </div>
               <canvas class="scope-canvas" id="scope-v2" width="260" height="68"></canvas>
@@ -598,28 +610,32 @@
             <!-- Master Mix + Multimode Filter + $D418 Digi DAC -->
             <div class="voice-card master-card">
               <div class="voice-card-header">
-                <div class="voice-title-group">
-                  <span class="voice-dot v-green"></span>
-                  <span class="voice-name c64-caps">Filter and $D418 DAC</span>
-                  <span class="voice-note" id="filter-mode-tag">LP</span>
+                <div class="voice-header-row">
+                  <div class="voice-title-group">
+                    <span class="voice-dot v-green"></span>
+                    <span class="voice-name c64-caps">Filter and $D418 DAC</span>
+                  </div>
+                  <div class="voice-controls">
+                    <button
+                      type="button"
+                      class="btn-mini"
+                      data-mute="3"
+                      title="Mute digi drums (press 4)"
+                      aria-label="Mute digi drums"
+                      aria-keyshortcuts="4"
+                    >
+                      DIGI M
+                    </button>
+                  </div>
                 </div>
-                <div class="voice-controls">
+                <div class="voice-telemetry-row">
+                  <span class="voice-note" id="filter-mode-tag">LP</span>
                   <span
                     class="voice-pc-tag"
                     id="seq-pc"
                     title="Click to jump to drum sequencer pointer (seqPC) in source"
                     >DRUM: ----</span
                   >
-                  <button
-                    type="button"
-                    class="btn-mini"
-                    data-mute="3"
-                    title="Mute digi drums (press 4)"
-                    aria-label="Mute digi drums"
-                    aria-keyshortcuts="4"
-                  >
-                    DIGI M
-                  </button>
                 </div>
               </div>
               <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>

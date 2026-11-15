@@ -670,8 +670,9 @@ button.active {
   flex-direction: column;
   gap: 2px;
   padding: 4px;
-  flex-shrink: 0;
-  max-height: 185px;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
 }
 
@@ -741,13 +742,14 @@ button.active {
 }
 
 .track-list {
-  flex: 1;
+  flex: 1 1 0;
   overflow-y: auto;
   padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-height: 160px;
+  min-height: 0;
+  max-height: none;
 }
 
 .track-item {
@@ -830,14 +832,14 @@ button.active {
 }
 
 .game-meta-card {
-  padding: 5px 8px;
+  padding: 7px 9px;
   background: #0c1018;
   border-top: 1px solid var(--border-subtle);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
-  line-height: 1.35;
+  line-height: 1.4;
   flex-shrink: 0;
-  max-height: 80px;
+  max-height: 130px;
   overflow-y: auto;
 }
 
@@ -1114,6 +1116,7 @@ button.active {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
   min-height: 64px;
 }
 
@@ -1121,23 +1124,36 @@ button.active {
   opacity: 0.52;
 }
 
+/* Fixed two-row header prevents live note and PC updates from wrapping or shifting scope canvases. */
 .voice-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.voice-header-row,
+.voice-telemetry-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .voice-title-group {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .voice-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .v-cyan {
@@ -1162,6 +1178,16 @@ button.active {
   font-size: 10.5px;
   font-weight: 700;
   color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-note,
+.voice-pc-tag {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .voice-note {
@@ -1178,6 +1204,7 @@ button.active {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .voice-pc-tag {
@@ -1594,10 +1621,11 @@ button.active {
 /* SID Register Hex Dump Strip */
 .sid-hex-strip {
   grid-column: 1 / -1;
+  align-self: start;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: 4px 8px;
+  padding: 3px 6px;
   background: #0d111a;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -2011,7 +2039,8 @@ button.active {
 
   .workbench-grid {
     grid-template-columns: 310px minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
+    align-content: start;
     overflow: visible;
     gap: 10px;
     padding: 10px;
@@ -2019,7 +2048,6 @@ button.active {
 
   .panel-left {
     min-height: 560px;
-    height: 580px;
   }
 
   .panel-center {
@@ -2057,11 +2085,6 @@ button.active {
   }
   .game-item {
     padding: 4px 7px;
-  }
-  .game-meta-card {
-    max-height: 105px;
-    font-size: 10.5px;
-    padding: 5px 8px;
   }
   .scopes-grid {
     min-height: 125px;
@@ -2277,6 +2300,7 @@ button.active {
 
   .workbench-grid {
     grid-template-columns: 1fr;
+    align-content: start;
     gap: 10px;
     padding: 8px;
     overflow: visible;
@@ -2335,6 +2359,8 @@ button.active {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 5px;
+    flex: 0 0 auto;
+    max-height: 185px;
   }
 
   .game-item {
@@ -2362,6 +2388,8 @@ button.active {
   }
 
   .track-list {
+    flex: 1 1 auto;
+    min-height: 160px;
     max-height: 320px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -2462,8 +2490,8 @@ button.active {
     order: 4;
     flex-direction: column;
     align-items: stretch;
-    gap: 5px;
-    padding: 6px 8px;
+    gap: 4px;
+    padding: 3px 6px;
     overflow-x: hidden;
     width: 100%;
     box-sizing: border-box;

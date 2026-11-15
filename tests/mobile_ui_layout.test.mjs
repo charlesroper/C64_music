@@ -762,3 +762,145 @@ test("help panel becomes a bottom sheet at phone width", () => {
   assert.equal(desktop.inset, "50% auto auto 50%");
   assert.equal(desktop.transform, "translate(-50%, -50%)");
 });
+
+test("left panel stretches to match center panel on 2-column layouts, splits source and track panes evenly, and sizes bottom metadata card legibly", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+
+  for (const viewport of [
+    { width: 980, height: 1600 },
+    { width: 1440, height: 900 },
+  ]) {
+    const panelLeft = computeStyleForSelector(rules, [".panel-left"], viewport);
+    assert.ok(
+      !panelLeft.height || panelLeft.height === "auto",
+      `${viewport.width}x${viewport.height} .panel-left must stretch with row height, not use fixed height (${panelLeft.height})`,
+    );
+
+    for (const sel of [".game-list", ".track-list"]) {
+      const style = computeStyleForSelector(rules, [sel], viewport);
+      assert.equal(
+        style.flex,
+        "1 1 0",
+        `${viewport.width}x${viewport.height} ${sel} must use flex: 1 1 0 for even 50/50 split`,
+      );
+      assert.equal(
+        style["max-height"],
+        "none",
+        `${viewport.width}x${viewport.height} ${sel} must uncap max-height`,
+      );
+      assert.equal(
+        style["min-height"],
+        "0",
+        `${viewport.width}x${viewport.height} ${sel} must set min-height: 0 so flex items scroll instead of overflowing`,
+      );
+    }
+
+    const metaCard = computeStyleForSelector(rules, [".game-meta-card"], viewport);
+    assert.equal(metaCard["font-size"], "11px");
+    assert.equal(metaCard["line-height"], "1.4");
+    assert.equal(metaCard.padding, "7px 9px");
+    assert.equal(metaCard["max-height"], "130px");
+  }
+
+  const mobile = { width: 375, height: 812 };
+  const mobGameList = computeStyleForSelector(rules, [".game-list"], mobile);
+  assert.equal(mobGameList.flex, "0 0 auto");
+  assert.equal(mobGameList["max-height"], "185px");
+
+  const mobTrackList = computeStyleForSelector(rules, [".track-list"], mobile);
+  assert.equal(mobTrackList.flex, "1 1 auto");
+  assert.equal(mobTrackList["min-height"], "160px");
+  assert.equal(mobTrackList["max-height"], "320px");
+});
+
+test("SID register strip uses tight vertical padding and never stretches in tall 2-column viewports", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+
+  const tabletGrid = computeStyleForSelector(rules, [".workbench-grid"], {
+    width: 980,
+    height: 1600,
+  });
+  assert.equal(
+    tabletGrid["grid-template-rows"],
+    "auto auto auto",
+    "2-column .workbench-grid must size all three rows to auto so the register strip never stretches",
+  );
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 980, height: 1600 },
+    { width: 375, height: 812 },
+  ]) {
+    const strip = computeStyleForSelector(rules, [".sid-hex-strip"], viewport);
+    assert.equal(
+      strip["align-self"],
+      "start",
+      `${viewport.width}x${viewport.height} .sid-hex-strip must use align-self: start`,
+    );
+    assert.equal(
+      strip.padding,
+      "3px 6px",
+      `${viewport.width}x${viewport.height} .sid-hex-strip must use tight 3px 6px padding`,
+    );
+  }
+});
+
+test("oscilloscope card headers use fixed two-row layout with nowrap and tabular-nums so live updates never jump", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const scopesStart = html.indexOf('<div class="scopes-grid">');
+  const scopesEnd = html.indexOf("<!-- RIGHT PANEL:", scopesStart);
+  assert.ok(
+    scopesStart > -1 && scopesEnd > scopesStart,
+    "Expected .scopes-grid fragment in index.html",
+  );
+  const scopesHtml = html.slice(scopesStart, scopesEnd);
+
+  const headerRows = scopesHtml.match(/class="voice-header-row"/g) || [];
+  const telemetryRows = scopesHtml.match(/class="voice-telemetry-row"/g) || [];
+  assert.equal(headerRows.length, 4, "All 4 voice cards must have .voice-header-row");
+  assert.equal(telemetryRows.length, 4, "All 4 voice cards must have .voice-telemetry-row");
+
+  for (const [noteId, pcId] of [
+    ["v0-note", "v0-pc"],
+    ["v1-note", "v1-pc"],
+    ["v2-note", "v2-pc"],
+    ["filter-mode-tag", "seq-pc"],
+  ]) {
+    const rowPattern = new RegExp(
+      `<div\\s+[^>]*class="voice-telemetry-row"[^>]*>[\\s\\S]*?id="${noteId}"[\\s\\S]*?id="${pcId}"[\\s\\S]*?<\\/div>`,
+    );
+    assert.match(
+      scopesHtml,
+      rowPattern,
+      `Expected ${noteId} and ${pcId} inside .voice-telemetry-row`,
+    );
+  }
+
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+  const desktop = { width: 1440, height: 900 };
+
+  const card = computeStyleForSelector(rules, [".voice-card"], desktop);
+  assert.equal(card["min-width"], "0", ".voice-card must set min-width: 0 inside CSS grid");
+
+  const header = computeStyleForSelector(rules, [".voice-card-header"], desktop);
+  assert.equal(header["flex-direction"], "column");
+
+  for (const rowSel of [".voice-header-row", ".voice-telemetry-row"]) {
+    const rowStyle = computeStyleForSelector(rules, [rowSel], desktop);
+    assert.equal(rowStyle.display, "flex");
+    assert.equal(rowStyle["justify-content"], "space-between");
+  }
+
+  for (const textSel of [".voice-name", ".voice-note", ".voice-pc-tag"]) {
+    const style = computeStyleForSelector(rules, [textSel], desktop);
+    assert.equal(style["white-space"], "nowrap", `${textSel} must stay on a single line`);
+  }
+
+  for (const numSel of [".voice-note", ".voice-pc-tag"]) {
+    const style = computeStyleForSelector(rules, [numSel], desktop);
+    assert.equal(style["font-variant-numeric"], "tabular-nums");
+  }
+});
