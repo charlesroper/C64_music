@@ -271,8 +271,16 @@ export function createEngineCore({
 
     if (state.activeGameId === "rambload.asm" && state.activeSymbols) {
       updateRamboMonitorScreen(cachedRam, state.activeSymbols);
-      if (state.activeSymbols.MWK !== undefined) {
-        telemetry.morseIndex = cachedRam[state.activeSymbols.MWK] >> 1;
+      const symbols = state.activeSymbols;
+      if (symbols.MWK !== undefined) {
+        // Secret holds one byte per character and MWK counts those bytes. While a
+        // character sounds, MWK already points at the next one. When READ hits the
+        // terminator, the driver restores the MUS vector to REFRESH and MWK stays
+        // at the secret length, which is the completion index.
+        const secretPosition = cachedRam[symbols.MWK];
+        const musTarget = cachedRam[symbols.MUS + 1] | (cachedRam[symbols.MUS + 2] << 8);
+        telemetry.morseIndex =
+          musTarget === symbols.MCREFR ? Math.max(0, secretPosition - 1) : secretPosition;
       } else {
         telemetry.morseIndex = -1;
       }

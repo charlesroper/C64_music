@@ -236,6 +236,32 @@ test("commands received during a track load queue and apply in order afterwards"
   assert.deepEqual(keyCalls, [0x41, 0x42], "Queued key injections must apply in exact order");
 });
 
+test("morse telemetry tracks every secret character and reports completion", async () => {
+  const { core, messages } = await createTestCore();
+
+  core.onmessage({ data: { type: "init", sampleRate: 48000 } });
+  loadTrack(core, "rambload.asm", "rambo-full", { autoPlay: true });
+
+  const secret = getGame("rambload.asm").morseSecret;
+  core.onmessage({ data: { type: "requestTelemetry" } });
+  assert.equal(
+    messages.at(-1).snapshot.morseIndex,
+    0,
+    "Morse index must start at the first character",
+  );
+
+  // The message runs for about 36 seconds. Render 40 seconds and then read the
+  // driver's Secret pointer, which stops one byte past the last character.
+  for (let i = 0; i < 400; i++) core.renderAudio(4800);
+  core.onmessage({ data: { type: "requestTelemetry" } });
+
+  assert.equal(
+    messages.at(-1).snapshot.morseIndex,
+    secret.length,
+    "Morse stream must finish all characters, not stall at half of the Secret bytes",
+  );
+});
+
 test("engine core applies hardware options, injects keys, and keeps loaded RAM through init", async () => {
   const { core, messages } = await createTestCore();
 
