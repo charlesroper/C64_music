@@ -892,4 +892,4 @@ Project memory printed `HIGH CHURN` for every active file because the tool hardc
 
 The seven notes are retired through superseding decisions. The hook now filters the churn lines from the precheck and keeps stale-memory, failed-attempt and open-issue warnings. The README hook note states the filter and its reason.
 
-`npm run check:lint` passes and `npm test` passes 135 checks across 13 files.
+`npm run check:lint` passes and `npm test` passes 135 checks across 13 files. Commit [7debffe](https://github.com/charlesroper/C64_music/commit/7debffe) carries the change.
