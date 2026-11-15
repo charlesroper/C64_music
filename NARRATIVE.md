@@ -868,4 +868,4 @@ The Rambo Morse banner stopped at `CHAR 28/54: 'G'` while the SID kept sending. 
 
 `src/engine_core.js` now maps the driver state to the character that is sounding: while `MUS` points at `MCREFR`, the index is `MWK - 1`; once `READ` hits the terminator and restores `MUS` to `REFRESH`, `MWK` equals the 54-character length and the banner switches to its complete state. A new Engine Core check renders 40 seconds of `rambo-full` and asserts the index reaches 54.
 
-`npm test` passes 135 checks across 13 files.
+`npm test` passes 135 checks across 13 files. Commit [ad4751d](https://github.com/charlesroper/C64_music/commit/ad4751d) carries the change.
