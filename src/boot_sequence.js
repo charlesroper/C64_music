@@ -423,6 +423,9 @@ export function createBootSequence({
       complete(pending);
       return;
     }
+    if (state.gateActive && state.phase === BOOT_PHASES.LOADING) {
+      if (tapeSound && typeof tapeSound.start === "function") tapeSound.start();
+    }
     maybeFinishLoad();
   }
 

@@ -1465,6 +1465,45 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   }
 });
 
+test("gate tap before the player loads unlocks audio and the player adopts it", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      await new Promise((r) => setTimeout(r, 2500));
+      return origFetch(url);
+    };
+
+    const bootPromise = bootWorkbench();
+    const live = harness.elementsById.get("boot-live");
+    const gateDeadline = Date.now() + 4000;
+    while (
+      live.textContent !== "Press play on tape to start Wizball" &&
+      Date.now() < gateDeadline
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(live.textContent, "Press play on tape to start Wizball");
+
+    // The player and its audio listeners do not exist yet. The gate tap is the
+    // only audio gesture, so it must unlock the context itself.
+    globalThis.document.dispatchEvent("pointerdown");
+    assert.ok(harness.audioState.ctx, "The gate tap must unlock audio inside the gesture");
+    assert.equal(harness.audioState.ctx.state, "running");
+
+    const { player } = await bootPromise;
+    const ctx = harness.audioState.ctx;
+    const readyDeadline = Date.now() + 5000;
+    while (!player.getAudioContext() && Date.now() < readyDeadline) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(player.getAudioContext(), ctx, "Player must adopt the gate-unlocked context");
+    assert.equal(player.getAudioContext().state, "running");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("CalVer version number appears immediately after the title of the app", async () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));

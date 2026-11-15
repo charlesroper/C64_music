@@ -252,12 +252,12 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in April and May 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
 
-`npm test` runs 135 automated checks across 13 test files:
+`npm test` runs 137 automated checks across 13 test files:
 
 * **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, that sample-rate negotiation leaves loaded C64 RAM intact, that a Track Load freezes the clock at frame 0 and emits silence without a pre-render, that commands received during a load apply in exact order afterwards, that fast-forward adds 3 frames per 2048 samples at any render block size and that the Rambo Morse banner reports all 54 secret characters and reaches the complete state.
 * **PETSCII screen rasteriser.** The shared renderer paints screen RAM, colour RAM and border scanlines into the VIC-II palette for both the workbench CRT monitor and the Boot Sequence. Tests cover border colours, glyph rows, colour RAM, screen placement and ImageData reuse.
 * **Assembly prewarm.** A module worker assembles all six sources before playback needs them. Tests verify the cache, source-index rehydration and the synchronous fallback when no worker is available.
-* **Boot Sequence.** Tests cover the static first-paint state, visible boot overlay, power-on, BASIC, typing, the PRESS PLAY gate, readiness waiting, the normal crossfade, the collapsed frame position during the fade, skip, reduced motion, live-region phases and the handoff to a playing Wizball.
+* **Boot Sequence.** Tests cover the static first-paint state, visible boot overlay, power-on, BASIC, typing, the PRESS PLAY gate, audio unlock at an early gate tap, the tape sound retry when audio becomes ready, readiness waiting, the normal crossfade, the collapsed frame position during the fade, skip, reduced motion, live-region phases and the handoff to a playing Wizball.
 * **AudioWorklet processor.** The processor class receives a compiled `WebAssembly.Module`, instantiates the Engine Core on the audio thread, renders 128 stereo samples per quantum, queues commands that arrive before the core is ready, outputs silence during instantiation, throttles telemetry below the audio callback rate and transfers telemetry buffers back and forth through a six-buffer pool. The Player Engine is tested for queueing play until the worklet is ready, then replaying the active track and transport state, for defaulting to the playback latency hint and fixed 62.5Hz telemetry, for resolving Audio mode precedence and persisting Stored Audio Mode, for adopting a pre-unlocked `AudioContext` and for closing and recreating the audio context when the latency mode changes. The processor reports process timing percentiles, the 128-frame audio budget, persistent session peaks, late blocks, missed quanta, telemetry drops, audio sub-phase timings and output gain for the diagnostics overlay.
 * **Telemetry buffer.** One transferable `ArrayBuffer` carries screen RAM, oscilloscope samples, SID registers, scanline border data, voice channels and filter values. Tests verify the packed layout round-trips into the `player.getTelemetry()` shape and that buffer reuse overwrites every field without stale data.
 * **Issue closure guard.** `npm run issue:close` audits the issue body and refuses to close while any DoD or acceptance criteria task item is unchecked. Transient GitHub API errors are retried three times; permanent errors fail immediately. A GitHub Action reopens any completed issue closed with unchecked items.
@@ -281,7 +281,7 @@ Martin Galway uploaded his original assembly files to GitHub in April and May 20
 * **Catalogue copy.** Descriptions add detail beyond the duration badge, use voice for SID parts, stay in third person and start with the cue's identity.
 * **Brand copy.** The brand subtitle, document title and package description use the same 1985-87 range and describe the MOS 6510 and 6581/8580 emulator with its live assembler.
 * **Drums.** The isolated `$D418` test runs Arkadrum and the 73-track sweep covers Game Over's PCM drums. The volume control works on both paths.
-* **Mobile and audio unlock.** The page loads, unlocks audio on the first tap even during asset download and starts playback cleanly.
+* **Mobile and audio unlock.** The page loads, unlocks audio on the first tap, including the PRESS PLAY gate, even during asset download and starts playback cleanly.
 * **AudioWorklet verification gate.** Headless WebKit under PRoot verifies the worklet pipeline. Chromium 153 also works, Chromium 156 and later crash at startup and Firefox loads modules but keeps its audio context suspended. `npm test` verifies the Engine Core in-thread and a manual listen in a real mobile browser provides the final audio check.
 * **Versioning and deployment.** The CalVer release identifier renders beside the title in both the header and document head, validated against same-day increments (`scripts/bump_version.mjs`), with automated deployments pushed directly to GitHub Pages (`scripts/deploy.mjs`).
 * **Code style.** Biome checks JavaScript, JSON, CSS and HTML before every deployment. The first formatting pass sits in its own commit, recorded in `.git-blame-ignore-revs`, so history stays readable.
@@ -893,3 +893,13 @@ Project memory printed `HIGH CHURN` for every active file because the tool hardc
 The seven notes are retired through superseding decisions. The hook now filters the churn lines from the precheck and keeps stale-memory, failed-attempt and open-issue warnings. The README hook note states the filter and its reason.
 
 `npm run check:lint` passes and `npm test` passes 135 checks across 13 files. Commit [7debffe](https://github.com/charlesroper/C64_music/commit/7debffe) carries the change.
+
+### 15 November 2026: the boot loader keeps its tape sound
+
+The Boot Sequence reached the PRESS PLAY gate about 1.5 seconds after page load, but the player and its `AudioContext` only existed after the WASM module and assembly sources arrived. A gate tap before that point called `tapeSound.start()` with no context, lost the only user gesture and left the loader silent.
+
+`bootWorkbench` now unlocks the audio manager on the first pointer or key event, so a gate tap creates a running context even while the player is still loading. When `prewarm` finishes with the gate active, the bootstrap prepares the player audio, which adopts that context, and `boot.setReady()` retries the tape sound if it could not start at the gate. The retry stays inside the loading phase, so the skip and reduced-motion paths remain silent.
+
+Two checks cover the fault. One taps the gate with audio unavailable and asserts that audio readiness retries the tape sound. The other taps the gate during a delayed fetch and asserts that the tap creates a running context which the player later adopts.
+
+`npm run check:lint` passes and `npm test` passes 137 checks across 13 files.

@@ -155,6 +155,40 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
   }
 });
 
+test("tape sound retries once audio is ready after an early gate tap", () => {
+  const harness = createBrowserHarness();
+  try {
+    const tape = { starts: 0, contextReady: false, playing: false };
+    const { boot, clock } = createBoot({
+      tapeSound: {
+        start() {
+          tape.starts++;
+          if (tape.contextReady) tape.playing = true;
+        },
+        stop() {
+          tape.playing = false;
+        },
+      },
+    });
+    boot.start();
+    clock.advance(120);
+    clock.advance(600);
+    clock.advance(6 * 80 + 300);
+    assert.equal(boot.getState().phase, BOOT_PHASES.GATE);
+
+    globalThis.document.dispatchEvent("pointerdown");
+    assert.equal(tape.starts, 1);
+    assert.equal(tape.playing, false, "The gate tap cannot play tape sound without audio");
+
+    tape.contextReady = true;
+    boot.setReady();
+    assert.equal(tape.starts, 2, "Audio readiness must retry the tape sound");
+    assert.equal(tape.playing, true);
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("skip completes with Wizball playing once the player is ready", async () => {
   const harness = createBrowserHarness();
   try {

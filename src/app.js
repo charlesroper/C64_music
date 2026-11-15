@@ -48,6 +48,17 @@ export async function bootWorkbench(options = {}) {
     getContext: () => player?.getAudioContext?.() || null,
   });
 
+  // A tap before the player exists still unlocks audio. The manager hands the
+  // running context to the player when it finishes loading, which lets the tape
+  // sound start late instead of losing the gate gesture.
+  const unlockOnce = () => {
+    audioManager.unlock();
+    doc.removeEventListener("pointerdown", unlockOnce, true);
+    doc.removeEventListener("keydown", unlockOnce, true);
+  };
+  doc.addEventListener("pointerdown", unlockOnce, true);
+  doc.addEventListener("keydown", unlockOnce, true);
+
   function loadBootTargetPaused() {
     if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
     bootTargetLoaded = true;
@@ -168,6 +179,7 @@ export async function bootWorkbench(options = {}) {
   prewarm.finally(() => {
     prewarmDone = true;
     loadBootTargetPaused();
+    if (boot.getState().gateActive) prepareAudio();
     boot.setReady();
     applyBootOutcome();
   });
