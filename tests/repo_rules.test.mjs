@@ -433,6 +433,16 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
     assert.match(content, /^#!\/bin\/sh/, "hook must start with a POSIX shebang");
     assert.match(content, /npm run check:lint/, "hook must lint through check:lint");
     assert.doesNotMatch(content, /npm run lint/, "hook must not call the removed lint script");
+    assert.match(
+      content,
+      /node --test \$TEST_FILES/,
+      "hook must run only the staged test files for test-only commits",
+    );
+    assert.match(
+      content,
+      /tests\/helpers\//,
+      "hook must fall back to the full suite for helper changes",
+    );
     assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

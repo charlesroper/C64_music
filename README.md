@@ -235,7 +235,7 @@ Install the local pre-commit hook after cloning. Git does not track `.git/hooks`
 npm run hooks:install
 ```
 
-The hook runs `npm run check:lint` on every commit and `npm test` when a staged file is under `src/`, `tests/`, `scripts/`, or is `index.html` or a package file. Bypass it once with `git commit --no-verify`.
+The hook runs `npm run check:lint` on every commit. When a staged file is under `src/`, `tests/helpers/`, `scripts/`, or is `index.html` or a package file, it runs the full `npm test` suite. When only `tests/*.test.mjs` files change, it runs just those files. Bypass it once with `git commit --no-verify`.
 
 ## Bump the version and deploy to GitHub Pages
 

@@ -21,8 +21,15 @@ if [ -f package.json ]; then
         exit 1
     fi
     STAGED="$(git diff --cached --name-only)"
-    if printf '%s\\n' "$STAGED" | grep -Eq '^(src/|tests/|scripts/|index\\.html|package(-lock)?\\.json)'; then
+    TEST_FILES="$(printf '%s\\n' "$STAGED" | grep -E '^tests/[^/]+\\.test\\.mjs$' || true)"
+    if printf '%s\\n' "$STAGED" | grep -Eq '^(src/|scripts/|index\\.html|package(-lock)?\\.json|tests/helpers/)'; then
         if ! npm test --silent >"$CHECK_LOG" 2>&1; then
+            tail -60 "$CHECK_LOG"
+            echo "Pre-commit tests failed. Fix the failures or use git commit --no-verify."
+            exit 1
+        fi
+    elif [ -n "$TEST_FILES" ]; then
+        if ! node --test $TEST_FILES >"$CHECK_LOG" 2>&1; then
             tail -60 "$CHECK_LOG"
             echo "Pre-commit tests failed. Fix the failures or use git commit --no-verify."
             exit 1

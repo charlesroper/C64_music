@@ -877,3 +877,11 @@ The Rambo Morse banner stopped at `CHAR 28/54: 'G'` while the SID kept sending. 
 The followed-line highlight now wins through a `.source-viewer` scope instead of `!important`. The `.ln-num` and `.ln-addr` defaults sit above their voice-colour overrides, the `.arch-notes` rules sit above the narrative modal rules, and the `.hidden` utility plus the reduced-motion override carry a per-declaration `biome-ignore` comment that states why the override is needed. The unused `root` option left `createWorkbenchView` and `bootWorkbench`.
 
 `npm run check:lint` now passes on the whole repository, and `npm test` passes 135 checks across 13 files.
+
+### 15 November 2026: the pre-commit hook runs only what changed
+
+Every staged test file ran the full 135-check suite, so a one-line test edit cost about 18 seconds. The hook also treated `tests/helpers/` as a test change rather than shared code.
+
+The hook now runs the full suite when a staged file is under `src/`, `scripts/`, `tests/helpers/`, or is `index.html` or a package file. A change to only `tests/*.test.mjs` runs just those files. Documentation-only commits still skip tests. The whole-repository lint gate stays.
+
+`npm run check:lint` passes and `npm test` passes 135 checks across 13 files.
