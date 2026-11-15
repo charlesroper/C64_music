@@ -1,17 +1,15 @@
-import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveBrowserEngine } from "./browser_engines.mjs";
 
 // Release gate, not a CI job. This check needs a real Chromium build and asserts
 // font-sensitive pixel geometry, so it runs in the deploy preflight only.
 // See docs/agents/browser-verification.md and CODING_STANDARDS Rule 6.4.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DEFAULT_CHROME =
-  "/root/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell";
 const SIZES = [
   [360, 800],
   [390, 844],
@@ -30,16 +28,6 @@ const MIME_TYPES = {
   ".txt": "text/plain",
   ".wasm": "application/wasm",
 };
-
-function findChrome() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-  if (existsSync(DEFAULT_CHROME)) return DEFAULT_CHROME;
-  for (const command of ["chromium", "chromium-browser", "google-chrome"]) {
-    const found = spawnSync("which", [command], { encoding: "utf8" });
-    if (found.status === 0 && found.stdout.trim()) return found.stdout.trim();
-  }
-  throw new Error("Chromium 153 not found. Set CHROME_PATH to the headless shell.");
-}
 
 function createStaticServer() {
   return createServer(async (request, response) => {
@@ -454,7 +442,9 @@ async function checkKeyboard({ client, appUrl }) {
 }
 
 async function main() {
-  const chromePath = findChrome();
+  const chromium = resolveBrowserEngine("chromium");
+  if (chromium.warning) throw new Error(chromium.warning);
+  const chromePath = chromium.path;
   const server = createStaticServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = server.address().port;

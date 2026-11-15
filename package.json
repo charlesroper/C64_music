@@ -8,6 +8,8 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check:lint": "biome check .",
+    "check:browsers": "node scripts/browsers.mjs check",
+    "clean:browsers": "node scripts/browsers.mjs clean",
     "format": "biome check --write .",
     "check:help-popovers": "node scripts/check_help_popovers.mjs",
     "hooks:install": "node scripts/install_hooks.mjs",
@@ -16,6 +18,7 @@
     "issue:close": "node scripts/close_issue.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.4"
+    "@biomejs/biome": "2.6.4",
+    "playwright-core": "1.65.0"
   }
 }

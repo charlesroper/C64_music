@@ -18,7 +18,8 @@ This supersedes the verification note in ADR-0007. The earlier conclusion, that 
 ## Consequences
 
 - Headless WebKit is the primary end-to-end check for the AudioWorklet pipeline.
-- Chromium is pinned to Playwright 1.63.0 or to an explicit `executablePath`. The latest Playwright may still drive Firefox and WebKit.
+- Chromium is pinned to the 153 headless shell through the resolver in ADR-0010.
 - Firefox remains useful for DOM, layout, and boot checks.
 - No engine produces audible output in this sandbox. A manual listen on a real phone remains the final audio gate.
 - The engine matrix and commands live in `docs/agents/browser-verification.md`.
+- Engine resolution and cache cleanup are recorded in ADR-0010.

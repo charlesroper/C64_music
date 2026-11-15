@@ -26,32 +26,31 @@ No engine produces audible output here. The sandbox has no audio device. A real 
 
 ## Install
 
+The project pins `playwright-core` as a dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`.
+
 ```bash
-npx playwright install webkit firefox
-npx playwright install-deps webkit firefox
-npx playwright@1.63.0 install chromium-headless-shell
+npm ci
+npm run check:browsers
 ```
 
-Playwright 1.65 ships Chromium 158, which crashes. Keep 1.65 for Firefox and WebKit, then point Chromium at the 153 build:
+`check:browsers` prints each engine's revision, source, readiness and path. It exits non-zero with the install command and expected revision when one is missing. Resolution order is `CHROME_PATH`, `FIREFOX_PATH` or `WEBKIT_PATH`, then the standard Playwright cache, then a system Chromium. Set `PLAYWRIGHT_BROWSERS_PATH` when the cache lives elsewhere.
 
-```js
-const { chromium } = require("playwright-core");
+This host already holds Chromium 153 revision 1243, Firefox 1572 and WebKit 2388. Other hosts can install the Playwright engines with:
 
-const browser = await chromium.launch({
-  headless: true,
-  executablePath:
-    "/root/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell"
-});
+```bash
+npx playwright-core install firefox webkit
 ```
 
-Resolve the path from Playwright 1.63.0 when the cache layout changes:
+Chromium 153 is host-specific because Playwright 1.65 ships Chromium 158, which crashes under PRoot. Put a working headless shell in `CHROME_PATH`. The release gate and any future browser script call the resolver, so they do not embed cache paths.
 
-```js
-const pw163 = require("/path/to/playwright-1.63.0");
-console.log(pw163.chromium.executablePath());
+## Clean the browser cache
+
+```bash
+npm run clean:browsers
+npm run clean:browsers -- --yes
 ```
 
-Alternatively, pin the whole test project to Playwright 1.63.0.
+The first command prints the keep and remove plan. The second deletes stale Playwright revisions and reports the space freed. Cleanup touches only known browser entries in the Playwright cache; unknown directories and symlinks are left alone.
 
 ## Contract
 
@@ -121,7 +120,7 @@ Re-adding it to CI needs a pinned Chromium, `CHROME_PATH`, and font-independent 
 ## Engine guidance
 
 - **WebKit**: use for full headless verification, including the worklet pipeline.
-- **Chromium 153**: use when a Chromium result is required. Pin the build as shown above.
+- **Chromium 153**: use when a Chromium result is required. The resolver prefers it; set `CHROME_PATH` on a host with a different build.
 - **Firefox**: use for boot, DOM, layout, and track switching. Do not use it to judge audio thread behaviour.
 - **Chromium 156 and later**: do not use in this sandbox until the SIGTRAP regression is fixed.
 
