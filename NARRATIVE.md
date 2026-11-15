@@ -902,4 +902,4 @@ The Boot Sequence reached the PRESS PLAY gate about 1.5 seconds after page load,
 
 Two checks cover the fault. One taps the gate with audio unavailable and asserts that audio readiness retries the tape sound. The other taps the gate during a delayed fetch and asserts that the tap creates a running context which the player later adopts.
 
-`npm run check:lint` passes and `npm test` passes 137 checks across 13 files.
+`npm run check:lint` passes and `npm test` passes 137 checks across 13 files. Commit [e3541b5](https://github.com/charlesroper/C64_music/commit/e3541b5) carries the change.
