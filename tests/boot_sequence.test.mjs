@@ -242,7 +242,7 @@ test("tape loading sound preloads, loops recording at balanced gain, and skips s
     async decodeAudioData(copy) {
       assert.notEqual(copy, bytes);
       assert.equal(copy.byteLength, 4);
-      return { duration: 28.74 };
+      return { duration: 9.0 };
     },
     createGain() {
       const targetCalls = [];
@@ -314,7 +314,7 @@ test("tape loading sound preloads, loops recording at balanced gain, and skips s
     ...ctx,
     decodeAudioData() {
       return new Promise((resolve) => {
-        finishDecode = () => resolve({ duration: 28.74 });
+        finishDecode = () => resolve({ duration: 9.0 });
       });
     },
   };
