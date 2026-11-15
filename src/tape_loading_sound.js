@@ -38,7 +38,7 @@ export function createTapeLoadingSound({ getContext }) {
         if (context.state === "suspended") context.resume?.();
 
         gain = context.createGain();
-        gain.gain.value = 0.035;
+        gain.gain.value = 0.16;
 
         const filter = context.createBiquadFilter();
         filter.type = "bandpass";

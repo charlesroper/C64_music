@@ -900,6 +900,8 @@ The Boot Sequence reached the PRESS PLAY gate about 1.5 seconds after page load,
 
 `bootWorkbench` now unlocks the audio manager on the first pointer or key event, and the tape sound falls back to that unlocked context. It starts at the gate even while the player is still downloading, and the player adopts the same context later. `boot.startTapeSound()` owns the gate and loading checks, so the audio preparation retry stays inside the loading phase and the skip and reduced-motion paths remain silent. `setReady()` calls the same method for a gate tap that arrives before the player is ready.
 
+The hiss also rose from a gain of 0.035 to 0.16. The old level measured about 0.04 peak and 0.011 RMS in a headless browser, roughly 39dB below full scale, which a phone speaker can lose under normal room noise. The new level measures about 0.20 peak and 0.075 RMS.
+
 The regression checks tap the gate after `prewarm` with a stub tape sound and assert that audio preparation retries the start. A second check taps the gate during a delayed fetch and asserts that the tap starts four tape oscillators on a running context which the player later adopts.
 
 `npm run check:lint` passes and `npm test` passes 138 checks across 13 files. Commit [e3541b5](https://github.com/charlesroper/C64_music/commit/e3541b5) carried the first attempt. Commit [e4a1609](https://github.com/charlesroper/C64_music/commit/e4a1609) carries the final fix.
