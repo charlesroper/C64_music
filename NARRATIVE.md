@@ -869,3 +869,11 @@ The Rambo Morse banner stopped at `CHAR 28/54: 'G'` while the SID kept sending. 
 `src/engine_core.js` now maps the driver state to the character that is sounding: while `MUS` points at `MCREFR`, the index is `MWK - 1`; once `READ` hits the terminator and restores `MUS` to `REFRESH`, `MWK` equals the 54-character length and the banner switches to its complete state. A new Engine Core check renders 40 seconds of `rambo-full` and asserts the index reaches 54.
 
 `npm test` passes 135 checks across 13 files. Commit [ad4751d](https://github.com/charlesroper/C64_music/commit/ad4751d) carries the change.
+
+### 15 November 2026: the lint gate turns green again
+
+`npm run check:lint` had failed on main since `0ea58c4` with 12 warnings. The pre-commit hook runs that command, so it aborted every commit and the workaround became `git commit --no-verify`. CI ran the same failing command.
+
+The followed-line highlight now wins through a `.source-viewer` scope instead of `!important`. The `.ln-num` and `.ln-addr` defaults sit above their voice-colour overrides, the `.arch-notes` rules sit above the narrative modal rules, and the `.hidden` utility plus the reduced-motion override carry a per-declaration `biome-ignore` comment that states why the override is needed. The unused `root` option left `createWorkbenchView` and `bootWorkbench`.
+
+`npm run check:lint` now passes on the whole repository, and `npm test` passes 135 checks across 13 files.

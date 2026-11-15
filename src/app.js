@@ -100,7 +100,6 @@ export async function bootWorkbench(options = {}) {
   // Mount view early so UI handlers (including early first-tap unlock) are active
   view = createWorkbenchView({
     document: doc,
-    root: options.root,
     elements: options.elements,
     player: null,
     latencyHint,

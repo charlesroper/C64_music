@@ -171,7 +171,6 @@ export function createDomRegistry(doc, customElements) {
 
 export function createWorkbenchView({
   document: doc = typeof document !== "undefined" ? document : null,
-  root = null,
   player = null,
   assets = null,
   elements = null,
