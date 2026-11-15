@@ -885,3 +885,11 @@ Every staged test file ran the full 135-check suite, so a one-line test edit cos
 The hook now runs the full suite when a staged file is under `src/`, `scripts/`, `tests/helpers/`, or is `index.html` or a package file. A change to only `tests/*.test.mjs` runs just those files. Documentation-only commits still skip tests. The whole-repository lint gate stays.
 
 `npm run check:lint` passes and `npm test` passes 135 checks across 13 files. Commit [769003c](https://github.com/charlesroper/C64_music/commit/769003c) carries the change.
+
+### 15 November 2026: commit warnings lose the churn noise
+
+Project memory printed `HIGH CHURN` for every active file because the tool hardcodes four changes in 30 days. Seven obsolete status notes from October's audit waves and older releases added stale-memory lines on top.
+
+The seven notes are retired through superseding decisions. The hook now filters the churn lines from the precheck and keeps stale-memory, failed-attempt and open-issue warnings. The README hook note states the filter and its reason.
+
+`npm run check:lint` passes and `npm test` passes 135 checks across 13 files.

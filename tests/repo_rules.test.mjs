@@ -443,6 +443,11 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
       /tests\/helpers\//,
       "hook must fall back to the full suite for helper changes",
     );
+    assert.match(
+      content,
+      /grep -vE 'HIGH CHURN/,
+      "hook must hide churn warnings from the fixed-threshold project memory check",
+    );
     assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

@@ -235,7 +235,7 @@ Install the local pre-commit hook after cloning. Git does not track `.git/hooks`
 npm run hooks:install
 ```
 
-The hook runs `npm run check:lint` on every commit. When a staged file is under `src/`, `tests/helpers/`, `scripts/`, or is `index.html` or a package file, it runs the full `npm test` suite. When only `tests/*.test.mjs` files change, it runs just those files. Bypass it once with `git commit --no-verify`.
+The hook runs `npm run check:lint` on every commit. When a staged file is under `src/`, `tests/helpers/`, `scripts/`, or is `index.html` or a package file, it runs the full `npm test` suite. When only `tests/*.test.mjs` files change, it runs just those files. Project memory churn lines are hidden because this repository's active files always exceed the tool's fixed four-change threshold; stale-memory, failed-attempt and open-issue warnings still print. Bypass it once with `git commit --no-verify`.
 
 ## Bump the version and deploy to GitHub Pages
 
