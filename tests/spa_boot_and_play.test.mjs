@@ -1465,6 +1465,38 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   }
 });
 
+test("gate tap after prewarm retries tape sound once audio is prepared", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const tape = { starts: 0, stops: 0 };
+    await bootWorkbench({
+      tapeSound: {
+        start() {
+          tape.starts++;
+        },
+        stop() {
+          tape.stops++;
+        },
+      },
+    });
+    const live = harness.elementsById.get("boot-live");
+    const gateDeadline = Date.now() + 4000;
+    while (
+      live.textContent !== "Press play on tape to start Wizball" &&
+      Date.now() < gateDeadline
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    assert.equal(live.textContent, "Press play on tape to start Wizball");
+    assert.equal(tape.starts, 0, "Tape sound must wait for the gate");
+
+    globalThis.document.dispatchEvent("pointerdown");
+    assert.equal(tape.starts, 2, "The gate start must be retried once audio is prepared");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
 test("gate tap before the player loads unlocks audio and the player adopts it", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   try {
@@ -1490,6 +1522,12 @@ test("gate tap before the player loads unlocks audio and the player adopts it", 
     globalThis.document.dispatchEvent("pointerdown");
     assert.ok(harness.audioState.ctx, "The gate tap must unlock audio inside the gesture");
     assert.equal(harness.audioState.ctx.state, "running");
+    await Promise.resolve();
+    assert.equal(
+      harness.audioState.oscillators,
+      4,
+      "Tape sound must start at the gate without the player",
+    );
 
     const { player } = await bootPromise;
     const ctx = harness.audioState.ctx;

@@ -105,7 +105,11 @@ export function createAudioContextManager({
     return options ? new AudioCtx(options) : new AudioCtx();
   }
 
-  return { unlock, createAudioContext };
+  function getPreUnlockedContext() {
+    return preUnlocked;
+  }
+
+  return { unlock, createAudioContext, getPreUnlockedContext };
 }
 
 export {

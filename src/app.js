@@ -44,9 +44,12 @@ export async function bootWorkbench(options = {}) {
   let bootTarget = null;
   let bootTargetLoaded = false;
   let prewarmDone = false;
-  const tapeSound = createTapeLoadingSound({
-    getContext: () => player?.getAudioContext?.() || null,
-  });
+  const tapeSound =
+    options.tapeSound ||
+    createTapeLoadingSound({
+      getContext: () =>
+        player?.getAudioContext?.() || audioManager.getPreUnlockedContext?.() || null,
+    });
 
   // A tap before the player exists still unlocks audio. The manager hands the
   // running context to the player when it finishes loading, which lets the tape
@@ -167,6 +170,7 @@ export async function bootWorkbench(options = {}) {
     if (audioPrepared) return;
     audioPrepared = true;
     player.prepareAudio();
+    boot.startTapeSound();
     doc.removeEventListener("pointerdown", prepareAudio, true);
     doc.removeEventListener("keydown", prepareAudio, true);
   };

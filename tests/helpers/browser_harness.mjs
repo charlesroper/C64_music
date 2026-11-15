@@ -337,7 +337,51 @@ export function createBrowserHarness({
   const audioState = {
     ctx: null,
     audioSession: { type: "ambient" },
+    oscillators: 0,
+    gains: 0,
   };
+
+  class StrictParam {
+    constructor(value = 0) {
+      this.value = value;
+    }
+    setTargetAtTime() {}
+  }
+
+  class StrictNode {
+    constructor(context) {
+      this.context = context;
+    }
+    connect(destination) {
+      return destination;
+    }
+  }
+
+  class StrictOscillatorNode extends StrictNode {
+    constructor(context) {
+      super(context);
+      this.frequency = new StrictParam();
+      this.type = "";
+    }
+    start() {}
+    stop() {}
+  }
+
+  class StrictGainNode extends StrictNode {
+    constructor(context) {
+      super(context);
+      this.gain = new StrictParam();
+    }
+  }
+
+  class StrictBiquadFilterNode extends StrictNode {
+    constructor(context) {
+      super(context);
+      this.frequency = new StrictParam();
+      this.Q = new StrictParam();
+      this.type = "";
+    }
+  }
 
   class StrictAudioContext {
     constructor(opts) {
@@ -346,6 +390,7 @@ export function createBrowserHarness({
       }
       this.sampleRate = hardwareSampleRate;
       this.state = "suspended";
+      this.currentTime = 0;
       this.destination = { isDestination: true };
       this.latencyHint = opts?.latencyHint;
       audioState.ctx = this;
@@ -354,6 +399,20 @@ export function createBrowserHarness({
     resume() {
       this.state = "running";
       return Promise.resolve();
+    }
+
+    createOscillator() {
+      audioState.oscillators++;
+      return new StrictOscillatorNode(this);
+    }
+
+    createGain() {
+      audioState.gains++;
+      return new StrictGainNode(this);
+    }
+
+    createBiquadFilter() {
+      return new StrictBiquadFilterNode(this);
     }
   }
 

@@ -415,6 +415,11 @@ export function createBootSequence({
     requestComplete({ autoPlay: options.autoPlay ?? true, reason: options.reason || "skip" });
   }
 
+  function startTapeSound() {
+    if (!state.gateActive || state.phase !== BOOT_PHASES.LOADING) return;
+    if (tapeSound && typeof tapeSound.start === "function") tapeSound.start();
+  }
+
   function setReady() {
     state.ready = true;
     if (pendingCompletion) {
@@ -423,9 +428,7 @@ export function createBootSequence({
       complete(pending);
       return;
     }
-    if (state.gateActive && state.phase === BOOT_PHASES.LOADING) {
-      if (tapeSound && typeof tapeSound.start === "function") tapeSound.start();
-    }
+    startTapeSound();
     maybeFinishLoad();
   }
 
@@ -446,6 +449,7 @@ export function createBootSequence({
     start,
     skip: skipBoot,
     setReady,
+    startTapeSound,
     destroy,
     getState: () => ({ ...state }),
   };
