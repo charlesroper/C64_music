@@ -60,6 +60,10 @@ _Avoid_: Boot branch, track init script
 An index structure bound to an assembled source module providing O(1) address-to-line resolution, symbol-to-line location, and text search across original assembly source lines.
 _Avoid_: Line lookup table, symbol resolver
 
+**Morse Transmission**:
+The Rambo loader's hidden message. `Secret` stores one byte per character as `2*letter`, so its pointer `MWK` counts characters and names the next one while the current one sounds. `STARTMC` points the `MUS` vector at `MCREFR`; when `READ` reaches the terminator, the vector returns to `REFRESH`, `MWK` equals the 54-character length, and the banner reports completion.
+_Avoid_: Morse buffer, secret index, character pointer
+
 **Idle Render Path**:
 The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused, the document is backgrounded, or the Boot Sequence covers the workbench, while capping unthrottled display refresh at 60 Hz.
 _Avoid_: Tick stopper, frame skipper

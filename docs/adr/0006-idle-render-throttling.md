@@ -28,3 +28,5 @@ Additionally, rebuilding the SID register hex skeleton (`renderSidHexStripSkelet
 ## Consequences
 
 Idle CPU consumption drops to near zero when paused or backgrounded. Redundant DOM mutations are eliminated across consecutive identical frames. 120 Hz displays no longer execute duplicate canvas draws for 50 Hz PAL content.
+
+Correction, 15 November 2026: the Morse banner compares the engine's character index, which is the `Secret` position. The driver's `MWK` already counts characters because `Secret` stores one byte per character, so the earlier `MWK >> 1` mapping was wrong. Commit [ad4751d](https://github.com/charlesroper/C64_music/commit/ad4751d) fixed it and [GLOSSARY.md](../GLOSSARY.md) records the field semantics.
