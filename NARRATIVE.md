@@ -902,4 +902,4 @@ The Boot Sequence reached the PRESS PLAY gate about 1.5 seconds after page load,
 
 The regression checks tap the gate after `prewarm` with a stub tape sound and assert that audio preparation retries the start. A second check taps the gate during a delayed fetch and asserts that the tap starts four tape oscillators on a running context which the player later adopts.
 
-`npm run check:lint` passes and `npm test` passes 138 checks across 13 files. Commit [e3541b5](https://github.com/charlesroper/C64_music/commit/e3541b5) carried the first attempt.
+`npm run check:lint` passes and `npm test` passes 138 checks across 13 files. Commit [e3541b5](https://github.com/charlesroper/C64_music/commit/e3541b5) carried the first attempt. Commit [e4a1609](https://github.com/charlesroper/C64_music/commit/e4a1609) carries the final fix.
