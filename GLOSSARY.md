@@ -40,6 +40,14 @@ _Avoid_: Boot branch, track init script
 An index structure bound to an assembled source module providing O(1) address-to-line resolution, symbol-to-line location, and text search across original assembly source lines.
 _Avoid_: Line lookup table, symbol resolver
 
+**Memory Map**:
+The Commodore 64 64KB RAM address ranges (`ORG` origins) where a source file assembles its driver, jump vector table, music engine, and sample or score data.
+_Avoid_: Address layout, ORG table
+
+**Zero Page**:
+The first 256 bytes of 6502 RAM (`$0000` to `$00FF`), used by Galway's drivers for active voice sequence pointers, clocks, and workspace because zero-page instructions are shorter and faster than 16-bit addresses.
+_Avoid_: Page zero, fast RAM
+
 **Morse Transmission**:
 The Rambo loader's hidden message. `Secret` stores one byte per character as `2*letter`, so its pointer `MWK` counts characters and names the next one while the current one sounds. `STARTMC` points the `MUS` vector at `MCREFR`; when `READ` reaches the terminator, the vector returns to `REFRESH`, `MWK` equals the 54-character length, and the banner reports completion.
 _Avoid_: Morse buffer, secret index, character pointer
@@ -119,8 +127,8 @@ Section 2 of the workbench, presenting the category filters and selectable track
 _Avoid_: Song list, track browser
 
 **Game Metadata Card**:
-The summary card below the Tunes Panel displaying the active game's year, composition details, and driver notes.
-_Avoid_: Game info box, driver card
+The summary card below the Tunes Panel displaying the active source file name and header timestamp (`File`), its Memory Map, its Zero Page allocation, and driver notes.
+_Avoid_: Game info box, driver card, file info panel
 
 **C64 Monitor**:
 Section 3 of the workbench, decoding `$0400` screen RAM and `$D020` raster border colour with Commodore 64 character ROM glyphs.

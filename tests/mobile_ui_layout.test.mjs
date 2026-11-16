@@ -829,7 +829,7 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
     assert.equal(metaCard["font-size"], "11px");
     assert.equal(metaCard["line-height"], "1.4");
     assert.equal(metaCard.padding, "7px 9px");
-    assert.equal(metaCard["max-height"], "130px");
+    assert.equal(metaCard["max-height"], "190px");
   }
 
   const mobile = { width: 375, height: 812 };
@@ -841,6 +841,13 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
   assert.equal(mobTrackList.flex, "1 1 auto");
   assert.equal(mobTrackList["min-height"], "160px");
   assert.equal(mobTrackList["max-height"], "320px");
+
+  const mobTunesTabTrackList = computeStyleForExactSelectors(
+    rules,
+    [".track-list", '.workbench-grid[data-mobile-view="tunes"] .track-list'],
+    mobile,
+  );
+  assert.equal(mobTunesTabTrackList["max-height"], "none");
 });
 
 test("SID register strip uses tight vertical padding and never stretches in tall 2-column viewports", () => {

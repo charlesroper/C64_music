@@ -839,7 +839,7 @@ button.active {
   color: var(--text-muted);
   line-height: 1.4;
   flex-shrink: 0;
-  max-height: 130px;
+  max-height: 190px;
   overflow-y: auto;
 }
 
@@ -2430,7 +2430,7 @@ button.active {
   }
 
   .workbench-grid[data-mobile-view="tunes"] .track-list {
-    max-height: 62dvh;
+    max-height: none;
   }
 
   .track-item {
