@@ -6,7 +6,7 @@ Galway 2664 is a browser-based Commodore 64 audio workbench and 6502 cross-assem
 
 It compiles Galway's original assembly source code in the browser and runs it clock by clock inside a WebAssembly 6510 and SID emulator. Play all 73 tracks and sound effects without a desktop emulator. Edit and reassemble the code while it plays.
 
-The workbench recreates Galway's live debugging screen. In his original sound drivers, Galway wrote internal music engine diagnostics directly into Commodore 64 text screen RAM at `$0400`. The CRT canvas monitor decodes this 1,000-character telemetry block with authentic C64 character ROM glyphs.
+The workbench recreates Galway's live debugging screen. In his original sound drivers, Galway wrote internal music engine diagnostics directly into Commodore 64 text screen RAM at `$0400`. The C64 Monitor decodes this 1,000-character telemetry block with authentic C64 character ROM glyphs.
 
 Galway published his original source files on GitHub in April and May 2026. The repository was forked in October 2026 and built using Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode.
 
@@ -78,7 +78,7 @@ The first load runs the C64 Boot Sequence and ends with Wizball playing. Add `?s
 
 ### Stats for Nerds
 
-* Click **STATS FOR NERDS** in the header to show or hide the live audio and main-thread frame timing overlay.
+* Click **STATS FOR NERDS** in the header to show or hide the live audio and main-thread frame-timing readout.
 * Append `?audioDebug=1` to the URL to open the same overlay on load.
 * Click **?** in the overlay title row to expand a scrollable plain-English guide. Each metric gains a description under its value, except the Events row, which reuses its group description. The guide defines the engine as worklet (normal) or in-thread (fallback). The expanded guide has a flush, frosted title bar and a circular help button. Click **×** to return to the compact overlay.
 * The overlay groups Context, Latency, Process, Deadlines, Telemetry and Events. Each group has its own colour and left border. Text titles remain, so colour is not the only cue.

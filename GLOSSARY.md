@@ -28,29 +28,9 @@ _Avoid_: all-time max, historical maximum
 The main-thread time spent inside one rendered Workbench View frame, from telemetry fetch through canvas and DOM updates.
 _Avoid_: frame time, render time
 
-**Workbench View**:
-The presentation layer responsible for rendering oscilloscope canvases, the PETSCII CRT monitor, assembly source line tracking, and interactive controls without direct knowledge of emulator ABI internals.
-_Avoid_: UI container, frontend app
-
 **Track Session**:
 A track configuration descriptor defining the active game, tune, source file, drum routine availability, and program counter symbols.
 _Avoid_: Song selection, track model
-
-**Boot Sequence**:
-The full-screen CRT startup that simulates a Commodore 64 power-on, BASIC screen and tape load before handing off to the workbench with a named Load Target.
-_Avoid_: Intro, splash screen, loading overlay
-
-**Boot Pending State**:
-The static document state that hides the app shell and shows the Boot Sequence before module execution.
-_Avoid_: loading state, splash flag
-
-**Load Target**:
-The Galway software selected by the Boot Sequence. Wizball is the only target exposed in the first version.
-_Avoid_: Boot game, startup track
-
-**Press Play Gate**:
-The user gesture in the Boot Sequence that unlocks browser audio and starts the tape load.
-_Avoid_: Autoplay prompt, start button
 
 **Loader Adapter**:
 A dedicated game-specific loader function responsible for initializing Commodore 64 memory, custom raster routines, jump tables, and CPU registers for one Galway audio routine before driver execution begins.
@@ -65,11 +45,11 @@ The Rambo loader's hidden message. `Secret` stores one byte per character as `2*
 _Avoid_: Morse buffer, secret index, character pointer
 
 **Idle Render Path**:
-The presentation loop guard that bypasses C64 monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused, the document is backgrounded, or the Boot Sequence covers the workbench, while capping unthrottled display refresh at 60 Hz.
+The presentation loop guard that bypasses C64 Monitor pixel transfers, oscilloscope drawing, and telemetry DOM writes when playback is paused, the document is backgrounded, or the Boot Sequence covers the workbench, while capping unthrottled display refresh at 60 Hz.
 _Avoid_: Tick stopper, frame skipper
 
 **Output Latency**:
-The total delay between the app producing a sound and the speaker playing it, reported as `out` in Stats. It includes browser and device buffering.
+The total delay between the app producing a sound and the speaker playing it, reported as `out` in Stats for Nerds. It includes browser and device buffering.
 _Avoid_: Buffer size, callback time
 
 **Callback Buffer**:
@@ -107,3 +87,69 @@ _Avoid_: Audio cookie, preference file
 **Seam**:
 A place where program behaviour can be altered without editing code in that place (from Michael Feathers). In this repository, it is the interface location where two modules meet, such as `createWorkbenchView` accepting a player implementation so automated UI test suites can drive presentation using `createFakePlayer` without compiling WebAssembly or initializing Web Audio.
 _Avoid_: Boundary, abstraction layer, hook
+
+## Workbench Interface
+
+**Workbench View**:
+The presentation layer responsible for rendering oscilloscope canvases, the C64 Monitor, assembly source line tracking, and interactive controls without direct knowledge of emulator ABI internals.
+_Avoid_: UI container, frontend app
+
+**Boot Sequence**:
+The full-screen CRT startup that simulates a Commodore 64 power-on, BASIC screen and tape load before handing off to the workbench with a named Load Target.
+_Avoid_: Intro, splash screen, loading overlay
+
+**Boot Pending State**:
+The static document state that hides the app shell and shows the Boot Sequence before module execution.
+_Avoid_: loading state, splash flag
+
+**Load Target**:
+The Galway software selected by the Boot Sequence. Wizball is the only target exposed in the first version.
+_Avoid_: Boot game, startup track
+
+**Press Play Gate**:
+The user gesture in the Boot Sequence that unlocks browser audio and starts the tape load.
+_Avoid_: Autoplay prompt, start button
+
+**Source Files Panel**:
+Section 1 of the workbench, listing Galway's original `.asm` source files alongside the assembly status badge.
+_Avoid_: Game cartridge browser, game list
+
+**Tunes Panel**:
+Section 2 of the workbench, presenting the category filters and selectable track list for the active source file.
+_Avoid_: Song list, track browser
+
+**Game Metadata Card**:
+The summary card below the Tunes Panel displaying the active game's year, composition details, and driver notes.
+_Avoid_: Game info box, driver card
+
+**C64 Monitor**:
+Section 3 of the workbench, decoding `$0400` screen RAM and `$D020` raster border colour with Commodore 64 character ROM glyphs.
+_Avoid_: CRT canvas monitor, screen canvas, raster display
+
+**HUD Row Guide**:
+The toggleable overlay on the C64 Monitor labelling Galway's per-game `$0400` screen RAM diagnostic rows.
+_Avoid_: Screen overlay, row labels
+
+**C64 Key Injector**:
+The interactive PETSCII bar beneath the C64 Monitor that feeds simulated keystrokes into the running C64 driver loop (`$F13E` / `KeyScan`).
+_Avoid_: Virtual keyboard, PETSCII keypad
+
+**Oscilloscopes Panel**:
+Section 4 of the workbench, displaying live telemetry summaries, voice cards for voices 1 to 3, and the Filter and Digi-Drum Card.
+_Avoid_: Scope grid, waveform panel
+
+**Filter and Digi-Drum Card**:
+The fourth card in the Oscilloscopes Panel, tracking the SID multimode filter, `$D418` digi-drum output, and drum sequencer position, distinct from the `FLT` group in the SID Register Strip.
+_Avoid_: Master volume channel, master card, digi card
+
+**Source Viewer**:
+Section 5 of the workbench, displaying Galway's assembly source with live voice-following highlights and an inline editable assembly mode.
+_Avoid_: Code viewer, assembly panel
+
+**SID Register Strip**:
+The full-width live hexadecimal bar across `$D400` to `$D418` grouped into `V1`, `V2`, `V3`, and `FLT` (Filter and Drums).
+_Avoid_: Hex strip, register bar
+
+**Stats for Nerds**:
+The toggleable live audio and main-thread Frame Work diagnostics overlay, grouped by context, latency, process, deadlines, telemetry, and events.
+_Avoid_: Diagnostics overlay, debug overlay, timing overlay
