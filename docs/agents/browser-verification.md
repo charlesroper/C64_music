@@ -26,7 +26,13 @@ No engine produces audible output here. The sandbox has no audio device. A real 
 
 ## Install
 
-The project pins `playwright-core` as a dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`. Ad-hoc browser scripts must import `playwright-core` (never `playwright`) and `resolveBrowserEngine` from `scripts/browser_engines.mjs` instead of hand-scanning browser caches.
+`playwright-core` is a pinned dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`. Ad-hoc browser scripts must import `playwright-core` (never `playwright`) and `resolveBrowserEngine` from `scripts/browser_engines.mjs` instead of hand-scanning browser caches:
+
+```js
+const { path: executablePath } = resolveBrowserEngine("chromium");
+const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
+const context = await browser.newContext({ reducedMotion: "reduce" }); // skip CSS transitions for style checks
+```
 
 ```bash
 npm ci

@@ -75,7 +75,8 @@ function matchesMedia(mediaQuery, { width, height }) {
   return true;
 }
 
-function computeStyleForSelector(rules, targetSelectors, viewport) {
+// Exact selector string match (does not intersect compound class/attribute rules).
+function computeStyleForExactSelectors(rules, targetSelectors, viewport) {
   const selectorSet = new Set(Array.isArray(targetSelectors) ? targetSelectors : [targetSelectors]);
   const computed = {};
   for (const rule of rules) {
@@ -110,10 +111,10 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   const mobile = { width: 375, height: 812 };
 
   // 1. Desktop keeps studio 3-column viewport lock; mobile unlocks vertical page scroll
-  const deskBody = computeStyleForSelector(rules, ["html", "body"], desktop);
+  const deskBody = computeStyleForExactSelectors(rules, ["html", "body"], desktop);
   assert.equal(deskBody["overflow-y"], "hidden");
 
-  const mobBody = computeStyleForSelector(rules, ["html", "body"], mobile);
+  const mobBody = computeStyleForExactSelectors(rules, ["html", "body"], mobile);
   assert.equal(
     mobBody["overflow-y"],
     "auto",
@@ -125,15 +126,15 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile html/body must prevent horizontal page overflow (overflow-x: hidden)",
   );
 
-  const mobShell = computeStyleForSelector(rules, [".app-shell"], mobile);
+  const mobShell = computeStyleForExactSelectors(rules, [".app-shell"], mobile);
   assert.equal(mobShell.height, "auto", "Mobile .app-shell must allow vertical growth");
   assert.equal(mobShell.width, "100%", "Mobile .app-shell must use 100% width instead of 100vw");
 
   // 2. Workbench grid collapses from 3 columns on desktop to 1 column on 375px phone
-  const deskGrid = computeStyleForSelector(rules, [".workbench-grid"], desktop);
+  const deskGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], desktop);
   assert.match(deskGrid["grid-template-columns"], /320px/);
 
-  const mobGrid = computeStyleForSelector(rules, [".workbench-grid"], mobile);
+  const mobGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], mobile);
   assert.ok(
     mobGrid["grid-template-columns"] === "1fr" ||
       mobGrid["grid-template-columns"] === "minmax(0, 1fr)",
@@ -142,7 +143,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
 
   // 3. Top bar, transport bar, panel headers, and source toolbar wrap cleanly on 375px phone
   for (const sel of [".top-bar", ".transport-bar", ".panel-header", ".source-toolbar"]) {
-    const style = computeStyleForSelector(rules, [sel], mobile);
+    const style = computeStyleForExactSelectors(rules, [sel], mobile);
     assert.equal(
       style["flex-wrap"],
       "wrap",
@@ -151,14 +152,14 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   }
 
   // 4. Scopes grid and modal columns collapse to 1 column on narrow 375px phones
-  const mobScopes = computeStyleForSelector(rules, [".scopes-grid"], mobile);
+  const mobScopes = computeStyleForExactSelectors(rules, [".scopes-grid"], mobile);
   assert.equal(
     mobScopes["grid-template-columns"],
     "1fr",
     "Narrow mobile .scopes-grid must stack 1fr so voice headers and waveforms fit",
   );
 
-  const mobModalCols = computeStyleForSelector(rules, [".modal-cols"], mobile);
+  const mobModalCols = computeStyleForExactSelectors(rules, [".modal-cols"], mobile);
   assert.equal(
     mobModalCols["grid-template-columns"],
     "1fr",
@@ -166,20 +167,20 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   // 5. Track list and .ASM source viewer have bounded mobile heights (preventing 40,000px scroll)
-  const mobTrackList = computeStyleForSelector(rules, [".track-list"], mobile);
+  const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
   assert.ok(
     mobTrackList["max-height"] && mobTrackList["max-height"] !== "none",
     "Mobile .track-list must set a bounded max-height",
   );
 
-  const mobSourceViewer = computeStyleForSelector(rules, [".source-viewer"], mobile);
+  const mobSourceViewer = computeStyleForExactSelectors(rules, [".source-viewer"], mobile);
   assert.ok(
     mobSourceViewer.height || mobSourceViewer["max-height"],
     "Mobile .source-viewer must constrain height so 2,300 .asm lines do not stretch the page",
   );
 
   // 6. Touch targets (>= 34px) and iOS Safari 16px anti-zoom on inputs/selects
-  const mobTransportBtn = computeStyleForSelector(
+  const mobTransportBtn = computeStyleForExactSelectors(
     rules,
     ["button", ".transport-bar button"],
     mobile,
@@ -189,14 +190,14 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     `Mobile transport buttons must be >= 36px tall, got ${mobTransportBtn["min-height"]}`,
   );
 
-  const mobKeyBtn = computeStyleForSelector(rules, ["button", ".key-btn"], mobile);
+  const mobKeyBtn = computeStyleForExactSelectors(rules, ["button", ".key-btn"], mobile);
   assert.ok(
     parseInt(mobKeyBtn["min-height"] || "0", 10) >= 34,
     `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`,
   );
 
   for (const inputSel of [".symbol-select", ".source-search", ".source-editor"]) {
-    const st = computeStyleForSelector(rules, [inputSel], mobile);
+    const st = computeStyleForExactSelectors(rules, [inputSel], mobile);
     assert.equal(
       st["font-size"],
       "16px",
@@ -205,22 +206,22 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   }
 
   // 7. Mobile hardware controls: slider spans full width, docs & story buttons form a 2-up row
-  const mobSliderGroup = computeStyleForSelector(rules, ["#hw-group-digi"], mobile);
+  const mobSliderGroup = computeStyleForExactSelectors(rules, ["#hw-group-digi"], mobile);
   assert.equal(
     mobSliderGroup["grid-column"],
     "1 / -1",
     "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
   );
 
-  const mobHwToggle = computeStyleForSelector(rules, [".hw-toggle"], mobile);
+  const mobHwToggle = computeStyleForExactSelectors(rules, [".hw-toggle"], mobile);
   assert.ok(
     parseInt(mobHwToggle["min-height"] || "0", 10) >= 36,
     "Mobile hardware toggles must be >= 36px tall",
   );
 
-  const mobDocsBtn = computeStyleForSelector(rules, ["#btn-directives-modal"], mobile);
-  const mobStoryBtn = computeStyleForSelector(rules, ["#btn-narrative-modal"], mobile);
-  const mobStatsBtn = computeStyleForSelector(rules, ["#btn-stats-nerds"], mobile);
+  const mobDocsBtn = computeStyleForExactSelectors(rules, ["#btn-directives-modal"], mobile);
+  const mobStoryBtn = computeStyleForExactSelectors(rules, ["#btn-narrative-modal"], mobile);
+  const mobStatsBtn = computeStyleForExactSelectors(rules, ["#btn-stats-nerds"], mobile);
   assert.equal(mobDocsBtn.width, "100%", "Mobile docs button must be width: 100%");
   assert.equal(mobStoryBtn.width, "100%", "Mobile story button must be width: 100%");
   assert.equal(mobStatsBtn.width, "100%", "Mobile stats button must be width: 100%");
@@ -238,16 +239,16 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)
-  const dotV2Style = computeStyleForSelector(rules, [".dot-v2"], mobile);
+  const dotV2Style = computeStyleForExactSelectors(rules, [".dot-v2"], mobile);
   assert.match(dotV2Style.background, /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /#ffffff/);
 
-  const v3SelectedStyle = computeStyleForSelector(rules, [".legend-chip.selected"], mobile);
+  const v3SelectedStyle = computeStyleForExactSelectors(rules, [".legend-chip.selected"], mobile);
   assert.match(v3SelectedStyle["border-color"], /var\(--border-bright\)/);
   assert.doesNotMatch(v3SelectedStyle["border-color"], /var\(--accent-yellow\)/);
 
-  const disabledDotStyle = computeStyleForSelector(
+  const disabledDotStyle = computeStyleForExactSelectors(
     rules,
     [".legend-chip.disabled .dot-v2"],
     mobile,
@@ -255,7 +256,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(disabledDotStyle["box-shadow"], "none");
   assert.match(disabledDotStyle.background, /var\(--text-dim\)/);
 
-  const v3FollowStyle = computeStyleForSelector(
+  const v3FollowStyle = computeStyleForExactSelectors(
     rules,
     ['.legend-chip[data-voice="2"].active-followed'],
     mobile,
@@ -420,29 +421,29 @@ test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, preven
   const rules = parseStylesheet(css);
   const laptop = { width: 1024, height: 768 };
 
-  const bodyStyle = computeStyleForSelector(rules, ["html", "body"], laptop);
+  const bodyStyle = computeStyleForExactSelectors(rules, ["html", "body"], laptop);
   assert.equal(
     bodyStyle["overflow-y"],
     "auto",
     "Laptop html/body must allow vertical page scrolling",
   );
 
-  const gridStyle = computeStyleForSelector(rules, [".workbench-grid"], laptop);
+  const gridStyle = computeStyleForExactSelectors(rules, [".workbench-grid"], laptop);
   assert.match(gridStyle["grid-template-columns"], /310px/);
 
-  const panelCenter = computeStyleForSelector(rules, [".panel-center"], laptop);
+  const panelCenter = computeStyleForExactSelectors(rules, [".panel-center"], laptop);
   assert.ok(
     parseInt(panelCenter["min-height"] || "0", 10) >= 500,
     "Laptop .panel-center must have min-height >= 500px to prevent C64 monitor squashing",
   );
 
-  const panelLeft = computeStyleForSelector(rules, [".panel-left"], laptop);
+  const panelLeft = computeStyleForExactSelectors(rules, [".panel-left"], laptop);
   assert.ok(
     parseInt(panelLeft["min-height"] || "0", 10) >= 500,
     "Laptop .panel-left must have min-height >= 500px to keep Panel 2 tunes visible",
   );
 
-  const panelRight = computeStyleForSelector(rules, [".panel-right"], laptop);
+  const panelRight = computeStyleForExactSelectors(rules, [".panel-right"], laptop);
   assert.equal(
     panelRight["grid-column"],
     "1 / -1",
@@ -538,13 +539,13 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   const mobile = { width: 375, height: 812 };
 
   // Desktop styles: full-width strip, four balanced register groups
-  const stripDesktop = computeStyleForSelector(rules, [".sid-hex-strip"], desktop);
+  const stripDesktop = computeStyleForExactSelectors(rules, [".sid-hex-strip"], desktop);
   assert.equal(
     stripDesktop["grid-column"],
     "1 / -1",
     ".sid-hex-strip must span the full workbench width on wide screens",
   );
-  const cellsDesktop = computeStyleForSelector(rules, [".sid-hex-cells"], desktop);
+  const cellsDesktop = computeStyleForExactSelectors(rules, [".sid-hex-cells"], desktop);
   assert.equal(cellsDesktop.display, "grid", ".sid-hex-cells must be a grid on desktop");
   assert.equal(
     cellsDesktop["grid-template-columns"],
@@ -557,14 +558,14 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     ".sid-hex-cells must consume the remaining strip width",
   );
 
-  const groupDesktop = computeStyleForSelector(rules, [".sid-hex-group"], desktop);
+  const groupDesktop = computeStyleForExactSelectors(rules, [".sid-hex-group"], desktop);
   assert.equal(
     groupDesktop["justify-content"],
     "space-between",
     ".sid-hex-group must spread its label and registers across the row",
   );
 
-  const groupCells = computeStyleForSelector(rules, [".sid-group-cells"], desktop);
+  const groupCells = computeStyleForExactSelectors(rules, [".sid-group-cells"], desktop);
   assert.equal(groupCells.display, "grid", ".sid-group-cells must be a grid");
   assert.equal(groupCells["grid-auto-flow"], "column", "Register cells must run left to right");
   assert.equal(
@@ -575,7 +576,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   assert.equal(groupCells.flex, "1 1 auto", "Register cells must fill the group's spare width");
 
   const tablet = { width: 1000, height: 812 };
-  const cellsTablet = computeStyleForSelector(rules, [".sid-hex-cells"], tablet);
+  const cellsTablet = computeStyleForExactSelectors(rules, [".sid-hex-cells"], tablet);
   assert.equal(
     cellsTablet["grid-template-columns"],
     "repeat(2, minmax(0, 1fr))",
@@ -583,7 +584,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   );
 
   // Mobile styles: column strip with stacked voice groups and no horizontal overflow
-  const stripMobile = computeStyleForSelector(rules, [".sid-hex-strip"], mobile);
+  const stripMobile = computeStyleForExactSelectors(rules, [".sid-hex-strip"], mobile);
   assert.equal(
     stripMobile["flex-direction"],
     "column",
@@ -595,7 +596,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     ".sid-hex-strip must eliminate horizontal scroll on mobile",
   );
 
-  const cellsMobile = computeStyleForSelector(rules, [".sid-hex-cells"], mobile);
+  const cellsMobile = computeStyleForExactSelectors(rules, [".sid-hex-cells"], mobile);
   assert.equal(
     cellsMobile["grid-template-columns"],
     "1fr",
@@ -604,7 +605,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
 
   for (const tab of ["monitor", "tunes"]) {
     const hiddenLocator = `.workbench-grid[data-mobile-view="${tab}"] .sid-hex-strip`;
-    const stripHidden = computeStyleForSelector(rules, [hiddenLocator], mobile);
+    const stripHidden = computeStyleForExactSelectors(rules, [hiddenLocator], mobile);
     assert.equal(
       stripHidden.display,
       "none",
@@ -612,21 +613,21 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     );
   }
 
-  const groupMobile = computeStyleForSelector(rules, [".sid-hex-group"], mobile);
+  const groupMobile = computeStyleForExactSelectors(rules, [".sid-hex-group"], mobile);
   assert.equal(
     groupMobile.width,
     "100%",
     ".sid-hex-group must stack as full-width rows on mobile viewports",
   );
 
-  const viewerDesktop = computeStyleForSelector(rules, [".source-viewer"], desktop);
+  const viewerDesktop = computeStyleForExactSelectors(rules, [".source-viewer"], desktop);
   assert.equal(
     viewerDesktop.position,
     "relative",
     ".source-viewer must be position: relative for accurate element centering",
   );
 
-  const lineDesktop = computeStyleForSelector(rules, [".asm-line"], desktop);
+  const lineDesktop = computeStyleForExactSelectors(rules, [".asm-line"], desktop);
   assert.equal(
     lineDesktop["min-width"],
     "100%",
@@ -640,7 +641,7 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
   const rules = parseStylesheet(css);
   const desktop = { width: 1440, height: 900 };
 
-  const telSummary = computeStyleForSelector(rules, [".telemetry-summary"], desktop);
+  const telSummary = computeStyleForExactSelectors(rules, [".telemetry-summary"], desktop);
   assert.equal(
     telSummary["font-variant-numeric"],
     "tabular-nums",
@@ -652,21 +653,21 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
     ".telemetry-summary must have white-space: nowrap",
   );
 
-  const telFrame = computeStyleForSelector(rules, ["#tel-frame"], desktop);
+  const telFrame = computeStyleForExactSelectors(rules, ["#tel-frame"], desktop);
   assert.equal(
     telFrame["min-width"],
     "5.5ch",
     "#tel-frame must have fixed min-width: 5.5ch to prevent number jitter",
   );
 
-  const telPc = computeStyleForSelector(rules, ["#tel-pc"], desktop);
+  const telPc = computeStyleForExactSelectors(rules, ["#tel-pc"], desktop);
   assert.equal(
     telPc["min-width"],
     "5ch",
     "#tel-pc must have fixed min-width: 5ch to prevent hex address jitter",
   );
 
-  const telD418 = computeStyleForSelector(rules, ["#tel-d418"], desktop);
+  const telD418 = computeStyleForExactSelectors(rules, ["#tel-d418"], desktop);
   assert.equal(
     telD418["min-width"],
     "2.5ch",
@@ -778,12 +779,15 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
 test("help panel becomes a bottom sheet at phone width", () => {
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
   const rules = parseStylesheet(css);
-  const phone = computeStyleForSelector(rules, ".hw-help-panel", { width: 390, height: 844 });
+  const phone = computeStyleForExactSelectors(rules, ".hw-help-panel", { width: 390, height: 844 });
   assert.equal(phone.inset, "auto 12px calc(12px + env(safe-area-inset-bottom)) 12px");
   assert.equal(phone.width, "auto");
   assert.equal(phone.transform, "none");
 
-  const desktop = computeStyleForSelector(rules, ".hw-help-panel", { width: 1440, height: 900 });
+  const desktop = computeStyleForExactSelectors(rules, ".hw-help-panel", {
+    width: 1440,
+    height: 900,
+  });
   assert.equal(desktop.inset, "50% auto auto 50%");
   assert.equal(desktop.transform, "translate(-50%, -50%)");
 });
@@ -796,14 +800,14 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
     { width: 980, height: 1600 },
     { width: 1440, height: 900 },
   ]) {
-    const panelLeft = computeStyleForSelector(rules, [".panel-left"], viewport);
+    const panelLeft = computeStyleForExactSelectors(rules, [".panel-left"], viewport);
     assert.ok(
       !panelLeft.height || panelLeft.height === "auto",
       `${viewport.width}x${viewport.height} .panel-left must stretch with row height, not use fixed height (${panelLeft.height})`,
     );
 
     for (const sel of [".game-list", ".track-list"]) {
-      const style = computeStyleForSelector(rules, [sel], viewport);
+      const style = computeStyleForExactSelectors(rules, [sel], viewport);
       assert.equal(
         style.flex,
         "1 1 0",
@@ -821,7 +825,7 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
       );
     }
 
-    const metaCard = computeStyleForSelector(rules, [".game-meta-card"], viewport);
+    const metaCard = computeStyleForExactSelectors(rules, [".game-meta-card"], viewport);
     assert.equal(metaCard["font-size"], "11px");
     assert.equal(metaCard["line-height"], "1.4");
     assert.equal(metaCard.padding, "7px 9px");
@@ -829,11 +833,11 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
   }
 
   const mobile = { width: 375, height: 812 };
-  const mobGameList = computeStyleForSelector(rules, [".game-list"], mobile);
+  const mobGameList = computeStyleForExactSelectors(rules, [".game-list"], mobile);
   assert.equal(mobGameList.flex, "0 0 auto");
   assert.equal(mobGameList["max-height"], "185px");
 
-  const mobTrackList = computeStyleForSelector(rules, [".track-list"], mobile);
+  const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
   assert.equal(mobTrackList.flex, "1 1 auto");
   assert.equal(mobTrackList["min-height"], "160px");
   assert.equal(mobTrackList["max-height"], "320px");
@@ -843,7 +847,7 @@ test("SID register strip uses tight vertical padding and never stretches in tall
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
   const rules = parseStylesheet(css);
 
-  const tabletGrid = computeStyleForSelector(rules, [".workbench-grid"], {
+  const tabletGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], {
     width: 980,
     height: 1600,
   });
@@ -858,7 +862,7 @@ test("SID register strip uses tight vertical padding and never stretches in tall
     { width: 980, height: 1600 },
     { width: 375, height: 812 },
   ]) {
-    const strip = computeStyleForSelector(rules, [".sid-hex-strip"], viewport);
+    const strip = computeStyleForExactSelectors(rules, [".sid-hex-strip"], viewport);
     assert.equal(
       strip["align-self"],
       "start",
@@ -907,25 +911,25 @@ test("oscilloscope card headers use fixed two-row layout with nowrap and tabular
   const rules = parseStylesheet(css);
   const desktop = { width: 1440, height: 900 };
 
-  const card = computeStyleForSelector(rules, [".voice-card"], desktop);
+  const card = computeStyleForExactSelectors(rules, [".voice-card"], desktop);
   assert.equal(card["min-width"], "0", ".voice-card must set min-width: 0 inside CSS grid");
 
-  const header = computeStyleForSelector(rules, [".voice-card-header"], desktop);
+  const header = computeStyleForExactSelectors(rules, [".voice-card-header"], desktop);
   assert.equal(header["flex-direction"], "column");
 
   for (const rowSel of [".voice-header-row", ".voice-telemetry-row"]) {
-    const rowStyle = computeStyleForSelector(rules, [rowSel], desktop);
+    const rowStyle = computeStyleForExactSelectors(rules, [rowSel], desktop);
     assert.equal(rowStyle.display, "flex");
     assert.equal(rowStyle["justify-content"], "space-between");
   }
 
   for (const textSel of [".voice-name", ".voice-note", ".voice-pc-tag"]) {
-    const style = computeStyleForSelector(rules, [textSel], desktop);
+    const style = computeStyleForExactSelectors(rules, [textSel], desktop);
     assert.equal(style["white-space"], "nowrap", `${textSel} must stay on a single line`);
   }
 
   for (const numSel of [".voice-note", ".voice-pc-tag"]) {
-    const style = computeStyleForSelector(rules, [numSel], desktop);
+    const style = computeStyleForExactSelectors(rules, [numSel], desktop);
     assert.equal(style["font-variant-numeric"], "tabular-nums");
   }
 });
@@ -939,7 +943,7 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
     { width: 980, height: 1600 },
     { width: 375, height: 812 },
   ]) {
-    const regs = computeStyleForSelector(rules, [".voice-regs"], viewport);
+    const regs = computeStyleForExactSelectors(rules, [".voice-regs"], viewport);
     assert.equal(regs.display, "grid");
     assert.equal(regs["grid-template-columns"], "minmax(0, 1fr) auto");
     assert.equal(regs["font-variant-numeric"], "tabular-nums");
@@ -948,7 +952,7 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
   }
 
   for (const idSel of ["#flt-res", "#flt-vol"]) {
-    const style = computeStyleForSelector(rules, [idSel], { width: 1440, height: 900 });
+    const style = computeStyleForExactSelectors(rules, [idSel], { width: 1440, height: 900 });
     assert.equal(style["min-width"], "2ch");
   }
 });

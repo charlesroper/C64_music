@@ -7,7 +7,12 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { computeNextVersion, updateHtmlVersion } from "../scripts/bump_version.mjs";
-import { deploy, verifyCleanTree, verifyRemote } from "../scripts/deploy.mjs";
+import {
+  deploy,
+  verifyCleanTree,
+  verifyNarrativeCommitLinks,
+  verifyRemote,
+} from "../scripts/deploy.mjs";
 import { installHooks } from "../scripts/install_hooks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -112,6 +117,51 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
     return "";
   };
   assert.throws(() => deploy({ exec: failingExec, log: () => {} }), /Connection refused/);
+});
+
+test("deploy preflight aborts when latest NARRATIVE.md Section 8 entry lacks a commit link", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-deploy-narrative-"));
+  const narrativePath = path.join(tmpDir, "NARRATIVE.md");
+  try {
+    fs.writeFileSync(
+      narrativePath,
+      [
+        "## 8. Development blog",
+        "",
+        "### 16 November 2026: example change",
+        "",
+        "Body without a commit link.",
+      ].join("\n"),
+    );
+
+    assert.throws(
+      () => verifyNarrativeCommitLinks(narrativePath),
+      /Latest NARRATIVE\.md Section 8 entry has no commit link/,
+    );
+    assert.throws(
+      () =>
+        deploy({
+          exec: (cmd) => (cmd === "git status --porcelain" ? "" : "git@example.com:repo.git\n"),
+          log: () => {},
+          narrativePath,
+        }),
+      /Latest NARRATIVE\.md Section 8 entry has no commit link/,
+    );
+
+    fs.writeFileSync(
+      narrativePath,
+      [
+        "## 8. Development blog",
+        "",
+        "### 16 November 2026: example change",
+        "",
+        "Commit [2e91223](https://github.com/charlesroper/C64_music/commit/2e91223) carries the change.",
+      ].join("\n"),
+    );
+    assert.doesNotThrow(() => verifyNarrativeCommitLinks(narrativePath));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("no em-dash (U+2014) characters exist in repository prose, markdown, or code", () => {

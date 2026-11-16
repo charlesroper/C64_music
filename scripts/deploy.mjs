@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function verifyCleanTree(exec = execSync) {
   const status = exec("git status --porcelain", { encoding: "utf8" }).toString().trim();
@@ -21,8 +24,29 @@ export function verifyRemote(remote = "fork", exec = execSync) {
   }
 }
 
+export function verifyNarrativeCommitLinks(narrativePath = path.join(ROOT, "NARRATIVE.md")) {
+  const narrative = fs.readFileSync(narrativePath, "utf8");
+  const blogStart = narrative.indexOf("## 8. Development blog");
+  if (blogStart === -1) return;
+  const blog = narrative.slice(blogStart);
+  const lastEntryIndex = blog.lastIndexOf("\n### ");
+  if (lastEntryIndex === -1) return;
+  const lastEntry = blog.slice(lastEntryIndex);
+  if (!/https:\/\/github\.com\/charlesroper\/C64_music\/commit\/[0-9a-f]{7,}/i.test(lastEntry)) {
+    throw new Error(
+      "Latest NARRATIVE.md Section 8 entry has no commit link. Record the commit hash before deploying.",
+    );
+  }
+}
+
 export function deploy(options = {}) {
-  const { exec = execSync, remote = "fork", branch = "main", log = console.log } = options;
+  const {
+    exec = execSync,
+    remote = "fork",
+    branch = "main",
+    log = console.log,
+    narrativePath = path.join(ROOT, "NARRATIVE.md"),
+  } = options;
 
   log("1. Checking working tree state...");
   verifyCleanTree(exec);
@@ -30,19 +54,22 @@ export function deploy(options = {}) {
   log(`2. Verifying git remote "${remote}" exists...`);
   verifyRemote(remote, exec);
 
-  log("3. Running lint and format check...");
+  log("3. Verifying NARRATIVE.md Section 8 commit links...");
+  verifyNarrativeCommitLinks(narrativePath);
+
+  log("4. Running lint and format check...");
   exec("npm run check:lint", { stdio: "inherit" });
 
-  log("4. Running automated test suite...");
+  log("5. Running automated test suite...");
   exec("npm test", { stdio: "inherit" });
 
-  log("5. Running help popover browser checks...");
+  log("6. Running help popover browser checks...");
   exec("npm run check:help-popovers", { stdio: "inherit" });
 
-  log(`6. Pushing to GitHub Pages (${remote}/${branch})...`);
+  log(`7. Pushing to GitHub Pages (${remote}/${branch})...`);
   exec(`git push ${remote} ${branch}`, { stdio: "inherit" });
 
-  log("7. Deployment status:");
+  log("8. Deployment status:");
   const commit = exec("git rev-parse --short HEAD", { encoding: "utf8" }).toString().trim();
   log(`Successfully pushed commit ${commit} to ${remote}/${branch}.`);
   log("GitHub Pages URL: https://charlesroper.github.io/C64_music/");

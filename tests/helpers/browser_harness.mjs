@@ -224,6 +224,7 @@ export function createBrowserHarness({
     }
 
     click() {
+      if (this.disabled) return;
       this.dispatchEvent("click");
     }
 
@@ -310,6 +311,9 @@ export function createBrowserHarness({
 
     if (/\bchecked\b/.test(attrs)) {
       el.checked = true;
+    }
+    if (/(?:^|\s)disabled(?:\s|=|$)/.test(attrs)) {
+      el.disabled = true;
     }
     if (/(?:^|\s)hidden(?:\s|=|$)/.test(attrs)) {
       el.hidden = true;
