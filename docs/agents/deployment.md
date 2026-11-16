@@ -14,10 +14,9 @@ Read this file when the user says "ship it", "deploy" or asks to publish.
 ## Release sequence
 
 1. Run `npm run bump`. Completion: all seven version locations show the new CalVer.
-2. Run `npm test`. Completion: every check passes and the documented test counts match.
-3. Commit the release. Completion: the working tree is clean.
-4. Run `npm run deploy`. Completion: the push succeeds on `fork/main`.
-5. Verify the live build from the Pages workflow run:
+2. Commit the release. The `pre-commit` hook runs lint and tests, leaving the working tree clean.
+3. Run `npm run deploy`. It runs `npm run check:lint`, `npm test` and `npm run check:help-popovers`, then pushes `HEAD` to `fork/main`.
+4. Verify the live build from the Pages workflow run:
    - Run `gh run list -R charlesroper/C64_music --limit 5` and find the `pages build and deployment` run for the release commit.
    - Run `gh run view <run-id> -R charlesroper/C64_music --json headSha,status,conclusion,jobs`. Confirm the SHA matches the release commit, the run is completed and successful, and the `deploy` job succeeded.
    - Confirm the live version with `curl -s https://charlesroper.github.io/C64_music/src/version.js`.

@@ -12,6 +12,7 @@
     "clean:browsers": "node scripts/browsers.mjs clean",
     "format": "biome check --write .",
     "check:help-popovers": "node scripts/check_help_popovers.mjs",
+    "check:layout": "node scripts/check_layout.mjs",
     "hooks:install": "node scripts/install_hooks.mjs",
     "bump": "node scripts/bump_version.mjs",
     "deploy": "node scripts/deploy.mjs",

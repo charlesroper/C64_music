@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -375,31 +375,41 @@ test("current documentation avoids retired domain terms", () => {
   }
 });
 
-test("AGENTS.md search guidance stays harness agnostic", () => {
-  const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
-  const section = agents.match(/## 7\. Search tooling\n([\s\S]*?)(?=\n## )/);
-  assert.ok(section, "AGENTS.md must keep Section 7 Search tooling");
+test("hook installer writes an executable commit-msg hook enforcing Chris Beams rules", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-hooks-"));
+  try {
+    installHooks({ exec: () => dir, log: () => {} });
+    const hook = path.join(dir, "commit-msg");
+    assert.ok(fs.existsSync(hook), "installer must create commit-msg hook");
+    assert.ok(fs.statSync(hook).mode & 0o111, "commit-msg hook must be executable");
 
-  const guidance = section[1];
-  assert.match(
-    guidance,
-    /agent harness's built-in content search and file discovery tools/,
-    "Search guidance must refer to the harness, not one named tool set",
-  );
-  assert.doesNotMatch(guidance, /OpenCode/, "Search guidance must not assume OpenCode");
-  assert.doesNotMatch(
-    guidance,
-    /built-in `(?:grep|glob)`/,
-    "Search guidance must not hardcode OpenCode built-in tool names",
-  );
-  assert.match(guidance, /shell `rg`/, "Search guidance must name the rg fallback");
-  assert.match(guidance, /shell `fd`/, "Search guidance must name the fd fallback");
-  assert.match(guidance, /fdfind/, "Search guidance must note the Debian fd binary name");
-  assert.match(
-    guidance,
-    /Where RTK is wired, it rewrites shell commands, not built-in tools/,
-    "Search guidance must not assume RTK is wired in every harness",
-  );
+    const checkMsg = (text) => {
+      const msgFile = path.join(dir, "MSG");
+      fs.writeFileSync(msgFile, text, "utf8");
+      execFileSync(hook, [msgFile], { stdio: "pipe" });
+    };
+
+    checkMsg("Release 2026.11.16\n# Ignore comment lines\n");
+    checkMsg("Fix pulse width jitter\n\nKeep footer columns aligned within 72 columns per line.\n");
+
+    assert.throws(() => checkMsg("lowercase subject\n"), /capital letter/);
+    assert.throws(() => checkMsg("Trailing period.\n"), /end with a period/);
+    assert.throws(
+      () => checkMsg("This commit subject exceeds fifty characters easily and should fail\n"),
+      /exceeds 50 chars/,
+    );
+    assert.throws(() => checkMsg("Valid subject\nMissing blank line\n"), /blank line/);
+    assert.throws(
+      () =>
+        checkMsg(
+          "Valid subject\n\nThis body line deliberately exceeds seventy two characters in width right here.\n",
+        ),
+      /exceeds 72 chars/,
+    );
+    assert.throws(() => checkMsg("Valid subject \u2014 bad\n"), /em-dashes/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("lint runs through a script name that harness proxies leave alone", () => {

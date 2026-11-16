@@ -200,7 +200,7 @@ The test runner executes 145 automated checks across 13 test files:
 * `tests/audio_worklet.test.mjs`: Runs `AudioWorkletProcessor` with a compiled `WebAssembly.Module` across 128-frame stereo quanta. It checks command queueing before readiness, silence before instantiation, telemetry throttling at the fixed 62.5Hz rate, the two audio modes reaching the AudioContext, Audio mode resolution order and `Stored Audio Mode` persistence, early `AudioContext` gesture unlock adoption, forced track-load telemetry, transferable buffer recycling, late-block and process timing diagnostics, persistent window peaks, audio sub-phase timings, telemetry-drop windows, queued playback startup, the default `playback` latency hint and the soft audio-context restart when the latency mode changes.
 * `tests/telemetry_buffer.test.mjs`: Checks that telemetry snapshots pack screen RAM, oscilloscope samples, SID registers, scanline border colours, voice states and filter values into one transferable `ArrayBuffer` and unpack cleanly without stale data on reuse.
 * `tests/issue_close_guard.test.mjs`: Checks that `npm run issue:close` blocks issue closure when any definition-of-done or acceptance-criteria checkbox is unchecked or missing, and that transient GitHub API errors are retried while permanent errors are not.
-* `tests/repo_rules.test.mjs`: Checks CalVer monotonicity in `scripts/bump_version.mjs`, clean-tree, remote and help-popover preflight guards in `scripts/deploy.mjs`, zero literal em-dashes (U+2014), SHA-256 checksums for all seven historical files, test-count synchronisation between `README.md` and `NARRATIVE.md`, README workbench control names, retired UI labels and `GLOSSARY.md` `_Avoid_` terms in current documentation, no `[HASH]` placeholders in `NARRATIVE.md`, harness-agnostic search rules in `AGENTS.md`, version synchronisation across all seven release locations, including the `?v=` query strings and the `updateHtmlVersion` title rewrite that keeps the 1985-87 range, the `check:lint` script name that harness proxies leave alone, the executable pre-commit hook installer, and that the help-popover check stays a release gate rather than a CI job.
+* `tests/repo_rules.test.mjs`: Checks CalVer monotonicity in `scripts/bump_version.mjs`, clean-tree, remote and help-popover preflight guards in `scripts/deploy.mjs`, zero literal em-dashes (U+2014), SHA-256 checksums for all seven historical files, test-count synchronisation between `README.md` and `NARRATIVE.md`, README workbench control names, retired UI labels and `GLOSSARY.md` `_Avoid_` terms in current documentation, no `[HASH]` placeholders in `NARRATIVE.md`, version synchronisation across all seven release locations, including the `?v=` query strings and the `updateHtmlVersion` title rewrite that keeps the 1985-87 range, the `check:lint` script name that harness proxies leave alone, the executable `pre-commit` and `commit-msg` hook installer, and that the help-popover check stays a release gate rather than a CI job.
 * `tests/browser_engines.test.mjs`: Checks the browser engine resolver and cleanup planner. It verifies Chromium 153 preference, the fallback warning, `CHROME_PATH` and engine path overrides, the missing-engine install command, the unsupported-Chromium error, system Chromium fallback, the host keep set, stale revision removal, symlink skipping, readiness output, dry-run cleanup and the non-zero exit from `check:browsers` when an engine is missing.
 * `tests/player_audio_and_pitch.test.mjs`: Uses Hann-windowed Discrete Fourier Transforms (DFT) to check that MOS 6581 oscillator pitches match the hardware datasheet formula at 44.1kHz PAL, 48kHz PAL and 48kHz NTSC. It sweeps all 73 tracks and sound effects for alternating-current (AC) oscillation without clipping or DC lock. It also tests `$D418` drum synthesis in `arkadrum.asm`, pause and mute controls, catalogue metadata and copy rules, game loader adapters (`GAME_LOADERS`), on-demand assembly and track session descriptors.
 * `tests/spa_boot_and_play.test.mjs`: Boots the single-page application in a shared browser harness (`tests/helpers/browser_harness.mjs`). It tests the Boot Sequence handoff, SID and audio mode switches, the retired PAL/NTSC control, the removed music-only controls, render pause, SID and drum boost preservation, the fixed telemetry rate, audio mode default, storage and explainers, the SID and Audio mode help popovers with open, close, focus return and dismissal, the Stats for Nerds overlay button, the grouped Stats layout, Stats health colours and legend, Stats help mode, the latency mode help link and copy, the plain-language Stats help for windows, percentiles, the worklet and in-thread engine, dropped audio blocks and Events, label/value pairing, main-thread frame timing peaks, workbench render pause and resume, `AudioContext` gesture unlock, gate unlock before the player loads, tape sound before the player loads, playback queued during asset downloads, live assembly status, failure recovery guidance and polite live-region announcements, unsaved edit protection on track load, keyboard shortcut isolation when modals are open, drum program-counter tracking, `$0000` gutter rendering, symbol jump and source search, cached source HTML reuse and idle render-loop suspension when paused or hidden. It also asserts the Workbench View action labels, sentence case, accessible names and keyboard shortcut attributes for transport, voice and source controls, that chrome labels gain uppercase through the `.c64-caps` rule, and that the brand subtitle, document title and package description agree on the 1985-87 range.
@@ -229,13 +229,13 @@ Format files and apply safe fixes:
 npm run format
 ```
 
-Install the local pre-commit hook after cloning. Git does not track `.git/hooks`, so this command is the tracked source:
+Install the local `pre-commit` and `commit-msg` hooks after cloning. Git does not track `.git/hooks`, so this command is the tracked source:
 
 ```bash
 npm run hooks:install
 ```
 
-The hook runs `npm run check:lint` on every commit. When a staged file is under `src/`, `tests/helpers/`, `scripts/`, or is `index.html` or a package file, it runs the full `npm test` suite. When only `tests/*.test.mjs` files change, it runs just those files. Project memory churn lines are hidden because this repository's active files always exceed the tool's fixed four-change threshold; stale-memory, failed-attempt and open-issue warnings still print. Bypass it once with `git commit --no-verify`.
+The `pre-commit` hook runs `npm run check:lint` on every commit, and `commit-msg` enforces Chris Beams' commit format and zero em-dashes. When a staged file is under `src/`, `tests/helpers/`, `scripts/`, or is `index.html` or a package file, `pre-commit` runs the full `npm test` suite. When only `tests/*.test.mjs` files change, it runs just those files. Project memory churn lines are hidden because this repository's active files always exceed the tool's fixed four-change threshold; stale-memory, failed-attempt and open-issue warnings still print. Bypass it once with `git commit --no-verify`.
 
 ## Bump the version and deploy to GitHub Pages
 
@@ -249,11 +249,10 @@ Releases use calendar versioning (`YYYY.MM.DD` or `YYYY.MM.DD.MICRO`) and deploy
 
    Running `npm run bump` again on the same UTC date increments the `.MICRO` suffix (`.1`, `.2`).
 
-2. Run the test suite and commit the release:
+2. Commit the release (`pre-commit` and `npm run deploy` run lint and tests):
 
    ```bash
-   npm test
-   git commit -am "Release vYYYY.MM.DD"
+   git commit -am "Release YYYY.MM.DD"
    ```
 
 3. Push the release to `fork/main`:

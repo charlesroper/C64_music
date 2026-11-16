@@ -26,7 +26,7 @@ No engine produces audible output here. The sandbox has no audio device. A real 
 
 ## Install
 
-The project pins `playwright-core` as a dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`.
+The project pins `playwright-core` as a dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`. Ad-hoc browser scripts must import `playwright-core` (never `playwright`) and `resolveBrowserEngine` from `scripts/browser_engines.mjs` instead of hand-scanning browser caches.
 
 ```bash
 npm ci
@@ -126,4 +126,4 @@ Re-adding it to CI needs a pinned Chromium, `CHROME_PATH`, and font-independent 
 
 ## Resource limits
 
-The host has 3.4 GB of RAM. Run one browser at a time. Close each browser after its check. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.
+The host has 3.4 GB of RAM. Run one browser at a time, close each browser after its check and never run headless Chromium probes alongside parallel `research` subagents. For small 1-4 file diffs, verify `CODING_STANDARDS.md` directly against `git diff` instead of spawning parallel review subagents. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.
