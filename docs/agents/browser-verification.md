@@ -126,4 +126,4 @@ Re-adding it to CI needs a pinned Chromium, `CHROME_PATH`, and font-independent 
 
 ## Resource limits
 
-The host has 3.4 GB of RAM. Run one browser at a time, close each browser after its check and never run headless Chromium probes alongside parallel `research` subagents. For small 1-4 file diffs, verify `CODING_STANDARDS.md` directly against `git diff` instead of spawning parallel review subagents. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.
+The host has 3.4 GB of RAM. Run one browser at a time. Close each browser after its check. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.
