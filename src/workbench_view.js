@@ -699,55 +699,96 @@ export function createWorkbenchView({
     lastSidRegs.fill(-1);
   }
 
-  function setFollowVoice(voice, forceFollow = false) {
-    state.followVoice = voice;
-    state.lastFollowedLine = 0;
-    state.lastFollowedVoiceCls = null;
-    const chips = doc.querySelectorAll ? doc.querySelectorAll(".legend-chip") : [];
-    chips.forEach((chip) => {
-      chip.classList.toggle("active-followed", chip.dataset.voice === String(voice));
-    });
+  function isLegendVoiceEnabled(session, voice) {
+    if (voice === "seq") return Boolean(session?.drum?.available);
+    if (!session) return true;
+    const pcSyms = session.pcSymbols || session.game?.architecture?.pcSymbols;
+    if (!Array.isArray(pcSyms)) return true;
+    return Boolean(pcSyms[voice]);
+  }
 
-    if (forceFollow) {
-      const chkFollow = getEl("chk-follow-pc");
-      if (chkFollow) {
-        chkFollow.checked = true;
+  function syncLegendChips() {
+    const session = state.currentSession || state.player?.getSession();
+    const chips = doc.querySelectorAll ? Array.from(doc.querySelectorAll(".legend-chip")) : [];
+    if (chips.length === 0) return;
+
+    if (!isLegendVoiceEnabled(session, state.followVoice)) {
+      const fallback = [0, 1, 2, "seq"].find((v) => isLegendVoiceEnabled(session, v)) ?? 0;
+      state.followVoice = fallback;
+      state.lastFollowedLine = 0;
+      state.lastFollowedVoiceCls = null;
+      if (state.currentSession) {
+        const targetFile = getSessionSourceFile(state.currentSession, fallback);
+        if (state.currentSourceFile !== targetFile) {
+          renderSource(targetFile);
+        }
       }
-      state.followPc = true;
     }
 
+    for (const chip of chips) {
+      const voiceAttr = chip.dataset.voice;
+      const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
+      const enabled = isLegendVoiceEnabled(session, voice);
+      const selected = enabled && state.followVoice === voice;
+      const following = selected && state.followPc;
+
+      chip.classList.toggle("disabled", !enabled);
+      chip.classList.toggle("selected", selected);
+      chip.classList.toggle("active-followed", following);
+      chip.disabled = !enabled;
+      if (chip.setAttribute) {
+        chip.setAttribute("aria-pressed", following ? "true" : "false");
+      }
+
+      chip.title =
+        voice === "seq"
+          ? enabled
+            ? "Follow drum sequencer (seqPC)"
+            : "No drum sequencer in this song"
+          : enabled
+            ? `Follow voice ${voice + 1} (PC${voice})`
+            : `Voice ${voice + 1} source pointer unavailable in this song`;
+    }
+
+    const chkFollow = getEl("chk-follow-pc");
+    if (chkFollow) {
+      chkFollow.checked = state.followPc;
+    }
+  }
+
+  function applyFollowChange(nextVoice, nextFollow) {
+    state.followVoice = nextVoice;
+    state.followPc = Boolean(nextFollow);
+    state.lastFollowedLine = 0;
+
+    let fileChanged = false;
     if (state.currentSession) {
-      const targetFile = getSessionSourceFile(state.currentSession, voice);
+      const targetFile = getSessionSourceFile(state.currentSession, nextVoice);
       if (state.currentSourceFile !== targetFile) {
         renderSource(targetFile);
+        fileChanged = true;
       }
+    }
+
+    syncLegendChips();
+
+    if (fileChanged) {
+      state.prevHighlightedLines = [];
+      state.lastFollowedVoiceCls = null;
+      return;
     }
 
     if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
       updateLiveSourceHighlights(state.prevHighlightedLines);
     }
 
-    if (state.player?.getState().isPlaying && state.prevHighlightedLines) {
-      const targetCls = voice === "seq" ? "pc-seq" : `pc-v${voice}`;
+    if (state.followPc && state.player?.getState().isPlaying && state.prevHighlightedLines) {
+      const targetCls = nextVoice === "seq" ? "pc-seq" : `pc-v${nextVoice}`;
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
         state.lastFollowedLine = targetLine.lineNo;
         scrollFollowLine(targetLine.lineNo);
       }
-    }
-  }
-
-  function updateDrmChipState() {
-    const drmChip = doc.querySelector ? doc.querySelector('.legend-chip[data-voice="seq"]') : null;
-    if (!drmChip) return;
-    const session = state.currentSession || state.player?.getSession();
-    const hasDrums = Boolean(session?.drum.available);
-
-    drmChip.classList.toggle("disabled", !hasDrums);
-    drmChip.title = hasDrums ? "Follow Drum Sequencer (seqPC)" : "No drum sequencer in this song";
-
-    if (!hasDrums && state.followVoice === "seq") {
-      setFollowVoice(0);
     }
   }
 
@@ -1245,7 +1286,7 @@ export function createWorkbenchView({
       nowPlaying.textContent = `${game.title}: ${track.name}`;
     }
 
-    updateDrmChipState();
+    syncLegendChips();
   }
 
   function selectGameAndTrack(gameId, trackId, autoPlay = true) {
@@ -1271,7 +1312,7 @@ export function createWorkbenchView({
       state.latencyHint = resolveLatencyHint(playerMode);
       syncLatencyMode();
     }
-    updateDrmChipState();
+    syncLegendChips();
     renderGameList();
   }
 
@@ -1516,36 +1557,32 @@ export function createWorkbenchView({
       addListener(chip, "click", (e) => {
         if (e?.preventDefault) e.preventDefault();
         if (e?.stopPropagation) e.stopPropagation();
-        if (chip.classList.contains("disabled")) return;
         const voiceAttr = chip.dataset.voice;
         const voice = voiceAttr === "seq" ? "seq" : parseInt(voiceAttr, 10);
-        setFollowVoice(voice, true);
+        const session = state.currentSession || state.player?.getSession();
+        if (
+          chip.disabled ||
+          chip.classList.contains("disabled") ||
+          !isLegendVoiceEnabled(session, voice)
+        ) {
+          return;
+        }
+        const nextFollow = state.followVoice === voice ? !state.followPc : true;
+        applyFollowChange(voice, nextFollow);
       });
     });
 
     const chkFollow = getEl("chk-follow-pc");
     if (chkFollow) {
       addListener(chkFollow, "change", (e) => {
-        state.followPc = e.target.checked;
-        state.lastFollowedLine = 0;
-        state.lastFollowedVoiceCls = null;
-        if (state.prevHighlightedLines && state.prevHighlightedLines.length > 0) {
-          updateLiveSourceHighlights(state.prevHighlightedLines);
-        }
-        if (state.followPc && state.player?.getState().isPlaying && state.prevHighlightedLines) {
-          const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
-          const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
-          if (targetLine) {
-            state.lastFollowedLine = targetLine.lineNo;
-            scrollFollowLine(targetLine.lineNo);
-          }
-        }
+        applyFollowChange(state.followVoice, Boolean(e.target.checked));
       });
     }
 
     const syncUiControls = () => {
       const chkF = getEl("chk-follow-pc");
       if (chkF) state.followPc = chkF.checked;
+      syncLegendChips();
 
       const chkH = getEl("chk-hud-overlay");
       const hudOverlay = getEl("hud-guide-overlay");
@@ -1803,7 +1840,7 @@ export function createWorkbenchView({
   renderKeypadButtons();
   renderSidHexStripSkeleton();
   renderHudGuideOverlay();
-  updateDrmChipState();
+  syncLegendChips();
 
   if (state.directivesText) {
     const dirPre = getEl("directives-pre");

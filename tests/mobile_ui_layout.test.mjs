@@ -243,6 +243,18 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /#ffffff/);
 
+  const v3SelectedStyle = computeStyleForSelector(rules, [".legend-chip.selected"], mobile);
+  assert.match(v3SelectedStyle["border-color"], /var\(--border-bright\)/);
+  assert.doesNotMatch(v3SelectedStyle["border-color"], /var\(--accent-yellow\)/);
+
+  const disabledDotStyle = computeStyleForSelector(
+    rules,
+    [".legend-chip.disabled .dot-v2"],
+    mobile,
+  );
+  assert.equal(disabledDotStyle["box-shadow"], "none");
+  assert.match(disabledDotStyle.background, /var\(--text-dim\)/);
+
   const v3FollowStyle = computeStyleForSelector(
     rules,
     ['.legend-chip[data-voice="2"].active-followed'],
@@ -495,15 +507,28 @@ test("HUD row guide and Follow voice initial states match markup defaults and st
     "Follow voice checkbox must be unchecked by default in index.html",
   );
 
-  // Interactive voice legend chips must be present with V1 active by default
+  // Interactive voice legend chips must be present with V1 selected (follow off) and DRM disabled by default
+  const legendStart = html.indexOf('<div class="pc-legend"');
+  const legendEnd = html.indexOf("</div>", legendStart);
+  const legendSlice =
+    legendStart >= 0 && legendEnd > legendStart ? html.slice(legendStart, legendEnd) : "";
   assert.match(
-    html,
-    /class="legend-chip active-followed"[^>]*data-voice="0"/,
-    "Voice 1 legend chip must be selected by default",
+    legendSlice,
+    /class="legend-chip selected"[^>]*data-voice="0"/,
+    "Voice 1 legend chip must start selected without active-followed by default",
   );
-  assert.match(html, /data-voice="1"/, "Voice 2 legend chip must be present");
-  assert.match(html, /data-voice="2"/, "Voice 3 legend chip must be present");
-  assert.match(html, /data-voice="seq"/, "Drum sequencer legend chip must be present");
+  assert.doesNotMatch(
+    legendSlice,
+    /class="legend-chip[^"]*active-followed/,
+    "No voice legend chip may start active-followed in static markup",
+  );
+  assert.match(legendSlice, /data-voice="1"/, "Voice 2 legend chip must be present");
+  assert.match(legendSlice, /data-voice="2"/, "Voice 3 legend chip must be present");
+  assert.match(
+    legendSlice,
+    /class="legend-chip disabled"[^>]*data-voice="seq"/,
+    "Drum sequencer legend chip must start disabled in static markup",
+  );
 });
 
 test("SID hardware register strip ($D400-$D418) groups voices into labeled sections and stacks responsively on mobile", () => {

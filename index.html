@@ -12,8 +12,8 @@
       }
     })();
     </script>
-    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.16</title>
-    <link rel="stylesheet" href="./src/styles.css?v=2026.11.16">
+    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.16.1</title>
+    <link rel="stylesheet" href="./src/styles.css?v=2026.11.16.1">
   </head>
   <body data-boot-state="booting">
     <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -106,7 +106,7 @@
                 <span class="sr-only">Galway 2664</span>
               </span>
               <span class="brand-accent c64-caps">// Ocean 6502-SID workbench</span>
-              <span class="brand-version" id="app-version">v2026.11.16</span>
+              <span class="brand-version" id="app-version">v2026.11.16.1</span>
             </div>
             <div class="brand-subtitle">
               Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64
@@ -707,25 +707,40 @@
             <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
               <button
                 type="button"
-                class="legend-chip active-followed"
+                class="legend-chip selected"
                 data-voice="0"
+                aria-pressed="false"
                 title="Follow voice 1 (PC0)"
               >
-                <i class="dot-v0"></i>V1
-              </button>
-              <button type="button" class="legend-chip" data-voice="1" title="Follow voice 2 (PC1)">
-                <i class="dot-v1"></i>V2
-              </button>
-              <button type="button" class="legend-chip" data-voice="2" title="Follow voice 3 (PC2)">
-                <i class="dot-v2"></i>V3
+                <i class="dot-v0" aria-hidden="true"></i>V1
               </button>
               <button
                 type="button"
                 class="legend-chip"
-                data-voice="seq"
-                title="Follow drum sequencer (seqPC)"
+                data-voice="1"
+                aria-pressed="false"
+                title="Follow voice 2 (PC1)"
               >
-                <i class="dot-seq"></i>DRM
+                <i class="dot-v1" aria-hidden="true"></i>V2
+              </button>
+              <button
+                type="button"
+                class="legend-chip"
+                data-voice="2"
+                aria-pressed="false"
+                title="Follow voice 3 (PC2)"
+              >
+                <i class="dot-v2" aria-hidden="true"></i>V3
+              </button>
+              <button
+                type="button"
+                class="legend-chip disabled"
+                data-voice="seq"
+                aria-pressed="false"
+                disabled
+                title="No drum sequencer in this song"
+              >
+                <i class="dot-seq" aria-hidden="true"></i>DRM
               </button>
             </div>
           </div>
@@ -870,6 +885,6 @@
       </div>
     </div>
 
-    <script type="module" src="./src/main.js?v=2026.11.16"></script>
+    <script type="module" src="./src/main.js?v=2026.11.16.1"></script>
   </body>
 </html>

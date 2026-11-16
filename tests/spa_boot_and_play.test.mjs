@@ -1967,6 +1967,136 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
   }
 });
 
+test("Source Viewer voice chips support 4 states, toggle follow on re-tap, sync Follow voice checkbox, and preserve follow on disabled fallback", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const player = createFakePlayer();
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player,
+  });
+
+  try {
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+    view.renderTelemetry(player.getTelemetry());
+
+    const v0Chip = globalThis.document.querySelector('.legend-chip[data-voice="0"]');
+    const v1Chip = globalThis.document.querySelector('.legend-chip[data-voice="1"]');
+    const v2Chip = globalThis.document.querySelector('.legend-chip[data-voice="2"]');
+    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    const chkFollow = harness.elementsById.get("chk-follow-pc");
+
+    // 1. Boot state: V1 enabled+selected (follow off), V2/V3 enabled+unselected, DRM disabled
+    assert.equal(chkFollow.checked, false);
+    assert.equal(v0Chip.classList.contains("disabled"), false);
+    assert.equal(v0Chip.classList.contains("selected"), true);
+    assert.equal(v0Chip.classList.contains("active-followed"), false);
+    assert.equal(v1Chip.classList.contains("selected"), false);
+    assert.equal(v1Chip.classList.contains("active-followed"), false);
+    assert.equal(v2Chip.classList.contains("selected"), false);
+    assert.equal(drmChip.classList.contains("disabled"), true);
+    assert.equal(drmChip.disabled, true);
+
+    // Clicking disabled DRM chip does nothing
+    drmChip.click();
+    assert.equal(v0Chip.classList.contains("selected"), true);
+    assert.equal(chkFollow.checked, false);
+
+    // 2. Clicking unselected enabled chip V2 selects it and turns follow ON
+    v1Chip.click();
+    assert.equal(chkFollow.checked, true);
+    assert.equal(v0Chip.classList.contains("selected"), false);
+    assert.equal(v0Chip.classList.contains("active-followed"), false);
+    assert.equal(v1Chip.classList.contains("selected"), true);
+    assert.equal(v1Chip.classList.contains("active-followed"), true);
+
+    view.renderTelemetry(player.getTelemetry());
+    const v1LineNo = Number(harness.elementsById.get("v1-pc").dataset.line || "0");
+    assert.ok(v1LineNo > 0);
+    assert.equal(
+      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      true,
+    );
+
+    // 3. Tapping already-selected following chip V2 turns follow OFF while keeping V2 selected
+    v1Chip.click();
+    assert.equal(chkFollow.checked, false);
+    assert.equal(v1Chip.classList.contains("selected"), true);
+    assert.equal(v1Chip.classList.contains("active-followed"), false);
+    assert.equal(
+      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      false,
+    );
+
+    // 4. Tapping selected non-following chip V2 turns follow back ON
+    v1Chip.click();
+    assert.equal(chkFollow.checked, true);
+    assert.equal(v1Chip.classList.contains("selected"), true);
+    assert.equal(v1Chip.classList.contains("active-followed"), true);
+    assert.equal(
+      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      true,
+    );
+
+    // 5. Follow voice checkbox syncs bidirectionally with selected chip
+    chkFollow.checked = false;
+    chkFollow.dispatchEvent("change");
+    assert.equal(v1Chip.classList.contains("selected"), true);
+    assert.equal(v1Chip.classList.contains("active-followed"), false);
+    assert.equal(
+      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      false,
+    );
+
+    chkFollow.checked = true;
+    chkFollow.dispatchEvent("change");
+    assert.equal(v1Chip.classList.contains("selected"), true);
+    assert.equal(v1Chip.classList.contains("active-followed"), true);
+
+    // 6. Track Load where selected DRM becomes disabled falls back to V1 preserving follow state
+    view.selectGameAndTrack("arkadrum.asm", "ark-title", false);
+    assert.equal(drmChip.classList.contains("disabled"), false);
+    drmChip.click();
+    assert.equal(drmChip.classList.contains("selected"), true);
+    assert.equal(drmChip.classList.contains("active-followed"), true);
+    assert.equal(chkFollow.checked, true);
+
+    // Switch to Wizball (no drums) while follow is ON -> falls back to V1 with follow ON
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+    assert.equal(drmChip.classList.contains("disabled"), true);
+    assert.equal(v0Chip.classList.contains("selected"), true);
+    assert.equal(v0Chip.classList.contains("active-followed"), true);
+    assert.equal(chkFollow.checked, true);
+
+    // Switch to arkadrum, select DRM then toggle follow OFF, then switch to Wizball -> V1 selected with follow OFF
+    view.selectGameAndTrack("arkadrum.asm", "ark-title", false);
+    drmChip.click();
+    drmChip.click();
+    assert.equal(drmChip.classList.contains("selected"), true);
+    assert.equal(drmChip.classList.contains("active-followed"), false);
+    assert.equal(chkFollow.checked, false);
+
+    view.selectGameAndTrack("wizball.asm", "wiz-title", false);
+    assert.equal(drmChip.classList.contains("disabled"), true);
+    assert.equal(v0Chip.classList.contains("selected"), true);
+    assert.equal(v0Chip.classList.contains("active-followed"), false);
+    assert.equal(chkFollow.checked, false);
+
+    // 7. Missing PC symbol disables that voice chip
+    const customSession = {
+      ...player.getSession(),
+      pcSymbols: ["PC0", "", "PC2"],
+    };
+    view.renderSession(customSession);
+    assert.equal(v1Chip.classList.contains("disabled"), true);
+    assert.equal(v1Chip.disabled, true);
+    assert.equal(v0Chip.classList.contains("disabled"), false);
+  } finally {
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
 test("source viewer address gutter hides sentinel values and shows $0000 for address zero", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();

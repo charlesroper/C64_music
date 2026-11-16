@@ -1374,10 +1374,22 @@ button.active {
   pointer-events: none;
 }
 
-.legend-chip:hover:not(.disabled) {
+.legend-chip:hover:not(.disabled):not(.active-followed) {
   background: #141b29;
   color: var(--text-main);
   border-color: var(--border-subtle);
+}
+
+.legend-chip.selected {
+  border-color: var(--border-bright);
+  color: #fff;
+  background: var(--bg-active);
+}
+
+.legend-chip.selected:hover:not(.disabled):not(.active-followed) {
+  background: var(--bg-card-hover);
+  border-color: var(--border-bright);
+  color: #fff;
 }
 
 .legend-chip[data-voice="0"].active-followed {
@@ -1392,11 +1404,6 @@ button.active {
   color: #fff;
   background: rgba(255, 86, 177, 0.15);
   box-shadow: 0 0 6px rgba(255, 86, 177, 0.3);
-}
-
-.legend-chip[data-voice="2"]:hover:not(.disabled) {
-  border-color: rgba(255, 170, 0, 0.5);
-  background: rgba(255, 170, 0, 0.08);
 }
 
 .legend-chip[data-voice="2"].active-followed {
@@ -1416,9 +1423,11 @@ button.active {
 }
 
 .legend-chip.disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
+  border-color: transparent;
+  background: transparent;
 }
 
 .legend-item {
@@ -1454,6 +1463,14 @@ button.active {
 .dot-seq {
   background: var(--accent-green);
   box-shadow: 0 0 5px var(--accent-green);
+}
+
+.legend-chip.disabled .dot-v0,
+.legend-chip.disabled .dot-v1,
+.legend-chip.disabled .dot-v2,
+.legend-chip.disabled .dot-seq {
+  background: var(--text-dim);
+  box-shadow: none;
 }
 
 .legend-chip[data-voice="2"].active-followed .dot-v2 {
