@@ -904,3 +904,26 @@ test("oscilloscope card headers use fixed two-row layout with nowrap and tabular
     assert.equal(style["font-variant-numeric"], "tabular-nums");
   }
 });
+
+test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live register updates never shift or wrap", () => {
+  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const rules = parseStylesheet(css);
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 980, height: 1600 },
+    { width: 375, height: 812 },
+  ]) {
+    const regs = computeStyleForSelector(rules, [".voice-regs"], viewport);
+    assert.equal(regs.display, "grid");
+    assert.equal(regs["grid-template-columns"], "minmax(0, 1fr) auto");
+    assert.equal(regs["font-variant-numeric"], "tabular-nums");
+    assert.equal(regs["white-space"], "nowrap");
+    assert.notEqual(regs["flex-wrap"], "wrap");
+  }
+
+  for (const idSel of ["#flt-res", "#flt-vol"]) {
+    const style = computeStyleForSelector(rules, [idSel], { width: 1440, height: 900 });
+    assert.equal(style["min-width"], "2ch");
+  }
+});
