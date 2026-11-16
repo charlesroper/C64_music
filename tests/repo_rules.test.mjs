@@ -328,64 +328,28 @@ test("README names the shipped workbench controls", () => {
 });
 
 test("current documentation avoids retired domain terms", () => {
+  const glossary = fs.readFileSync(path.join(ROOT, "GLOSSARY.md"), "utf8");
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
   const blogStart = narrative.indexOf("## 8. Development blog");
   assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
   const narrativeCurrent = narrative.slice(0, blogStart);
 
-  // Multi-word _Avoid_ terms from GLOSSARY.md whose meaning stays unambiguous in prose.
-  const retiredTerms = [
-    "Track switch",
-    "Track switching",
-    "Audio service",
-    "emulator backend",
-    "Worklet engine",
-    "Telemetry DTO",
-    "all-time max",
-    "historical maximum",
-    "UI container",
-    "frontend app",
-    "Song selection",
-    "track model",
-    "splash screen",
-    "loading overlay",
-    "Boot game",
-    "Autoplay prompt",
-    "Boot branch",
-    "track init script",
-    "Line lookup table",
-    "symbol resolver",
-    "Tick stopper",
-    "frame skipper",
-    "Frame state",
-    "debug data",
-    "Game cartridge browser",
-    "game list",
-    "Song list",
-    "track browser",
-    "CRT canvas monitor",
-    "screen canvas",
-    "raster display",
-    "Scope grid",
-    "waveform panel",
-    "Code viewer",
-    "assembly panel",
-    "Hex strip",
-    "register bar",
-    "Master volume channel",
-    "master card",
-    "digi card",
-    "Screen overlay",
-    "row labels",
-    "Virtual keyboard",
-    "PETSCII keypad",
-    "Diagnostics overlay",
-    "debug overlay",
-    "timing overlay",
-    "Game info box",
-    "driver card",
-  ];
+  // Exclude canonical terms listed under another term's _Avoid_ and prose-ambiguous phrases.
+  const canonicalTerms = new Set(
+    Array.from(glossary.matchAll(/^\*\*([^*]+)\*\*:/gm), (match) => match[1].trim().toLowerCase()),
+  );
+  const allowInProse = new Set(["audio backend", "audio graph", "startup track"]);
+  const retiredTerms = [];
+  for (const match of glossary.matchAll(/^_Avoid_:\s*(.+)$/gm)) {
+    for (const term of match[1].split(",").map((item) => item.trim())) {
+      const lower = term.toLowerCase();
+      if (!/\s/.test(term)) continue;
+      if (canonicalTerms.has(lower) || allowInProse.has(lower)) continue;
+      retiredTerms.push(term);
+    }
+  }
+  assert.ok(retiredTerms.length > 0, "GLOSSARY.md must declare multi-word _Avoid_ terms");
 
   for (const [documentName, text] of [
     ["README.md", readme],
@@ -480,6 +444,11 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
       content,
       /tests\/helpers\//,
       "hook must fall back to the full suite for helper changes",
+    );
+    assert.match(
+      content,
+      /tests\/repo_rules\.test\.mjs/,
+      "hook must run repo_rules.test.mjs when Markdown docs are staged",
     );
     assert.match(
       content,

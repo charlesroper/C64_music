@@ -42,6 +42,8 @@ Multi-context repo (presence of `GLOSSARY-MAP.md` at the root):
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in `GLOSSARY.md`. Don't drift to synonyms the glossary explicitly avoids.
 
+`tests/repo_rules.test.mjs` enforces multi-word `_Avoid_` terms from `GLOSSARY.md` against `README.md` and `NARRATIVE.md` sections 1 to 7. For shipped UI label wording and sentence-case rules, see `docs/agents/prose-and-narrative.md`.
+
 If the concept you need isn't in the glossary yet, that's a signal: either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
 
 ## Flag ADR conflicts

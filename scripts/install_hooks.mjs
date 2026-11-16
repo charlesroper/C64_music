@@ -34,11 +34,16 @@ if [ -f package.json ]; then
             echo "Pre-commit tests failed. Fix the failures or use git commit --no-verify."
             exit 1
         fi
-    elif [ -n "$TEST_FILES" ]; then
-        if ! node --test $TEST_FILES >"$CHECK_LOG" 2>&1; then
-            tail -60 "$CHECK_LOG"
-            echo "Pre-commit tests failed. Fix the failures or use git commit --no-verify."
-            exit 1
+    else
+        if printf '%s\\n' "$STAGED" | grep -Eq '\\.md$' && ! printf '%s\\n' "$TEST_FILES" | grep -qx 'tests/repo_rules.test.mjs'; then
+            TEST_FILES="$(printf '%s\\n%s\\n' "$TEST_FILES" "tests/repo_rules.test.mjs" | sed '/^$/d')"
+        fi
+        if [ -n "$TEST_FILES" ]; then
+            if ! node --test $TEST_FILES >"$CHECK_LOG" 2>&1; then
+                tail -60 "$CHECK_LOG"
+                echo "Pre-commit tests failed. Fix the failures or use git commit --no-verify."
+                exit 1
+            fi
         fi
     fi
     rm -f "$CHECK_LOG"

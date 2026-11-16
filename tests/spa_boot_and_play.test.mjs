@@ -550,6 +550,20 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     />\s*Audio mode\s*</,
   );
   assert.match(idTag("latency-mode-label"), /class="[^"]*c64-caps/);
+  assert.match(
+    fragment(
+      /<h3[^>]*id="sid-model-help-title"[^>]*>[\s\S]*?<\/h3>/,
+      "SID chip help title must exist",
+    ),
+    />\s*SID chip\s*</,
+  );
+  assert.match(
+    fragment(
+      /<h3[^>]*id="latency-mode-help-title"[^>]*>[\s\S]*?<\/h3>/,
+      "Audio mode help title must exist",
+    ),
+    />\s*Audio mode\s*</,
+  );
   assert.ok(
     html.includes('<span class="c64-caps">Drum boost ($D418)</span>'),
     "The drum boost label must wrap only its static text",
