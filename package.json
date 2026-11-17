@@ -16,6 +16,7 @@
     "hooks:install": "node scripts/install_hooks.mjs",
     "bump": "node scripts/bump_version.mjs",
     "deploy": "node scripts/deploy.mjs",
+    "deploy:verify": "node scripts/verify_deploy.mjs",
     "issue:close": "node scripts/close_issue.mjs"
   },
   "devDependencies": {

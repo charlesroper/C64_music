@@ -14,6 +14,7 @@ import {
   verifyRemote,
 } from "../scripts/deploy.mjs";
 import { installHooks, isVersionOnlyDiff } from "../scripts/install_hooks.mjs";
+import { verifyDeploy } from "../scripts/verify_deploy.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -511,6 +512,11 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
       /isVersionOnlyDiff/,
       "hook must support fast repo_rules check on version-only release commits",
     );
+    assert.match(
+      content,
+      /Pre-commit: version-only diff/,
+      "hook must announce the version-only fast path so silent fallbacks stay visible",
+    );
     assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -632,4 +638,88 @@ test("calendar version is synchronized across all seven release locations", () =
   const mainMatch = html.match(/src="\.\/src\/main\.js\?v=([^"]+)"/);
   assert.ok(mainMatch, "index.html script must carry a CalVer query string");
   assert.equal(mainMatch[1], calver, "index.html script query string must match package.json");
+});
+
+test("verifyDeploy polls Pages workflow, verifies live version, and pushes deploy tag", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-verify-deploy-"));
+  const versionFile = path.join(dir, "version.js");
+  fs.writeFileSync(versionFile, 'export const APP_VERSION = "2026.11.17.1";\n', "utf8");
+  const headSha = "e55d478db30f70ff059e3c8d1ad5532a97dce79b";
+  let listCalls = 0;
+  const gitCalls = [];
+
+  try {
+    const fakeExecFile = (cmd, args) => {
+      if (cmd === "git") {
+        gitCalls.push(args);
+        if (args[0] === "rev-parse") return `${headSha}\n`;
+        if (args[0] === "tag" && args[1] === "-l") return "";
+        return "";
+      }
+      if (cmd === "gh" && args[1] === "list") {
+        listCalls += 1;
+        return JSON.stringify([
+          {
+            databaseId: 43997286625,
+            name: "pages build and deployment",
+            headSha,
+            status: listCalls === 1 ? "in_progress" : "completed",
+            conclusion: listCalls === 1 ? null : "success",
+          },
+        ]);
+      }
+      if (cmd === "gh" && args[1] === "view") {
+        return JSON.stringify({
+          headSha,
+          status: "completed",
+          conclusion: "success",
+          jobs: [{ name: "deploy", status: "completed", conclusion: "success" }],
+        });
+      }
+      throw new Error(`Unexpected command: ${cmd} ${args.join(" ")}`);
+    };
+
+    const result = await verifyDeploy({
+      execFile: fakeExecFile,
+      fetchImpl: async () => ({
+        ok: true,
+        text: async () => 'export const APP_VERSION = "2026.11.17.1";\n',
+      }),
+      sleep: async () => {},
+      log: () => {},
+      versionPath: versionFile,
+      maxAttempts: 3,
+      pollIntervalMs: 1,
+    });
+
+    assert.equal(listCalls, 2);
+    assert.equal(result.version, "2026.11.17.1");
+    assert.equal(result.runId, "43997286625");
+    assert.equal(result.tagName, "deploy-v2026.11.17.1");
+    assert.deepEqual(gitCalls, [
+      ["rev-parse", "HEAD"],
+      ["tag", "-l", "deploy-v2026.11.17.1"],
+      ["tag", "deploy-v2026.11.17.1", headSha],
+      ["push", "fork", "deploy-v2026.11.17.1"],
+    ]);
+
+    await assert.rejects(
+      () =>
+        verifyDeploy({
+          execFile: fakeExecFile,
+          fetchImpl: async () => ({
+            ok: true,
+            text: async () => 'export const APP_VERSION = "2026.11.17";\n',
+          }),
+          sleep: async () => {},
+          log: () => {},
+          versionPath: versionFile,
+          maxAttempts: 3,
+          pollIntervalMs: 1,
+        }),
+      /Live version mismatch: expected 2026\.11\.17\.1, got 2026\.11\.17/,
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -252,7 +252,7 @@ The header of `gameover.asm` reads:
 
 Martin Galway uploaded his original assembly files to GitHub in April and May 2026. In October 2026, Charles Roper forked the repository to build this player. It was built by vibe coding with Gemini 4 Argon and 3.8 Flash in Google Antigravity CLI and DeepSeek v4.1 Flash in OpenCode, with Roper listening, testing on a phone and directing changes. The assembler, emulator and interface were written that way. Errors are likely and corrections are welcome.
 
-`npm test` runs 147 automated checks across 13 test files:
+`npm test` runs 148 automated checks across 13 test files:
 
 * **Engine core message protocol.** `createEngineCore({ wasm, postMessage })` loads raw assembled bytecode, accepts an extra arkanoid payload for arkadrum drum tracks, renders audio blocks into caller buffers and handles init, play, pause, hardware options, key injection and telemetry requests. Tests assert telemetry is emitted on track load and repeated audio frames, that sample-rate negotiation leaves loaded C64 RAM intact, that a Track Load freezes the clock at frame 0 and emits silence without a pre-render, that commands received during a load apply in exact order afterwards, that fast-forward adds 3 frames per 2048 samples at any render block size and that the Rambo Morse banner reports all 54 secret characters and reaches the complete state.
 * **PETSCII screen rasteriser.** The shared renderer paints screen RAM, colour RAM and border scanlines into the VIC-II palette for both the workbench CRT monitor and the Boot Sequence. Tests cover border colours, glyph rows, colour RAM, screen placement and ImageData reuse.

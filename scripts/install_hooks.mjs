@@ -46,6 +46,7 @@ if [ -f package.json ]; then
     STAGED="$(git diff --cached --name-only)"
     TEST_FILES="$(printf '%s\\n' "$STAGED" | grep -E '^tests/[^/]+\\.test\\.mjs$' || true)"
     if [ -n "$STAGED" ] && ! printf '%s\\n' "$STAGED" | grep -Evq '^(index\\.html|package(-lock)?\\.json|src/version\\.js)$' && node --input-type=module -e 'import { execFileSync } from "node:child_process"; import { isVersionOnlyDiff } from "./scripts/install_hooks.mjs"; const diff = execFileSync("git", ["diff", "--cached", "-U0", "--", "index.html", "package.json", "package-lock.json", "src/version.js"], { encoding: "utf8" }); process.exit(isVersionOnlyDiff(diff) ? 0 : 1);' 2>/dev/null; then
+        echo "Pre-commit: version-only diff, running tests/repo_rules.test.mjs..."
         if ! node --test tests/repo_rules.test.mjs >"$CHECK_LOG" 2>&1; then
             tail -60 "$CHECK_LOG"
             echo "Pre-commit version checks failed. Fix the failures or use git commit --no-verify."

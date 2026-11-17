@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright-core";
 import { resolveBrowserEngine } from "./browser_engines.mjs";
-import { createStaticServer, waitForWorkbenchReady } from "./browser_harness.mjs";
+import { createStaticServer, openWorkbenchPage } from "./browser_harness.mjs";
 
 const VIEWPORTS = [
   { width: 1440, height: 900, expectAllGamesFit: true, minMetaFit: 4 },
@@ -167,10 +167,7 @@ async function run() {
   try {
     const context = await browser.newContext({ reducedMotion: "reduce" });
     for (const viewport of VIEWPORTS) {
-      const page = await context.newPage();
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.goto(baseUrl);
-      await waitForWorkbenchReady(page);
+      const page = await openWorkbenchPage(context, baseUrl, viewport);
       await checkVoiceFooterLock(page, viewport);
       await checkLeftPanel(page, viewport);
       console.log(`PASS ${viewport.width}x${viewport.height}: layout and footer checks.`);

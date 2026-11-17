@@ -52,3 +52,12 @@ export async function waitForWorkbenchReady(page) {
       document.querySelectorAll(".asm-line").length > 0,
   );
 }
+
+/** Open a context page at an explicit viewport size (Playwright ignores viewport on context.newPage). */
+export async function openWorkbenchPage(context, url, viewport) {
+  const page = await context.newPage();
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  await page.goto(url);
+  await waitForWorkbenchReady(page);
+  return page;
+}
