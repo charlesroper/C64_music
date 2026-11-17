@@ -166,7 +166,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   const dotV2Style = computeStyleForExactSelectors(rules, [".dot-v2"], mobile);
   assert.match(dotV2Style.background, /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["box-shadow"], /#ffffff/);
+  assert.match(dotV2Style["box-shadow"], /var\(--text-bright\)/);
 
   const v3SelectedStyle = computeStyleForExactSelectors(rules, [".legend-chip.selected"], mobile);
   assert.match(v3SelectedStyle["border-color"], /var\(--border-bright\)/);
@@ -1044,10 +1044,6 @@ test("parseStylesheet traverses @layer statements and blocks alongside @media an
 test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden in @layer state without !important", () => {
   const { links, cssText } = loadLinkedStylesheets();
   assert.equal(links[0]?.path, "./src/styles/foundation.css", "foundation.css must load first");
-  assert.ok(
-    links.some((link) => link.path === "./src/styles.css"),
-    "index.html must still link legacy ./src/styles.css in @layer modules",
-  );
 
   const foundationCss = fs.readFileSync(path.join(ROOT, "src/styles/foundation.css"), "utf8");
   assert.match(
@@ -1094,14 +1090,11 @@ test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden
 function assertExtractedModulesOrder(linkPaths, expectedRelPaths, afterRelPath) {
   let prevIdx = linkPaths.indexOf(afterRelPath);
   assert.ok(prevIdx > -1, `index.html must link ${afterRelPath}`);
-  const legacyIdx = linkPaths.indexOf("./src/styles.css");
-  assert.ok(legacyIdx > -1, "index.html must link legacy ./src/styles.css");
 
   for (const rel of expectedRelPaths) {
     const idx = linkPaths.indexOf(rel);
     assert.ok(idx > -1, `index.html must link ${rel}`);
     assert.ok(idx > prevIdx, `${rel} must load after ${linkPaths[prevIdx]}`);
-    assert.ok(idx < legacyIdx, `${rel} must load before legacy styles.css`);
     prevIdx = idx;
   }
 }
@@ -1314,5 +1307,77 @@ test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract in orde
     "tel-d418",
     "flt-res",
     "flt-vol",
+  ]);
+});
+
+test("Source Viewer, SID Register Strip, and Stats for Nerds modules extract in order and retire src/styles.css", () => {
+  const { html, links, cssText } = loadLinkedStylesheets();
+  const linkPaths = links.map((link) => link.path);
+  assertExtractedModulesOrder(
+    linkPaths,
+    [
+      "./src/styles/source-viewer.css",
+      "./src/styles/sid-register-strip.css",
+      "./src/styles/stats-for-nerds.css",
+    ],
+    "./src/styles/oscilloscopes-panel.css",
+  );
+  assert.equal(
+    linkPaths.includes("./src/styles.css"),
+    false,
+    "index.html must no longer link retired ./src/styles.css",
+  );
+  assert.equal(
+    fs.existsSync(path.join(ROOT, "src/styles.css")),
+    false,
+    "Retired monolithic src/styles.css must be removed",
+  );
+
+  const sourceViewerCss = fs.readFileSync(path.join(ROOT, "src/styles/source-viewer.css"), "utf8");
+  assert.match(sourceViewerCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(sourceViewerCss, /\/\*\s*CAUTION:\s+[^*]+\*\//);
+
+  const sidStripCss = fs.readFileSync(path.join(ROOT, "src/styles/sid-register-strip.css"), "utf8");
+  assert.match(sidStripCss, /@media\s*\(\s*max-width:\s*1100px\s*\)/);
+  assert.match(sidStripCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(sidStripCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+  assert.match(sidStripCss, /\/\*\s*CAUTION:\s+[^*]+\*\//);
+
+  const statsCss = fs.readFileSync(path.join(ROOT, "src/styles/stats-for-nerds.css"), "utf8");
+  assert.match(statsCss, /@media\s*\(\s*max-width:\s*420px\s*\)/);
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".audio-diagnostics"], desktop)["z-index"],
+    "var(--z-popover)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".audio-diagnostics.is-help .diag-header"], desktop)[
+      "z-index"
+    ],
+    "var(--z-sticky)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".sid-hex-cells"], { width: 1024, height: 768 })[
+      "grid-template-columns"
+    ],
+    "repeat(2, minmax(0, 1fr))",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".sid-hex-cells"], { width: 390, height: 844 })[
+      "grid-template-columns"
+    ],
+    "1fr",
+  );
+
+  assertPreservedIds(html, [
+    "select-symbol-jump",
+    "input-source-search",
+    "pc-legend",
+    "asm-compile-recovery",
+    "source-viewer",
+    "source-editor",
+    "sid-hex-cells",
   ]);
 });

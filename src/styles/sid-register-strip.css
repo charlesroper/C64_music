@@ -1,0 +1,250 @@
+/* ============================================================================
+   SID Register Strip: Hex Readouts for SID Registers
+   Styles the SID Register Strip ($D400-$D418) inside @layer modules, with
+   pixel-locked cell geometry and co-located responsive rules.
+   ============================================================================ */
+
+@layer modules {
+  /* CAUTION: Keep align-self: start and 3px 6px padding on .sid-hex-strip. Tall viewports otherwise stretch the register strip. */
+  .sid-hex-strip {
+    grid-column: 1 / -1;
+    align-self: start;
+    display: flex;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 3px 6px;
+    background: #0d111a;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    flex-shrink: 0;
+  }
+
+  .sid-hex-label {
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .sid-hex-cells {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .sid-hex-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1);
+    min-width: 0;
+    padding: 2px var(--space-1);
+    background: rgba(20, 27, 41, 0.7);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s,
+      background-color 0.15s;
+  }
+
+  .sid-group-tag {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 1px 3px;
+    border-radius: var(--radius-xs);
+    user-select: none;
+  }
+
+  .sid-hex-group.v0 .sid-group-tag {
+    color: var(--accent-cyan);
+    background: rgba(56, 226, 255, 0.12);
+  }
+
+  .sid-hex-group.v1 .sid-group-tag {
+    color: var(--accent-magenta);
+    background: rgba(255, 86, 177, 0.12);
+  }
+
+  .sid-hex-group.v2 .sid-group-tag {
+    color: var(--accent-yellow);
+    background: rgba(255, 170, 0, 0.15);
+  }
+
+  .sid-hex-group.flt .sid-group-tag {
+    color: var(--accent-green);
+    background: rgba(69, 240, 139, 0.12);
+  }
+
+  /* CAUTION: Keep exact column tracks and min-width: 17px on .sid-cell. Live hex updates otherwise wrap or shift strip columns. */
+  .sid-group-cells {
+    display: grid;
+    flex: 1 1 auto;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(18px, 34px);
+    justify-content: space-between;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sid-cell {
+    padding: 1px 3px;
+    border-radius: var(--radius-xs);
+    background: #141b29;
+    color: var(--text-main);
+    min-width: 17px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition:
+      color 0.1s,
+      border-color 0.1s,
+      box-shadow 0.1s;
+  }
+
+  .sid-cell.v0 {
+    border-bottom: 2px solid var(--accent-cyan);
+  }
+
+  .sid-cell.v1 {
+    border-bottom: 2px solid var(--accent-magenta);
+  }
+
+  .sid-cell.v2 {
+    border-bottom: 2px solid var(--accent-yellow);
+  }
+
+  .sid-cell.flt {
+    border-bottom: 2px solid var(--accent-green);
+  }
+
+  /* Highlight active register groups when voices or filter sound. */
+  .sid-hex-group.v0.active {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 8px rgba(56, 226, 255, 0.35);
+    background: rgba(56, 226, 255, 0.08);
+  }
+
+  .sid-hex-group.v0.active .sid-cell.v0 {
+    border-bottom-color: #a8f5ff;
+    color: var(--text-bright);
+    box-shadow: 0 1px 3px rgba(56, 226, 255, 0.4);
+  }
+
+  .sid-hex-group.v1.active {
+    border-color: var(--accent-magenta);
+    box-shadow: 0 0 8px rgba(255, 86, 177, 0.35);
+    background: rgba(255, 86, 177, 0.08);
+  }
+
+  .sid-hex-group.v1.active .sid-cell.v1 {
+    border-bottom-color: #ffa1d4;
+    color: var(--text-bright);
+    box-shadow: 0 1px 3px rgba(255, 86, 177, 0.4);
+  }
+
+  .sid-hex-group.v2.active {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 8px rgba(255, 170, 0, 0.35);
+    background: rgba(255, 170, 0, 0.08);
+  }
+
+  .sid-hex-group.v2.active .sid-cell.v2 {
+    border-bottom-color: #ffd480;
+    color: var(--text-bright);
+    box-shadow: 0 1px 3px rgba(255, 170, 0, 0.4);
+  }
+
+  .sid-hex-group.flt.active {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(69, 240, 139, 0.35);
+    background: rgba(69, 240, 139, 0.08);
+  }
+
+  .sid-hex-group.flt.active .sid-cell.flt {
+    border-bottom-color: #8affaa;
+    color: var(--text-bright);
+    box-shadow: 0 1px 3px rgba(69, 240, 139, 0.4);
+  }
+
+  @media (max-width: 1100px) {
+    .sid-hex-cells {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 820px) {
+    .sid-hex-strip {
+      order: 4;
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-1);
+      padding: 3px 6px;
+      overflow-x: hidden;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .workbench-grid[data-mobile-view="monitor"] .sid-hex-strip,
+    .workbench-grid[data-mobile-view="tunes"] .sid-hex-strip {
+      display: none;
+    }
+
+    .sid-hex-label {
+      font-size: var(--text-2xs);
+    }
+
+    .sid-hex-cells {
+      display: grid;
+      width: 100%;
+      gap: var(--space-1);
+      box-sizing: border-box;
+    }
+
+    .sid-hex-group {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 6px;
+      box-sizing: border-box;
+      gap: 6px;
+    }
+
+    .sid-group-tag {
+      font-size: 9.5px;
+      font-weight: 700;
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .sid-group-cells {
+      display: flex;
+      flex: 1;
+      justify-content: space-between;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .sid-cell {
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 32px;
+      padding: 2px 2px;
+      font-size: 9.5px;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .sid-hex-cells {
+      grid-template-columns: 1fr;
+    }
+  }
+}
