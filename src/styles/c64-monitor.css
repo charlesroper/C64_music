@@ -29,7 +29,7 @@
     flex-shrink: 0;
   }
 
-  /* CAUTION: Keep the 384 / 272 aspect ratio on .c64-canvas-container. Different ratios stretch the raster display. */
+  /* CAUTION: Keep the 384 / 272 aspect ratio on .c64-canvas-container. Different ratios stretch the C64 Monitor. */
   .c64-canvas-container {
     position: relative;
     width: 100%;

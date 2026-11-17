@@ -360,14 +360,8 @@ test("README names the shipped workbench controls", () => {
   }
 });
 
-test("current documentation avoids retired domain terms", () => {
+function collectRetiredGlossaryTerms() {
   const glossary = fs.readFileSync(path.join(ROOT, "GLOSSARY.md"), "utf8");
-  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
-  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
-  const blogStart = narrative.indexOf("## 8. Development blog");
-  assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
-  const narrativeCurrent = narrative.slice(0, blogStart);
-
   // Exclude canonical terms listed under another term's _Avoid_ and prose-ambiguous phrases.
   const canonicalTerms = new Set(
     Array.from(glossary.matchAll(/^\*\*([^*]+)\*\*:/gm), (match) => match[1].trim().toLowerCase()),
@@ -382,6 +376,17 @@ test("current documentation avoids retired domain terms", () => {
       retiredTerms.push(term);
     }
   }
+  return retiredTerms;
+}
+
+test("current documentation avoids retired domain terms", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
+  const blogStart = narrative.indexOf("## 8. Development blog");
+  assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
+  const narrativeCurrent = narrative.slice(0, blogStart);
+
+  const retiredTerms = collectRetiredGlossaryTerms();
   assert.ok(retiredTerms.length > 0, "GLOSSARY.md must declare multi-word _Avoid_ terms");
 
   for (const [documentName, text] of [
@@ -743,6 +748,7 @@ test("extracted CSS modules stay under 450 lines with @layer, zero !important, z
     "ring",
     "string",
   ]);
+  const retiredGlossaryTerms = collectRetiredGlossaryTerms();
 
   for (const file of files) {
     const relPath = `src/styles/${file}`;
@@ -757,6 +763,13 @@ test("extracted CSS modules stay under 450 lines with @layer, zero !important, z
       /!important/i,
       `${relPath} must contain zero !important declarations`,
     );
+    if (file !== "foundation.css") {
+      assert.doesNotMatch(
+        withoutComments,
+        /\bz-index\s*:\s*-?\d+/i,
+        `${relPath} must use --z-* tokens instead of raw integer z-index values`,
+      );
+    }
 
     // Strip declaration values and strings so hex colours do not trigger ID selector checks.
     const withoutValues = withoutComments
@@ -780,6 +793,14 @@ test("extracted CSS modules stay under 450 lines with @layer, zero !important, z
       const proseLines = isBanner && rawLines.length > 1 ? rawLines.slice(1) : rawLines;
       const cleaned = proseLines.join(" ").replace(/\s+/g, " ").trim();
       if (!cleaned) continue;
+
+      const lowerCleaned = cleaned.toLowerCase();
+      for (const term of retiredGlossaryTerms) {
+        assert.ok(
+          !lowerCleaned.includes(term.toLowerCase()),
+          `${relPath} CSS comment must not use GLOSSARY _Avoid_ term "${term}": "${cleaned}"`,
+        );
+      }
 
       const body = cleaned.includes("CAUTION:") ? cleaned.split("CAUTION:")[1].trim() : cleaned;
       if (cleaned.includes("CAUTION:")) {

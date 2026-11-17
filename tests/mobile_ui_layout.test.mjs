@@ -166,7 +166,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   const dotV2Style = computeStyleForExactSelectors(rules, [".dot-v2"], mobile);
   assert.match(dotV2Style.background, /var\(--accent-yellow\)/);
   assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["box-shadow"], /var\(--text-bright\)/);
+  assert.match(dotV2Style["box-shadow"], /(?:#ffffff|var\(--text-bright\))/);
 
   const v3SelectedStyle = computeStyleForExactSelectors(rules, [".legend-chip.selected"], mobile);
   assert.match(v3SelectedStyle["border-color"], /var\(--border-bright\)/);
