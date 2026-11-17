@@ -1,0 +1,308 @@
+/* ============================================================================
+   Oscilloscopes Panel: Telemetry, Scope Grid, and Filter and Digi-Drum Card
+   Styles the Oscilloscopes Panel and Filter and Digi-Drum Card inside
+   @layer modules, with pixel-locked telemetry geometry and co-located media rules.
+   ============================================================================ */
+
+@layer modules {
+  /* CAUTION: Keep tabular-nums and fixed ch widths on telemetry values. Live frame and PC updates otherwise jitter across adjacent readouts. */
+  .telemetry-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .telemetry-summary .tel-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .telemetry-summary .tel-item-frame {
+    min-width: 12ch;
+  }
+
+  .telemetry-summary .tel-item-pc {
+    min-width: 13ch;
+  }
+
+  .telemetry-summary .tel-item-d418 {
+    min-width: 20ch;
+  }
+
+  .telemetry-summary .tel-lbl {
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .telemetry-summary strong {
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* CAUTION: Reserve fixed character widths on telemetry counters. Rapid decimal and hex updates otherwise shift adjacent labels. */
+  .tel-value-frame {
+    min-width: 5.5ch;
+    text-align: left;
+  }
+
+  .tel-value-pc {
+    min-width: 5ch;
+    text-align: left;
+  }
+
+  .tel-value-d418 {
+    min-width: 2.5ch;
+    text-align: left;
+  }
+
+  .scopes-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 6px;
+    padding: 6px;
+    min-height: 140px;
+  }
+
+  /* CAUTION: Keep min-width: 0 and fixed header rows on .voice-card. Live note and PC updates otherwise widen columns or shift scope canvases. */
+  .voice-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 5px;
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    min-height: 64px;
+  }
+
+  .voice-card.muted {
+    opacity: 0.52;
+  }
+
+  .voice-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .voice-header-row,
+  .voice-telemetry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .voice-title-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .voice-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .v-cyan {
+    background: var(--accent-cyan);
+    box-shadow: 0 0 6px var(--accent-cyan);
+  }
+
+  .v-magenta {
+    background: var(--accent-magenta);
+    box-shadow: 0 0 6px var(--accent-magenta);
+  }
+
+  .v-yellow {
+    background: var(--accent-yellow);
+    box-shadow: 0 0 6px var(--accent-yellow);
+  }
+
+  .v-green {
+    background: var(--accent-green);
+    box-shadow: 0 0 6px var(--accent-green);
+  }
+
+  .voice-name {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .voice-note,
+  .voice-pc-tag {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .voice-note {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #0b0f17;
+    color: var(--accent-cyan);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .voice-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .voice-pc-tag {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #0d121c;
+  }
+
+  .voice-pc-tag:hover {
+    color: var(--accent-cyan);
+    background: #152238;
+  }
+
+  .btn-mini {
+    padding: 1px 5px;
+    font-size: 9px;
+    border-radius: 3px;
+  }
+
+  .btn-mini.active-mute {
+    background: #5c1c24;
+    border-color: var(--border-danger);
+    color: var(--text-danger);
+  }
+
+  .btn-mini.active-solo {
+    background: rgba(255, 170, 0, 0.25);
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+    box-shadow: 0 0 6px rgba(255, 170, 0, 0.35);
+  }
+
+  .scope-canvas {
+    width: 100%;
+    flex: 1;
+    min-height: 46px;
+    background: #080b11;
+    border: 1px solid #1d2536;
+    border-radius: var(--radius-sm);
+    margin: 4px 0;
+  }
+
+  /* CAUTION: Keep exact 2x2 grid geometry, 9.5px text, and 2ch widths on .voice-regs. Live register updates otherwise wrap or shift the card footer. */
+  .voice-regs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .voice-regs > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .flt-reg-value {
+    display: inline-block;
+    min-width: 2ch;
+    text-align: left;
+  }
+
+  .voice-regs strong {
+    color: var(--text-main);
+  }
+
+  .wf-tags {
+    color: var(--accent-yellow);
+    font-weight: 700;
+  }
+
+  @media (max-width: 1200px) and (min-width: 821px) {
+    .scopes-grid {
+      min-height: 170px;
+    }
+  }
+
+  @media (max-height: 780px) and (min-width: 821px) {
+    .scopes-grid {
+      min-height: 125px;
+      gap: 4px;
+      padding: 4px;
+    }
+
+    .voice-card {
+      padding: 4px 6px;
+    }
+  }
+
+  @media (max-width: 820px) {
+    .telemetry-summary {
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    .btn-mini {
+      min-height: 28px;
+      min-width: 28px;
+      padding: 3px 8px;
+      font-size: 10px;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .scopes-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    .scope-canvas {
+      min-height: 56px;
+    }
+  }
+}

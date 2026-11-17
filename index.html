@@ -21,6 +21,9 @@
     <link rel="stylesheet" href="./src/styles/help-popover.css?v=2026.11.17.2">
     <link rel="stylesheet" href="./src/styles/modal.css?v=2026.11.17.2">
     <link rel="stylesheet" href="./src/styles/boot-sequence.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/source-panel.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/c64-monitor.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/oscilloscopes-panel.css?v=2026.11.17.2">
     <link rel="stylesheet" href="./src/styles.css?v=2026.11.17.2">
   </head>
   <body data-boot-state="booting">
@@ -415,7 +418,12 @@
           <!-- C64 Screen + Raster Border Canvas -->
           <div class="c64-monitor-wrapper">
             <div class="c64-canvas-container" id="c64-canvas-container">
-              <canvas id="c64-monitor-canvas" width="384" height="272"></canvas>
+              <canvas
+                class="c64-monitor-canvas"
+                id="c64-monitor-canvas"
+                width="384"
+                height="272"
+              ></canvas>
               <div class="crt-overlay" id="crt-overlay"></div>
               <div class="hud-guide-overlay hidden" id="hud-guide-overlay"></div>
             </div>
@@ -456,15 +464,15 @@
             <div class="telemetry-summary" id="telemetry-summary">
               <span class="tel-item tel-item-frame"
                 ><span class="tel-lbl c64-caps">Frame:</span>
-                <strong id="tel-frame">0</strong></span
+                <strong class="tel-value-frame" id="tel-frame">0</strong></span
               >
               <span class="tel-item tel-item-pc"
                 ><span class="tel-lbl c64-caps">CPU PC:</span>
-                <strong id="tel-pc">$0000</strong></span
+                <strong class="tel-value-pc" id="tel-pc">$0000</strong></span
               >
               <span class="tel-item tel-item-d418"
                 ><span class="tel-lbl c64-caps">$D418 writes/frm:</span>
-                <strong id="tel-d418">0</strong></span
+                <strong class="tel-value-d418" id="tel-d418">0</strong></span
               >
             </div>
           </div>
@@ -651,9 +659,9 @@
               <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>
               <div class="voice-regs">
                 <span>FC: <strong id="flt-fc">$000 (30Hz)</strong></span>
-                <span>RES: <strong id="flt-res">0</strong></span>
+                <span>RES: <strong class="flt-reg-value" id="flt-res">0</strong></span>
                 <span>ROUT: <strong id="flt-rout">---</strong></span>
-                <span>VOL: <strong id="flt-vol">15</strong></span>
+                <span>VOL: <strong class="flt-reg-value" id="flt-vol">15</strong></span>
               </div>
             </div>
           </div>

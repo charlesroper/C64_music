@@ -574,25 +574,25 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
     ".telemetry-summary must have white-space: nowrap",
   );
 
-  const telFrame = computeStyleForExactSelectors(rules, ["#tel-frame"], desktop);
+  const telFrame = computeStyleForExactSelectors(rules, [".tel-value-frame"], desktop);
   assert.equal(
     telFrame["min-width"],
     "5.5ch",
-    "#tel-frame must have fixed min-width: 5.5ch to prevent number jitter",
+    ".tel-value-frame must have fixed min-width: 5.5ch to prevent number jitter",
   );
 
-  const telPc = computeStyleForExactSelectors(rules, ["#tel-pc"], desktop);
+  const telPc = computeStyleForExactSelectors(rules, [".tel-value-pc"], desktop);
   assert.equal(
     telPc["min-width"],
     "5ch",
-    "#tel-pc must have fixed min-width: 5ch to prevent hex address jitter",
+    ".tel-value-pc must have fixed min-width: 5ch to prevent hex address jitter",
   );
 
-  const telD418 = computeStyleForExactSelectors(rules, ["#tel-d418"], desktop);
+  const telD418 = computeStyleForExactSelectors(rules, [".tel-value-d418"], desktop);
   assert.equal(
     telD418["min-width"],
     "2.5ch",
-    "#tel-d418 must have fixed min-width: 2.5ch to prevent drum write jitter",
+    ".tel-value-d418 must have fixed min-width: 2.5ch to prevent drum write jitter",
   );
 });
 
@@ -897,10 +897,11 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
     assert.notEqual(regs["flex-wrap"], "wrap");
   }
 
-  for (const idSel of ["#flt-res", "#flt-vol"]) {
-    const style = computeStyleForExactSelectors(rules, [idSel], { width: 1440, height: 900 });
-    assert.equal(style["min-width"], "2ch");
-  }
+  const fltRegValue = computeStyleForExactSelectors(rules, [".flt-reg-value"], {
+    width: 1440,
+    height: 900,
+  });
+  assert.equal(fltRegValue["min-width"], "2ch");
 });
 
 test("loadLinkedStylesheets discovers and concatenates all linked CSS files from entry HTML in cascade order", () => {
@@ -1273,6 +1274,92 @@ test("workbench shell, top bar, and hardware controls modules extract under 300 
     "btn-directives-modal",
     "btn-narrative-modal",
     "btn-stats-nerds",
+  ]) {
+    assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
+  }
+});
+
+test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract under 450 lines with co-located media queries, CAUTION comments, and zero ID selectors", () => {
+  const { html, links, cssText } = loadLinkedStylesheets();
+  const linkPaths = links.map((link) => link.path);
+  const extracted = [
+    "./src/styles/source-panel.css",
+    "./src/styles/c64-monitor.css",
+    "./src/styles/oscilloscopes-panel.css",
+  ];
+  for (const rel of extracted) {
+    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
+    assert.ok(
+      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/boot-sequence.css"),
+      `${rel} must load after boot-sequence.css`,
+    );
+    assert.ok(
+      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
+      `${rel} must load before legacy styles.css`,
+    );
+    assertCssModuleConstraints(rel);
+  }
+  assert.ok(
+    linkPaths.indexOf("./src/styles/source-panel.css") <
+      linkPaths.indexOf("./src/styles/c64-monitor.css") &&
+      linkPaths.indexOf("./src/styles/c64-monitor.css") <
+        linkPaths.indexOf("./src/styles/oscilloscopes-panel.css"),
+    "Extracted modules must load in panel order: source-panel, c64-monitor, oscilloscopes-panel",
+  );
+
+  const sourceCss = fs.readFileSync(path.join(ROOT, "src/styles/source-panel.css"), "utf8");
+  assert.match(sourceCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(sourceCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+
+  const monitorCss = fs.readFileSync(path.join(ROOT, "src/styles/c64-monitor.css"), "utf8");
+  assert.match(
+    monitorCss,
+    /@media\s*\(\s*max-width:\s*1200px\s*\)\s*and\s*\(\s*min-width:\s*821px\s*\)/,
+  );
+  assert.match(
+    monitorCss,
+    /@media\s*\(\s*max-height:\s*780px\s*\)\s*and\s*\(\s*min-width:\s*821px\s*\)/,
+  );
+  assert.match(monitorCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(monitorCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+
+  const scopesCss = fs.readFileSync(path.join(ROOT, "src/styles/oscilloscopes-panel.css"), "utf8");
+  assert.match(
+    scopesCss,
+    /@media\s*\(\s*max-width:\s*1200px\s*\)\s*and\s*\(\s*min-width:\s*821px\s*\)/,
+  );
+  assert.match(
+    scopesCss,
+    /@media\s*\(\s*max-height:\s*780px\s*\)\s*and\s*\(\s*min-width:\s*821px\s*\)/,
+  );
+  assert.match(scopesCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(scopesCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+  for (const [name, css] of [
+    ["source-panel.css", sourceCss],
+    ["c64-monitor.css", monitorCss],
+    ["oscilloscopes-panel.css", scopesCss],
+  ]) {
+    assert.match(css, /\/\*\s*CAUTION:\s+[^*]+\*\//, `${name} must carry STE-80 CAUTION: notices`);
+  }
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".c64-monitor-canvas"], desktop)["image-rendering"],
+    "pixelated",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".flt-reg-value"], desktop).display,
+    "inline-block",
+  );
+
+  for (const id of [
+    "c64-monitor-canvas",
+    "tel-frame",
+    "tel-pc",
+    "tel-d418",
+    "flt-res",
+    "flt-vol",
   ]) {
     assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
   }
