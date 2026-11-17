@@ -5,7 +5,8 @@
    ============================================================================ */
 
 @layer modules {
-  button {
+  button,
+  .button {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     font-weight: 600;
@@ -21,19 +22,22 @@
     gap: 5px;
   }
 
-  button:hover {
+  button:hover,
+  .button:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-bright);
   }
 
   button:active,
-  button.active {
+  .button:active,
+  .button-isActive,
+  .button-isActive:hover {
     background: var(--bg-active);
     border-color: var(--accent-cyan);
     color: var(--accent-cyan);
   }
 
-  .btn-primary {
+  .button--primary {
     background: linear-gradient(180deg, #1a6d8a 0%, #124d66 100%);
     border-color: var(--accent-cyan);
     color: var(--text-bright);
@@ -42,40 +46,42 @@
     justify-content: center;
   }
 
-  .btn-primary:hover {
+  .button--primary:hover {
     background: linear-gradient(180deg, #2185a8 0%, #165e7c 100%);
     box-shadow: 0 0 10px rgba(56, 226, 255, 0.25);
   }
 
-  .btn-primary.playing {
+  .button-isPlaying,
+  .button-isPlaying:hover {
     background: linear-gradient(180deg, #1b7d52 0%, #125839 100%);
     border-color: var(--accent-green);
   }
 
-  .btn-secondary {
+  .button--secondary {
     background: #172034;
     border-color: #2f4269;
     color: var(--accent-cyan);
   }
 
-  .btn-secondary.active {
+  .button-isToggled,
+  .button-isToggled:hover {
     border-color: var(--accent-green);
     color: var(--accent-green);
   }
 
-  .btn-mini-action {
+  .button--miniAction {
     padding: 3px var(--space-2);
     font-size: var(--text-xs);
   }
 
-  .btn-accent {
+  .button--accent {
     background: #175c3b;
     border-color: var(--accent-green);
     color: var(--text-bright);
   }
 
   /* Hide the SVG sprite from layout while symbol definitions remain active. */
-  .icon-sprite {
+  .iconSprite {
     position: absolute;
     width: 0;
     height: 0;
@@ -93,7 +99,7 @@
     stroke-linejoin: round;
   }
 
-  .icon-button {
+  .iconButton {
     display: inline-grid;
     place-items: center;
     padding: 0;

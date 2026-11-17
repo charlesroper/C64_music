@@ -324,7 +324,7 @@ function createDiagnosticsLayout(doc) {
   header.appendChild(title);
 
   const helpButton = doc.createElement("button");
-  helpButton.classList.add("diag-help-toggle", "icon-button");
+  helpButton.classList.add("diag-help-toggle", "iconButton");
   helpButton.type = "button";
   helpButton.innerHTML =
     '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';

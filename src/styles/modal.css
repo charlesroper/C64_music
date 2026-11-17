@@ -5,7 +5,7 @@
    ============================================================================ */
 
 @layer modules {
-  .modal-backdrop {
+  .modal {
     position: fixed;
     inset: 0;
     background: var(--bg-backdrop);
@@ -39,7 +39,7 @@
     border-bottom: 1px solid var(--border-subtle);
   }
 
-  .modal-header h2 {
+  .modal-title {
     font-family: var(--font-mono);
     font-size: var(--text-lg);
     color: var(--accent-cyan);
@@ -52,11 +52,11 @@
     user-select: text;
   }
 
-  .modal-card-narrative {
+  .modal-card--narrative {
     max-width: 860px;
   }
 
-  .arch-notes {
+  .archNotes {
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -65,11 +65,11 @@
     color: var(--text-muted);
   }
 
-  .arch-notes strong {
+  .archNotes strong {
     color: var(--text-main);
   }
 
-  .arch-notes code {
+  .archNotes code {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     color: var(--accent-cyan);
@@ -78,14 +78,16 @@
     border-radius: 3px;
   }
 
-  .narrative-modal-body {
+  .narrativeProse {
     padding: var(--space-6);
+    overflow-y: auto;
+    user-select: text;
     line-height: 1.65;
     color: #d6e2f6;
     font-size: 13.5px;
   }
 
-  .narrative-modal-body h1 {
+  .narrativeProse h1 {
     font-family: var(--font-mono);
     font-size: 18px;
     color: var(--text-bright);
@@ -94,7 +96,7 @@
     padding-bottom: 6px;
   }
 
-  .narrative-modal-body h2 {
+  .narrativeProse h2 {
     font-family: var(--font-mono);
     font-size: 14.5px;
     color: var(--accent-yellow);
@@ -102,7 +104,7 @@
     margin-bottom: 10px;
   }
 
-  .narrative-modal-body h3 {
+  .narrativeProse h3 {
     font-family: var(--font-mono);
     font-size: var(--text-base);
     color: var(--accent-cyan);
@@ -110,19 +112,19 @@
     margin-bottom: var(--space-2);
   }
 
-  .narrative-modal-body p {
+  .narrativeProse p {
     margin-bottom: var(--space-3);
   }
 
-  .narrative-modal-body strong {
+  .narrativeProse strong {
     color: var(--text-bright);
   }
 
-  .narrative-modal-body em {
+  .narrativeProse em {
     color: var(--accent-cyan);
   }
 
-  .narrative-modal-body blockquote {
+  .narrativeProse blockquote {
     margin: 14px 0;
     padding: var(--space-2) 14px;
     background: #090e18;
@@ -132,16 +134,16 @@
     color: #b5c7e4;
   }
 
-  .narrative-modal-body ul,
-  .narrative-modal-body ol {
+  .narrativeProse ul,
+  .narrativeProse ol {
     margin: var(--space-2) 0 14px var(--space-5);
   }
 
-  .narrative-modal-body li {
+  .narrativeProse li {
     margin-bottom: 6px;
   }
 
-  .narrative-modal-body pre {
+  .narrativeProse pre {
     margin: var(--space-3) 0 var(--space-4) 0;
     background: #07090f;
     border: 1px solid var(--border-subtle);
@@ -150,7 +152,7 @@
     overflow-x: auto;
   }
 
-  .narrative-modal-body code {
+  .narrativeProse code {
     font-family: var(--font-mono);
     font-size: var(--text-md);
     color: var(--accent-cyan);
@@ -159,7 +161,7 @@
     border-radius: 3px;
   }
 
-  .narrative-modal-body pre code {
+  .narrativeProse pre code {
     background: transparent;
     padding: 0;
     color: #d6e2f6;
@@ -167,26 +169,26 @@
     line-height: 1.45;
   }
 
-  .narrative-modal-body hr {
+  .narrativeProse hr {
     border: 0;
     border-top: 1px solid var(--border-subtle);
     margin: 22px 0;
   }
 
-  .modal-cols {
+  .modal-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-4);
   }
 
-  .modal-cols h3 {
+  .modal-sectionTitle {
     font-family: var(--font-mono);
     font-size: var(--text-md);
     color: var(--accent-yellow);
     margin-bottom: var(--space-2);
   }
 
-  .directives-pre {
+  .modal-directives {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     line-height: 1.45;
@@ -200,7 +202,7 @@
 
   /* Stack two-column assembler documentation vertically on mobile screens. */
   @media (max-width: 820px) {
-    .modal-backdrop {
+    .modal {
       padding: 10px;
     }
 
@@ -213,17 +215,17 @@
       padding: 10px var(--space-3);
     }
 
-    .modal-header h2 {
+    .modal-title {
       font-size: var(--text-md);
       line-height: 1.3;
     }
 
-    .modal-cols {
+    .modal-columns {
       grid-template-columns: 1fr;
       gap: 14px;
     }
 
-    .directives-pre {
+    .modal-directives {
       overflow-x: auto;
       font-size: 10.5px;
     }

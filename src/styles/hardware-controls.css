@@ -161,7 +161,7 @@
       touch-action: manipulation;
     }
 
-    .transport-bar .btn-primary {
+    .transport-bar .button--primary {
       min-width: 96px;
       flex: 1.4 1 auto;
     }

@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="./src/styles/stats-for-nerds.css?v=2026.11.17.2">
   </head>
   <body data-boot-state="booting">
-    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <svg class="iconSprite" aria-hidden="true" focusable="false">
       <defs>
         <symbol id="icon-help" viewBox="0 0 16 16">
           <path d="M6.2 5.8a2 2 0 1 1 3.2 1.6c-.8.6-1.4 1-1.4 2" />
@@ -132,7 +132,7 @@
           <button
             type="button"
             id="btn-prev"
-            class="btn-icon"
+            class="button"
             title="Previous track (press [)"
             aria-label="Previous track"
             aria-keyshortcuts="["
@@ -142,21 +142,21 @@
           <button
             type="button"
             id="btn-play"
-            class="btn-primary"
+            class="button button--primary"
             title="Play or pause (press space)"
             aria-keyshortcuts="Space"
           >
             <span id="play-icon" aria-hidden="true">&#9654;</span>
             <span class="c64-caps" id="play-label">Play</span>
           </button>
-          <button type="button" id="btn-restart" class="btn-icon" title="Restart current track">
+          <button type="button" id="btn-restart" class="button" title="Restart current track">
             <span aria-hidden="true">&#8634;</span>
             <span class="c64-caps">Restart</span>
           </button>
           <button
             type="button"
             id="btn-next"
-            class="btn-icon"
+            class="button"
             title="Next track (press ])"
             aria-label="Next track"
             aria-keyshortcuts="]"
@@ -166,7 +166,7 @@
           <button
             type="button"
             id="btn-ffwd"
-            class="btn-icon"
+            class="button"
             title="Fast-forward 4x"
             aria-label="Fast-forward 4x"
           >
@@ -194,7 +194,7 @@
               >
               <button
                 type="button"
-                class="hw-help-trigger icon-button"
+                class="helpPopover-trigger iconButton"
                 id="sid-model-help-trigger"
                 aria-label="About SID chip"
                 aria-haspopup="dialog"
@@ -208,24 +208,24 @@
               </button>
             </div>
             <div
-              class="hw-help-panel"
+              class="helpPopover-panel"
               id="sid-model-help-panel"
               popover
               role="dialog"
               aria-labelledby="sid-model-help-title"
               tabindex="-1"
             >
-              <h3 class="hw-help-title" id="sid-model-help-title" data-help-focus tabindex="-1">
+              <h3 class="helpPopover-title" id="sid-model-help-title" data-help-focus tabindex="-1">
                 SID chip
               </h3>
-              <p>
+              <p class="helpPopover-text">
                 6581 is the original 1982 chip. 8580 is the 1987 revision. The 6581 filter is
                 warmer; the 8580 is cleaner. Tracks that do not use the filter or combined waveforms
                 sound the same on both.
               </p>
               <button
                 type="button"
-                class="hw-help-close icon-button"
+                class="helpPopover-close iconButton"
                 id="sid-model-help-close"
                 aria-label="Close SID chip help"
               >
@@ -256,7 +256,7 @@
               >
               <button
                 type="button"
-                class="hw-help-trigger icon-button"
+                class="helpPopover-trigger iconButton"
                 id="latency-mode-help-trigger"
                 aria-label="About audio mode"
                 aria-haspopup="dialog"
@@ -270,23 +270,28 @@
               </button>
             </div>
             <div
-              class="hw-help-panel"
+              class="helpPopover-panel"
               id="latency-mode-help-panel"
               popover
               role="dialog"
               aria-labelledby="latency-mode-help-title"
               tabindex="-1"
             >
-              <h3 class="hw-help-title" id="latency-mode-help-title" data-help-focus tabindex="-1">
+              <h3
+                class="helpPopover-title"
+                id="latency-mode-help-title"
+                data-help-focus
+                tabindex="-1"
+              >
                 Audio mode
               </h3>
-              <p>
+              <p class="helpPopover-text">
                 Audio plays from a buffer. Playback waits about 0.2 seconds so the device can keep
                 up, which avoids crackles. That wait means all live readouts lead the sound: the
                 monitor, oscilloscopes, register readouts and source follow. Interactive responds
                 sooner but is more likely to crackle. Firefox ignores Audio Mode. Use the
                 <a
-                  class="hw-help-link"
+                  class="helpPopover-link"
                   href="https://github.com/charlesroper/C64_music/blob/main/docs/audio-latency.md#firefox"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -296,7 +301,7 @@
               </p>
               <button
                 type="button"
-                class="hw-help-close icon-button"
+                class="helpPopover-close iconButton"
                 id="latency-mode-help-close"
                 aria-label="Close audio mode help"
               >
@@ -329,7 +334,7 @@
           <button
             type="button"
             id="btn-directives-modal"
-            class="btn-secondary hw-action-btn c64-caps"
+            class="button button--secondary hw-action-btn c64-caps"
             title="Ocean assembler docs"
           >
             Ocean assembler docs
@@ -338,7 +343,7 @@
           <button
             type="button"
             id="btn-narrative-modal"
-            class="btn-secondary hw-action-btn c64-caps"
+            class="button button--secondary hw-action-btn c64-caps"
             title="Galway 2664: history, architecture and source code"
           >
             The story
@@ -347,7 +352,7 @@
           <button
             type="button"
             id="btn-stats-nerds"
-            class="btn-secondary hw-action-btn hw-action-btn-full c64-caps"
+            class="button button--secondary hw-action-btn hw-action-btn-full c64-caps"
             title="Show audio timing, missed audio quanta and output latency"
           >
             Stats for nerds
@@ -357,14 +362,22 @@
 
       <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
       <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile studio panels">
-        <button type="button" class="mobile-tab-btn active c64-caps" data-mobile-tab="all">
+        <button
+          type="button"
+          class="button mobile-tab-btn button-isActive c64-caps"
+          data-mobile-tab="all"
+        >
           All panels
         </button>
-        <button type="button" class="mobile-tab-btn c64-caps" data-mobile-tab="monitor">
+        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="monitor">
           Monitor
         </button>
-        <button type="button" class="mobile-tab-btn c64-caps" data-mobile-tab="tunes">Tunes</button>
-        <button type="button" class="mobile-tab-btn c64-caps" data-mobile-tab="asm">Source</button>
+        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="tunes">
+          Tunes
+        </button>
+        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="asm">
+          Source
+        </button>
       </nav>
 
       <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
@@ -384,9 +397,13 @@
           <div class="panel-header panel-subheader">
             <span class="panel-title" id="tracks-panel-title">2. Tunes and arcade SFX</span>
             <div class="filter-pills">
-              <button type="button" class="pill active c64-caps" data-filter="all">All</button>
-              <button type="button" class="pill c64-caps" data-filter="music">Music</button>
-              <button type="button" class="pill c64-caps" data-filter="sfx">SFX / drums</button>
+              <button type="button" class="button pill button-isActive c64-caps" data-filter="all">
+                All
+              </button>
+              <button type="button" class="button pill c64-caps" data-filter="music">Music</button>
+              <button type="button" class="button pill c64-caps" data-filter="sfx">
+                SFX / drums
+              </button>
             </div>
           </div>
 
@@ -690,7 +707,7 @@
               <button
                 type="button"
                 id="btn-toggle-edit"
-                class="btn-mini-action"
+                class="button button--miniAction"
                 title="Edit .asm source and re-assemble in browser"
               >
                 Edit source
@@ -698,7 +715,7 @@
               <button
                 type="button"
                 id="btn-reassemble"
-                class="btn-mini-action btn-accent c64-caps hidden"
+                class="button button--miniAction button--accent c64-caps hidden"
                 title="Assemble modified source and hot-reload into C64 RAM"
               >
                 Assemble and run
@@ -785,26 +802,26 @@
 
     <!-- ==================== C64 BOOT SEQUENCE ==================== -->
     <div
-      class="boot-sequence"
+      class="bootSequence"
       id="boot-sequence"
       role="dialog"
       aria-modal="true"
       aria-label="Commodore 64 boot sequence"
     >
-      <div class="boot-frame" id="boot-frame">
-        <canvas id="boot-canvas" width="384" height="272"></canvas>
-        <div class="boot-scanlines" aria-hidden="true"></div>
+      <div class="bootSequence-frame" id="boot-frame">
+        <canvas class="bootSequence-canvas" id="boot-canvas" width="384" height="272"></canvas>
+        <div class="bootSequence-scanlines" aria-hidden="true"></div>
       </div>
-      <div class="boot-hint hidden" id="boot-hint">Click or press any key to start</div>
+      <div class="bootSequence-hint hidden" id="boot-hint">Click or press any key to start</div>
       <div class="sr-only" id="boot-live" aria-live="polite"></div>
     </div>
 
     <!-- ==================== OCEAN ASSEMBLER DIRECTIVES MODAL ==================== -->
-    <div class="modal-backdrop hidden" id="directives-modal">
+    <div class="modal hidden" id="directives-modal">
       <div class="modal-card">
         <div class="modal-header">
-          <h2>Ocean 1985-87 6502 assembler and Galway engine reference</h2>
-          <button type="button" id="btn-close-modal" class="btn-icon c64-caps">
+          <h2 class="modal-title">Ocean 1985-87 6502 assembler and Galway engine reference</h2>
+          <button type="button" id="btn-close-modal" class="button c64-caps">
             <svg class="icon" aria-hidden="true" focusable="false">
               <use href="#icon-close"></use>
             </svg>
@@ -812,14 +829,16 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="modal-cols">
+          <div class="modal-columns">
             <div>
-              <h3>Original <code>ocean_assembler_directives.txt</code></h3>
-              <pre class="directives-pre" id="directives-pre"></pre>
+              <h3 class="modal-sectionTitle">
+                Original <code>ocean_assembler_directives.txt</code>
+              </h3>
+              <pre class="modal-directives" id="directives-pre"></pre>
             </div>
             <div>
-              <h3>Reverse-engineered engine architecture</h3>
-              <div class="arch-notes">
+              <h3 class="modal-sectionTitle">Reverse-engineered engine architecture</h3>
+              <div class="archNotes">
                 <p>
                   <strong
                     >1. Multi-Speed Fractional Raster Clock (<code>Refsp</code>
@@ -890,18 +909,18 @@
     </div>
 
     <!-- ==================== THE STORY (NARRATIVE) MODAL ==================== -->
-    <div class="modal-backdrop hidden" id="narrative-modal">
-      <div class="modal-card modal-card-narrative">
+    <div class="modal hidden" id="narrative-modal">
+      <div class="modal-card modal-card--narrative">
         <div class="modal-header">
-          <h2>Galway 2664: history, architecture and source code</h2>
-          <button type="button" id="btn-close-narrative-modal" class="btn-icon c64-caps">
+          <h2 class="modal-title">Galway 2664: history, architecture and source code</h2>
+          <button type="button" id="btn-close-narrative-modal" class="button c64-caps">
             <svg class="icon" aria-hidden="true" focusable="false">
               <use href="#icon-close"></use>
             </svg>
             Close
           </button>
         </div>
-        <div class="modal-body narrative-modal-body" id="narrative-modal-body"></div>
+        <div class="narrativeProse" id="narrative-modal-body"></div>
       </div>
     </div>
 

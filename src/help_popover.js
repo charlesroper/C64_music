@@ -49,11 +49,16 @@ export function createHelpPopover({ document: doc, trigger, panel, closeButton =
     panel.style.transform = "none";
   }
 
+  function syncOpenState(isOpen) {
+    trigger.setAttribute("aria-expanded", String(isOpen));
+    trigger.classList.toggle("helpPopover-trigger-isExpanded", isOpen);
+    panel.classList.toggle("helpPopover-panel-isOpen", isOpen);
+  }
+
   function setOpen(next, { focus = true } = {}) {
     if (destroyed || open === next) return;
     open = next;
-    trigger.setAttribute("aria-expanded", String(open));
-    panel.classList.toggle("is-open", open);
+    syncOpenState(open);
     if (open) {
       openPopovers.add(closeSelf);
       positionPanel();
@@ -123,8 +128,7 @@ export function createHelpPopover({ document: doc, trigger, panel, closeButton =
     close();
   }
 
-  trigger.setAttribute("aria-expanded", String(open));
-  panel.classList.toggle("is-open", open);
+  syncOpenState(open);
 
   if (native) {
     panel.addEventListener("toggle", onToggle);

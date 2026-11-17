@@ -128,11 +128,13 @@ async function closePanel(send, id, expectedBorder) {
         const button = document.getElementById("${id}-help-trigger");
         return {
           expanded: button.getAttribute("aria-expanded"),
+          expandedClass: button.classList.contains("helpPopover-trigger-isExpanded"),
           border: getComputedStyle(button).borderColor,
         };
       })()`,
     );
-    if (settled.expanded === "false" && settled.border === expectedBorder) return;
+    if (settled.expanded === "false" && !settled.expandedClass && settled.border === expectedBorder)
+      return;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error(`${id} help trigger did not settle after close`);
@@ -151,6 +153,8 @@ async function readLayout(send, id) {
       const overlaps = !(p.right <= b.left || p.left >= b.right || p.bottom <= b.top || p.top >= b.bottom);
       return {
         expanded: trigger.getAttribute("aria-expanded"),
+        expandedClass: trigger.classList.contains("helpPopover-trigger-isExpanded"),
+        openClass: panel.classList.contains("helpPopover-panel-isOpen"),
         open: panel.matches(":popover-open"),
         panel: { left: p.left, top: p.top, right: p.right, bottom: p.bottom, width: p.width, height: p.height },
         trigger: { left: t.left, top: t.top, bottom: t.bottom },
@@ -223,7 +227,9 @@ async function checkWidth({ client, appUrl, width, height }) {
   const layout = await readLayout(client.send, "latency-mode");
   const openIcon = await readIconCentring(client.send, "latency-mode-help-trigger");
   const mobile = width <= 560;
-  if (layout.expanded !== "true" || !layout.open) throw new Error(`${width}px panel did not open`);
+  if (layout.expanded !== "true" || !layout.expandedClass || !layout.openClass || !layout.open) {
+    throw new Error(`${width}px panel did not open`);
+  }
   if (layout.overflow) throw new Error(`${width}px horizontal overflow`);
   if (layout.overlapsTransport) throw new Error(`${width}px panel overlaps transport`);
   if (layout.panel.left < 0 || layout.panel.top < 0)

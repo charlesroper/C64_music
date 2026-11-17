@@ -122,7 +122,7 @@ export function scrollToSourceLine(
     if (currentView && currentView !== "all" && currentView !== "asm") {
       if (grid) grid.dataset.mobileView = "asm";
       documentObj?.querySelectorAll?.("[data-mobile-tab]")?.forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.mobileTab === "asm");
+        btn.classList.toggle("button-isActive", btn.dataset.mobileTab === "asm");
       });
     }
   }
@@ -890,7 +890,7 @@ export function createWorkbenchView({
     }
     const tabButtons = doc.querySelectorAll ? doc.querySelectorAll("[data-mobile-tab]") : [];
     tabButtons.forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.mobileTab === view);
+      btn.classList.toggle("button-isActive", btn.dataset.mobileTab === view);
     });
   }
 
@@ -1232,7 +1232,7 @@ export function createWorkbenchView({
     const led = getEl("status-led");
 
     if (playing) {
-      if (btnPlay) btnPlay.classList.add("playing");
+      if (btnPlay) btnPlay.classList.add("button-isPlaying");
       if (playIcon) playIcon.innerHTML = "&#10074;&#10074;";
       if (playLabel) playLabel.textContent = "Pause";
       if (led) {
@@ -1240,7 +1240,7 @@ export function createWorkbenchView({
         led.classList.add("playing");
       }
     } else {
-      if (btnPlay) btnPlay.classList.remove("playing");
+      if (btnPlay) btnPlay.classList.remove("button-isPlaying");
       if (playIcon) playIcon.innerHTML = "&#9654;";
       if (playLabel) playLabel.textContent = "Play";
       if (led) {
@@ -1318,7 +1318,7 @@ export function createWorkbenchView({
 
   function syncStatsButton(visible = state.diagnostics?.isVisible()) {
     const button = getEl("btn-stats-nerds");
-    if (button) button.classList.toggle("active", Boolean(visible));
+    if (button) button.classList.toggle("button-isToggled", Boolean(visible));
   }
 
   function setDiagnostics(diagnostics) {
@@ -1406,12 +1406,12 @@ export function createWorkbenchView({
         if (e?.preventDefault) e.preventDefault();
         if (!state.player) return;
         state.player.setHardwareOptions({ isFastForward: true });
-        btnFfwd.classList.add("active");
+        btnFfwd.classList.add("button-isActive");
       };
       const stopFfwd = () => {
         if (!state.player?.getState().isFastForward) return;
         state.player.setHardwareOptions({ isFastForward: false });
-        btnFfwd.classList.remove("active");
+        btnFfwd.classList.remove("button-isActive");
       };
       addListener(btnFfwd, "pointerdown", startFfwd);
       addListener(btnFfwd, "mousedown", startFfwd);
@@ -1476,9 +1476,9 @@ export function createWorkbenchView({
     filterPills.forEach((pill) => {
       addListener(pill, "click", () => {
         filterPills.forEach((p) => {
-          p.classList.remove("active");
+          p.classList.remove("button-isActive");
         });
-        pill.classList.add("active");
+        pill.classList.add("button-isActive");
         state.activeFilter = pill.dataset.filter;
         renderTrackList();
       });
@@ -1810,7 +1810,7 @@ export function createWorkbenchView({
         const isModalOpen =
           (dirMod && !dirMod.classList.contains("hidden")) ||
           (narMod && !narMod.classList.contains("hidden")) ||
-          Boolean(doc.querySelector?.(".modal-backdrop:not(.hidden)"));
+          Boolean(doc.querySelector?.(".modal:not(.hidden)"));
         if (isModalOpen) return;
 
         if (e.code === "Space") {

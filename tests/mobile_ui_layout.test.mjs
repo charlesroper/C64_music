@@ -81,11 +81,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Narrow mobile .scopes-grid must stack 1fr so voice headers and waveforms fit",
   );
 
-  const mobModalCols = computeStyleForExactSelectors(rules, [".modal-cols"], mobile);
+  const mobModalCols = computeStyleForExactSelectors(rules, [".modal-columns"], mobile);
   assert.equal(
     mobModalCols["grid-template-columns"],
     "1fr",
-    "Mobile .modal-cols must stack 1fr so assembler docs are readable",
+    "Mobile .modal-columns must stack 1fr so assembler docs are readable",
   );
 
   // 5. Track list and .ASM source viewer have bounded mobile heights (preventing 40,000px scroll)
@@ -699,12 +699,15 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
 
 test("help panel becomes a bottom sheet at phone width", () => {
   const rules = loadLinkedRules();
-  const phone = computeStyleForExactSelectors(rules, ".hw-help-panel", { width: 390, height: 844 });
+  const phone = computeStyleForExactSelectors(rules, ".helpPopover-panel", {
+    width: 390,
+    height: 844,
+  });
   assert.equal(phone.inset, "auto 12px calc(12px + env(safe-area-inset-bottom)) 12px");
   assert.equal(phone.width, "auto");
   assert.equal(phone.transform, "none");
 
-  const desktop = computeStyleForExactSelectors(rules, ".hw-help-panel", {
+  const desktop = computeStyleForExactSelectors(rules, ".helpPopover-panel", {
     width: 1440,
     height: 900,
   });
@@ -1079,11 +1082,11 @@ test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden
   assert.equal(hiddenRules[0].layer, "state", ".hidden must live in @layer state");
   assert.equal(hiddenRules[0].decls.display, "none");
 
-  const hiddenModal = computeStyleForExactSelectors(rules, [".modal-backdrop", ".hidden"], desktop);
+  const hiddenModal = computeStyleForExactSelectors(rules, [".modal", ".hidden"], desktop);
   assert.equal(
     hiddenModal.display,
     "none",
-    "@layer state .hidden must override @layer modules display: flex on .modal-backdrop",
+    "@layer state .hidden must override @layer modules display: flex on .modal",
   );
 });
 
@@ -1124,19 +1127,19 @@ test("shared button, help popover, and modal modules extract with co-located med
   const desktop = { width: 1440, height: 900 };
   const mobile = { width: 375, height: 812 };
   assert.equal(
-    computeStyleForExactSelectors(rules, [".btn-primary"], desktop)["min-width"],
+    computeStyleForExactSelectors(rules, [".button--primary"], desktop)["min-width"],
     "92px",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".hw-help-panel"], desktop)["z-index"],
+    computeStyleForExactSelectors(rules, [".helpPopover-panel"], desktop)["z-index"],
     "var(--z-popover)",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".modal-backdrop"], desktop)["z-index"],
+    computeStyleForExactSelectors(rules, [".modal"], desktop)["z-index"],
     "var(--z-modal)",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".modal-cols"], mobile)["grid-template-columns"],
+    computeStyleForExactSelectors(rules, [".modal-columns"], mobile)["grid-template-columns"],
     "1fr",
   );
 });
@@ -1156,7 +1159,7 @@ test("Boot Sequence module extracts with co-located media queries and expected c
   const desktop = { width: 1440, height: 900 };
   const phone = { width: 390, height: 844 };
   assert.equal(
-    computeStyleForExactSelectors(rules, [".boot-sequence"], desktop)["z-index"],
+    computeStyleForExactSelectors(rules, [".bootSequence"], desktop)["z-index"],
     "var(--z-boot)",
   );
   assert.equal(
@@ -1167,13 +1170,13 @@ test("Boot Sequence module extracts with co-located media queries and expected c
   assert.equal(
     computeStyleForExactSelectors(
       rules,
-      ['html[data-boot-mode="immediate"] .boot-sequence'],
+      ['html[data-boot-mode="immediate"] .bootSequence'],
       desktop,
     ).display,
     "none",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".boot-hint"], phone).bottom,
+    computeStyleForExactSelectors(rules, [".bootSequence-hint"], phone).bottom,
     "var(--space-4)",
   );
 });

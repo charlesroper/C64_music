@@ -91,6 +91,7 @@ test("booting index.html + app.js and clicking PLAY generates non-silent stereo 
     // Simulate user tapping PLAY on mobile Safari (44.1 kHz hardware, sampleRate option rejected)
     harness.elementsById.get("btn-play").click();
 
+    assert.ok(harness.elementsById.get("btn-play").classList.contains("button-isPlaying"));
     assert.equal(harness.audioState.audioSession.type, "playback");
     assert.equal(harness.elementsById.get("play-label").textContent, "Pause");
     assert.equal(player.getState().audioBackend, "in-thread");
@@ -243,20 +244,26 @@ test("SID help popover uses the shared module and drum boost still works", () =>
 
     sidTrigger.click();
     assert.equal(sidTrigger.getAttribute("aria-expanded"), "true");
+    assert.ok(sidTrigger.classList.contains("helpPopover-trigger-isExpanded"));
+    assert.ok(sidPanel.classList.contains("helpPopover-panel-isOpen"));
     assert.equal(sidPanel.hidden, false);
     assert.equal(globalThis.document.activeElement, sidPanel);
 
     const sidClose = harness.elementsById.get("sid-model-help-close");
     sidClose.click();
     assert.equal(sidTrigger.getAttribute("aria-expanded"), "false");
+    assert.ok(!sidTrigger.classList.contains("helpPopover-trigger-isExpanded"));
+    assert.ok(!sidPanel.classList.contains("helpPopover-panel-isOpen"));
     assert.equal(sidPanel.hidden, true);
     assert.equal(globalThis.document.activeElement, sidTrigger);
 
     sidTrigger.click();
     audioTrigger.click();
     assert.equal(sidTrigger.getAttribute("aria-expanded"), "false");
+    assert.ok(!sidTrigger.classList.contains("helpPopover-trigger-isExpanded"));
     assert.equal(sidPanel.hidden, true, "Opening Audio Mode must close SID help");
     assert.equal(audioTrigger.getAttribute("aria-expanded"), "true");
+    assert.ok(audioTrigger.classList.contains("helpPopover-trigger-isExpanded"));
     assert.equal(audioPanel.hidden, false);
 
     audioTrigger.click();
@@ -337,7 +344,7 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   const toggleLabel = group.match(/<label class="hw-toggle">[\s\S]*?<\/label>/)[0];
   assert.doesNotMatch(toggleLabel, /Firefox buffer setting/);
 
-  const linkMatch = panelMatch[0].match(/<a\b[^>]*class="hw-help-link"[^>]*>[\s\S]*?<\/a\s*>/);
+  const linkMatch = panelMatch[0].match(/<a\b[^>]*class="helpPopover-link"[^>]*>[\s\S]*?<\/a\s*>/);
   assert.ok(linkMatch, "Firefox buffer setting must be a real anchor inside the panel");
   const link = linkMatch[0];
   assert.match(
@@ -348,10 +355,11 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   assert.match(link, /rel="noopener noreferrer"/);
   assert.match(link, />\s*Firefox buffer setting\s*<\/a\s*>/);
 
-  assert.match(css, /\.hw-help-trigger::after\s*\{[^}]*inset:\s*-12px/);
-  assert.match(css, /\.hw-help-trigger\[aria-expanded="true"\]/);
-  assert.match(css, /\.icon-button\s*\{[^}]*display:\s*inline-grid/);
-  assert.match(css, /\.hw-help-panel\s*\{[^}]*position:\s*fixed/);
+  assert.match(css, /\.helpPopover-trigger::after\s*\{[^}]*inset:\s*-12px/);
+  assert.match(css, /\.helpPopover-trigger-isExpanded\b/);
+  assert.doesNotMatch(css, /\.helpPopover-trigger\[aria-expanded="true"\]/);
+  assert.match(css, /\.iconButton\s*\{[^}]*display:\s*inline-grid/);
+  assert.match(css, /\.helpPopover-panel\s*\{[^}]*position:\s*fixed/);
 });
 
 test("Workbench View uses action labels, sentence case and accessible names", () => {
@@ -713,13 +721,16 @@ test("Audio Mode help popover opens, closes and restores focus", () => {
 
     trigger.click();
     assert.equal(trigger.getAttribute("aria-expanded"), "true");
+    assert.ok(trigger.classList.contains("helpPopover-trigger-isExpanded"));
     assert.equal(panel.hidden, false);
-    assert.ok(panel.classList.contains("is-open"));
+    assert.ok(panel.classList.contains("helpPopover-panel-isOpen"));
     assert.equal(globalThis.document.activeElement, panel);
 
     const closeButton = harness.elementsById.get("latency-mode-help-close");
     closeButton.click();
     assert.equal(trigger.getAttribute("aria-expanded"), "false");
+    assert.ok(!trigger.classList.contains("helpPopover-trigger-isExpanded"));
+    assert.ok(!panel.classList.contains("helpPopover-panel-isOpen"));
     assert.equal(panel.hidden, true);
     assert.equal(globalThis.document.activeElement, trigger);
 
@@ -1281,15 +1292,15 @@ test("Stats for Nerds button toggles the audio diagnostics overlay", async () =>
       diagnostics.element.classList.contains("hidden"),
       "Overlay must start hidden without ?audioDebug=1",
     );
-    assert.ok(!btnStats.classList.contains("active"), "Stats button must start inactive");
+    assert.ok(!btnStats.classList.contains("button-isToggled"), "Stats button must start inactive");
 
     btnStats.click();
     assert.ok(!diagnostics.element.classList.contains("hidden"));
-    assert.ok(btnStats.classList.contains("active"));
+    assert.ok(btnStats.classList.contains("button-isToggled"));
 
     btnStats.click();
     assert.ok(diagnostics.element.classList.contains("hidden"));
-    assert.ok(!btnStats.classList.contains("active"));
+    assert.ok(!btnStats.classList.contains("button-isToggled"));
   } finally {
     diagnostics?.stop();
     harness.restoreGlobals();

@@ -31,8 +31,8 @@ export function matchesSelector(el, sel) {
     return true;
   }
 
-  if (sel === ".modal-backdrop:not(.hidden)") {
-    return Boolean(el.classList?.contains("modal-backdrop") && !el.classList?.contains("hidden"));
+  if (sel === ".modal:not(.hidden)") {
+    return Boolean(el.classList?.contains("modal") && !el.classList?.contains("hidden"));
   }
 
   const tagMatch = sel.match(/^([a-zA-Z0-9-]+)/);

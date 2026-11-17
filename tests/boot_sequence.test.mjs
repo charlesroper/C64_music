@@ -77,7 +77,7 @@ function createBoot(options = {}) {
 function assertImmediateReveal(harness, label) {
   const overlay = harness.elementsById.get("boot-sequence");
   assert.ok(overlay.classList.contains("hidden"), `${label} must reveal immediately`);
-  assert.ok(!overlay.classList.contains("is-fading"));
+  assert.ok(!overlay.classList.contains("bootSequence-isFading"));
   assert.equal(globalThis.document.body.dataset.bootState, undefined);
 }
 
@@ -146,7 +146,10 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
     assert.equal(completions.length, 1);
     assert.equal(completions[0].autoPlay, true);
     assert.equal(completions[0].reason, "gate");
-    assert.ok(overlay.classList.contains("is-fading"), "Gate completion must start the fade");
+    assert.ok(
+      overlay.classList.contains("bootSequence-isFading"),
+      "Gate completion must start the fade",
+    );
     assert.ok(
       !overlay.classList.contains("hidden"),
       "The overlay must stay visible during the fade",
@@ -158,7 +161,7 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
 
     clock.advance(BOOT_FADE_MS);
     assert.ok(overlay.classList.contains("hidden"), "The overlay must hide after the fade");
-    assert.ok(!overlay.classList.contains("is-fading"));
+    assert.ok(!overlay.classList.contains("bootSequence-isFading"));
   } finally {
     harness.restoreGlobals();
   }
@@ -360,11 +363,11 @@ test("gate completion waits for waitBeforeFade callback before revealing workben
     assert.equal(completions.length, 1);
     assert.equal(typeof releaseFade, "function");
     assert.equal(globalThis.document.body.dataset.bootState, "booting");
-    assert.ok(!overlay.classList.contains("is-fading"));
+    assert.ok(!overlay.classList.contains("bootSequence-isFading"));
 
     releaseFade();
     assert.equal(globalThis.document.body.dataset.bootState, undefined);
-    assert.ok(overlay.classList.contains("is-fading"));
+    assert.ok(overlay.classList.contains("bootSequence-isFading"));
 
     clock.advance(BOOT_FADE_MS);
     assert.ok(overlay.classList.contains("hidden"));

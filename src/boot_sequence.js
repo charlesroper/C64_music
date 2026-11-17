@@ -259,7 +259,7 @@ export function createBootSequence({
   }
 
   function hideOverlay() {
-    overlay.classList.remove("is-fading");
+    overlay.classList.remove("bootSequence-isFading");
     overlay.classList.add("hidden");
   }
 
@@ -343,7 +343,7 @@ export function createBootSequence({
     revealStarted = true;
     delete doc.body.dataset.bootState;
     overlay.style.transitionDuration = `${BOOT_FADE_MS}ms`;
-    overlay.classList.add("is-fading");
+    overlay.classList.add("bootSequence-isFading");
     later(hideOverlay, BOOT_FADE_MS);
   }
 
