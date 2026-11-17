@@ -12,7 +12,7 @@ Split the single 3,030-line stylesheet into modular, zero-build CSS files under 
 
 ## Decision
 
-- **Parallel `<link>` modules, no bundler:** Split styles into roughly 8 to 10 single-responsibility files under `src/styles/` (targeting under 300 lines each), combining `reset`, `tokens`, and `base` into `foundation.css` and naming UI module files after `GLOSSARY.md` concepts (`boot-sequence.css`, `c64-monitor.css`, `oscilloscopes-panel.css`, `source-viewer.css`, `sid-register-strip.css`, `stats-for-nerds.css`, etc.) plus shared standalone modules (`overlays.css`, `workbench-shell.css`). Load them via parallel `<link rel="stylesheet">` tags in `index.html` rather than CSS `@import`.
+- **Parallel `<link>` modules, no bundler:** Split styles into single-responsibility files under `src/styles/` (targeting under 450 lines each so Biome one-declaration-per-line formatting keeps each 1:1 `GLOSSARY.md` module intact, yielding roughly 14 files), combining `reset`, `tokens`, and `base` into `foundation.css` and naming UI module files after `GLOSSARY.md` concepts (`boot-sequence.css`, `c64-monitor.css`, `oscilloscopes-panel.css`, `source-viewer.css`, `sid-register-strip.css`, `stats-for-nerds.css`, etc.) plus shared standalone modules (`buttons.css`, `help-popover.css`, `modal.css`, `top-bar.css`, `hardware-controls.css`, `workbench-shell.css`). Load them via parallel `<link rel="stylesheet">` tags in `index.html` rather than CSS `@import`.
 - **CalVer sync across all CSS links:** Update `scripts/bump_version.mjs`, `CODING_STANDARDS.md` Rule 5.1, and `tests/repo_rules.test.mjs` so `npm run bump` stamps `?v=YYYY.MM.DD` onto every `./src/styles/*.css` `<link>` tag in `index.html` in lockstep.
 - **Native `@layer` ordering:** Declare `@layer reset, tokens, base, modules, state;` in `foundation.css`. Keep `.hidden { display: none; }` in `@layer state` (its display-suppression behaviour is identical everywhere) and keep reduced-motion suppression after its module rule so zero `!important` declarations remain.
 - **MaintainableCSS naming and co-located media queries:** Adopt `lowerCamelCase` delimiter grammar (`.module[-component][-state|--modifier]`), single-class specificity with zero `#id` style selectors, ARIA attributes paired with `.module-isState` / `.module-component-isState` classes, `.srOnly` and `.c64Caps` in `lowerCamelCase`, and `@media` queries co-located inside each owning module file.
@@ -30,7 +30,7 @@ Split the single 3,030-line stylesheet into modular, zero-build CSS files under 
 
 ## Consequences
 
-- Agents and contributors can inspect and edit one UI module in a single under-300-line file with its `@media` rules co-located.
+- Agents and contributors can inspect and edit one UI module in a single under-450-line file with its `@media` rules co-located.
 - Tests that previously read `src/styles.css` directly (`tests/mobile_ui_layout.test.mjs`, `tests/spa_boot_and_play.test.mjs`) must load all `<link rel="stylesheet">` files referenced by `index.html` in order.
 - Future contributors must not "simplify" the multi-`<link>` setup back into `@import` or add a bundler, nor replace pixel-locked telemetry dimensions with coarse spacing tokens without passing `npm run check:layout`.
 - The migration runs in two stages under one specification: structure, layers, tokens, and `#id` removal first (keeping existing tests green), followed by per-module `lowerCamelCase` renames across `index.html`, JS modules, tests, and browser checks.

@@ -130,3 +130,14 @@ Commit messages must adhere to Chris Beams' guidelines:
 ## 10. Accessibility
 
 **Rule 10.1 (Control Names)**: Icon-only controls need an `aria-label`. Controls with visible text keep that text as the name, and decorative glyphs inside them use `aria-hidden="true"`.
+
+---
+
+## 11. CSS Modules
+
+Styles live as parallel zero-build modules under `src/styles/` governed by `docs/adr/0011-css-module-architecture.md`.
+
+**Rule 11.1 (Module Scope and Line Budget)**: Keep each module stylesheet single-responsibility and under 450 lines, with its responsive `@media` blocks co-located inside the owning file.
+**Rule 11.2 (Cascade and Selectors)**: Wrap module rules in `@layer modules`, reserve `@layer state` for visibility and reduced-motion overrides, and use zero `!important` declarations and zero `#id` style selectors. Preserve `id` attributes needed for DOM and ARIA wiring.
+**Rule 11.3 (Tokens and Pixel-Locked Exemptions)**: Prefer `:root` design tokens from `src/styles/foundation.css` for colours, typography, spacing, radii, and z-index tiers, while preserving pixel-locked Oscilloscopes Panel and SID Register Strip geometry checked by `npm run check:layout`.
+**Rule 11.4 (STE-80 CSS Comments)**: Write module headers and defensive comments in Simplified Technical English (active present tense, <= 25 words per descriptive sentence, noun clusters <= 3 words, zero `-ing` participles). Place `CAUTION: [Preventive action]. [Consequence].` notices directly above layout-sensitive rules.

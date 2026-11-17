@@ -201,7 +201,14 @@ export function parseStylesheet(cssText) {
 
       if (/^@media\b/i.test(header)) {
         const cond = header.replace(/^@media\s+/i, "").trim();
-        const nextMedia = mediaQuery ? `${mediaQuery} and ${cond}` : cond;
+        const nextMedia = mediaQuery
+          ? mediaQuery
+              .split(",")
+              .flatMap((outer) =>
+                cond.split(",").map((inner) => `${outer.trim()} and ${inner.trim()}`),
+              )
+              .join(", ")
+          : cond;
         parseBlocks(body, nextMedia, layerPath);
       } else if (/^@layer\b/i.test(header)) {
         const rawName = header.replace(/^@layer\b/i, "").trim();
@@ -253,21 +260,25 @@ export function parseStylesheet(cssText) {
   }));
 }
 
-export function matchesMedia(mediaQuery, { width, height }) {
-  if (!mediaQuery) return true;
-  for (const m of mediaQuery.matchAll(/\(max-width:\s*(\d+)px\)/g)) {
+function matchesMediaBranch(branch, { width, height }) {
+  for (const m of branch.matchAll(/\(max-width:\s*(\d+)px\)/g)) {
     if (!(width <= Number(m[1]))) return false;
   }
-  for (const m of mediaQuery.matchAll(/\(min-width:\s*(\d+)px\)/g)) {
+  for (const m of branch.matchAll(/\(min-width:\s*(\d+)px\)/g)) {
     if (!(width >= Number(m[1]))) return false;
   }
-  for (const m of mediaQuery.matchAll(/\(max-height:\s*(\d+)px\)/g)) {
+  for (const m of branch.matchAll(/\(max-height:\s*(\d+)px\)/g)) {
     if (!(height <= Number(m[1]))) return false;
   }
-  for (const m of mediaQuery.matchAll(/\(min-height:\s*(\d+)px\)/g)) {
+  for (const m of branch.matchAll(/\(min-height:\s*(\d+)px\)/g)) {
     if (!(height >= Number(m[1]))) return false;
   }
   return true;
+}
+
+export function matchesMedia(mediaQuery, viewport) {
+  if (!mediaQuery) return true;
+  return mediaQuery.split(",").some((branch) => matchesMediaBranch(branch, viewport));
 }
 
 /** Exact selector string match (does not intersect compound class/attribute rules). */
