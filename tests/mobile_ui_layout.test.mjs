@@ -1016,3 +1016,53 @@ test("parseStylesheet traverses @layer statements and blocks alongside @media an
   );
   assert.equal(computeStyleForExactSelectors(rules, [".anon"], desktop).opacity, "0.5");
 });
+
+test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden in @layer state without !important", () => {
+  const { links, cssText } = loadLinkedStylesheets();
+  assert.equal(links[0]?.path, "./src/styles/foundation.css", "foundation.css must load first");
+  assert.ok(
+    links.some((link) => link.path === "./src/styles.css"),
+    "index.html must still link legacy ./src/styles.css in @layer modules",
+  );
+
+  const foundationCss = fs.readFileSync(path.join(ROOT, "src/styles/foundation.css"), "utf8");
+  assert.match(
+    foundationCss,
+    /@layer\s+reset\s*,\s*tokens\s*,\s*base\s*,\s*modules\s*,\s*state\s*;/,
+    "foundation.css must declare the five cascade layers in order",
+  );
+  assert.doesNotMatch(
+    foundationCss.replace(/\/\*[\s\S]*?\*\//g, ""),
+    /!important/i,
+    "foundation.css must contain zero !important",
+  );
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  const tokens = computeStyleForExactSelectors(rules, [":root"], desktop);
+  for (const token of [
+    "--bg-deep",
+    "--accent-cyan",
+    "--font-mono",
+    "--text-base",
+    "--space-2",
+    "--radius-md",
+    "--z-modal",
+    "--z-popover",
+    "--z-boot",
+  ]) {
+    assert.ok(tokens[token], `foundation tokens must define ${token}`);
+  }
+
+  const hiddenRules = rules.filter((rule) => rule.selector === ".hidden");
+  assert.equal(hiddenRules.length, 1, ".hidden must have a single canonical rule");
+  assert.equal(hiddenRules[0].layer, "state", ".hidden must live in @layer state");
+  assert.equal(hiddenRules[0].decls.display, "none");
+
+  const hiddenModal = computeStyleForExactSelectors(rules, [".modal-backdrop", ".hidden"], desktop);
+  assert.equal(
+    hiddenModal.display,
+    "none",
+    "@layer state .hidden must override @layer modules display: flex on .modal-backdrop",
+  );
+});
