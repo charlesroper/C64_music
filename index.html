@@ -14,6 +14,13 @@
     </script>
     <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.17.2</title>
     <link rel="stylesheet" href="./src/styles/foundation.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/buttons.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/workbench-shell.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/top-bar.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/hardware-controls.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/help-popover.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/modal.css?v=2026.11.17.2">
+    <link rel="stylesheet" href="./src/styles/boot-sequence.css?v=2026.11.17.2">
     <link rel="stylesheet" href="./src/styles.css?v=2026.11.17.2">
   </head>
   <body data-boot-state="booting">
@@ -164,7 +171,7 @@
         </div>
 
         <div class="hardware-controls">
-          <div class="hw-group" id="hw-group-sid">
+          <div class="hw-group hw-group-full" id="hw-group-sid">
             <span class="hw-label c64-caps" id="sid-model-label">SID chip</span>
             <label class="hw-toggle">
               <input
@@ -224,7 +231,7 @@
             </div>
           </div>
 
-          <div class="hw-group" id="hw-group-latency">
+          <div class="hw-group hw-group-full" id="hw-group-latency">
             <span class="hw-label c64-caps" id="latency-mode-label">Audio mode</span>
             <label class="hw-toggle">
               <input
@@ -234,7 +241,9 @@
                 aria-describedby="latency-mode-hint"
               >
               <span class="hw-toggle-switch" aria-hidden="true"></span>
-              <span class="hw-toggle-value" id="latency-mode-value">PLAYBACK</span>
+              <span class="hw-toggle-value hw-toggle-value-latency" id="latency-mode-value"
+                >PLAYBACK</span
+              >
             </label>
             <div class="hw-help-row">
               <span class="hw-hint" id="latency-mode-hint"
@@ -293,7 +302,7 @@
             </div>
           </div>
 
-          <div class="hw-group" id="hw-group-digi">
+          <div class="hw-group hw-group-full hw-group-digi" id="hw-group-digi">
             <label
               class="hw-label"
               for="slider-digi-boost"
@@ -315,7 +324,7 @@
           <button
             type="button"
             id="btn-directives-modal"
-            class="btn-secondary c64-caps"
+            class="btn-secondary hw-action-btn c64-caps"
             title="Ocean assembler docs"
           >
             Ocean assembler docs
@@ -324,7 +333,7 @@
           <button
             type="button"
             id="btn-narrative-modal"
-            class="btn-secondary c64-caps"
+            class="btn-secondary hw-action-btn c64-caps"
             title="Galway 2664: history, architecture and source code"
           >
             The story
@@ -333,7 +342,7 @@
           <button
             type="button"
             id="btn-stats-nerds"
-            class="btn-secondary c64-caps"
+            class="btn-secondary hw-action-btn hw-action-btn-full c64-caps"
             title="Show audio timing, missed audio quanta and output latency"
           >
             Stats for nerds

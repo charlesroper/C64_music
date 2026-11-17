@@ -1,0 +1,146 @@
+/* ============================================================================
+   Help Popover: Anchored Explanations and Mobile Bottom Sheets
+   Styles help trigger buttons, close controls, and popover panels inside
+   @layer modules, with co-located phone and motion rules.
+   ============================================================================ */
+
+@layer modules {
+  .hw-help-trigger {
+    position: relative;
+    /* CAUTION: Keep top: -5.1px to align the 20px circle with the 9px hint cap height. */
+    top: -5.1px;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border-bright);
+    border-radius: 50%;
+    background: #141926;
+    color: var(--accent-cyan);
+    cursor: pointer;
+  }
+
+  /* Expand the touch hit area beyond the 20px visual border. */
+  .hw-help-trigger::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+  }
+
+  .hw-help-trigger:hover:not([aria-expanded="true"]) {
+    border-color: var(--border-bright);
+    background: #141926;
+  }
+
+  .hw-help-trigger[aria-expanded="true"] {
+    border-color: var(--accent-cyan);
+    background: rgba(56, 226, 255, 0.16);
+  }
+
+  .hw-help-trigger:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .hw-help-close {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border-bright);
+    border-radius: 50%;
+    background: #141926;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  /* Expand the touch hit area beyond the 26px close button border. */
+  .hw-help-close::after {
+    content: "";
+    position: absolute;
+    inset: -9px;
+    border-radius: 50%;
+  }
+
+  .hw-help-close:hover {
+    border-color: var(--accent-cyan);
+    background: #141926;
+    color: var(--accent-cyan);
+  }
+
+  .hw-help-close:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .hw-help-panel {
+    position: fixed;
+    inset: 50% auto auto 50%;
+    z-index: var(--z-popover);
+    width: min(380px, calc(100vw - 24px));
+    max-height: min(70vh, 420px);
+    margin: 0;
+    padding: 14px;
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    background: var(--bg-popover);
+    color: var(--text-main);
+    font-family: var(--font-mono);
+    font-size: var(--text-md);
+    line-height: var(--leading-relaxed);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .hw-help-title {
+    margin: 0 0 var(--space-2);
+    padding-right: 32px;
+    color: var(--accent-cyan);
+    font-size: var(--text-md);
+  }
+
+  .hw-help-panel p {
+    margin: 0 0 10px;
+  }
+
+  .hw-help-link {
+    color: var(--accent-cyan);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .hw-help-link:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  /* Anchor help panels as bottom sheets on narrow phone viewports. */
+  @media (max-width: 560px) {
+    .hw-help-panel {
+      inset: auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+      width: auto;
+      max-height: min(70vh, 520px);
+      transform: none;
+      border-radius: var(--radius-xl);
+    }
+  }
+
+  /* Animate popover entry only when the user permits motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    .hw-help-panel {
+      animation: hw-help-in 120ms ease-out;
+    }
+
+    @keyframes hw-help-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+/* ============================================================================
+   Buttons and Icons: Shared Action Controls and SVG Primitives
+   Styles base buttons, button variants, and inline SVG icon primitives inside
+   @layer modules.
+   ============================================================================ */
+
+@layer modules {
+  button {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  button:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-bright);
+  }
+
+  button:active,
+  button.active {
+    background: var(--bg-active);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, #1a6d8a 0%, #124d66 100%);
+    border-color: var(--accent-cyan);
+    color: var(--text-bright);
+    padding: 6px var(--space-4);
+    min-width: 92px;
+    justify-content: center;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(180deg, #2185a8 0%, #165e7c 100%);
+    box-shadow: 0 0 10px rgba(56, 226, 255, 0.25);
+  }
+
+  .btn-primary.playing {
+    background: linear-gradient(180deg, #1b7d52 0%, #125839 100%);
+    border-color: var(--accent-green);
+  }
+
+  .btn-secondary {
+    background: #172034;
+    border-color: #2f4269;
+    color: var(--accent-cyan);
+  }
+
+  .btn-secondary.active {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+
+  .btn-mini-action {
+    padding: 3px var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .btn-accent {
+    background: #175c3b;
+    border-color: var(--accent-green);
+    color: var(--text-bright);
+  }
+
+  /* Hide the SVG sprite from layout while symbol definitions remain active. */
+  .icon-sprite {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .icon {
+    display: block;
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .icon-button {
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    line-height: 1;
+  }
+}

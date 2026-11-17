@@ -128,11 +128,15 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   }
 
   // 7. Mobile hardware controls: slider spans full width, docs & story buttons form a 2-up row
-  const mobSliderGroup = computeStyleForExactSelectors(rules, ["#hw-group-digi"], mobile);
+  const mobSliderGroup = computeStyleForExactSelectors(
+    rules,
+    [".hw-group", ".hw-group-full", ".hw-group-digi"],
+    mobile,
+  );
   assert.equal(
     mobSliderGroup["grid-column"],
     "1 / -1",
-    "Mobile #hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
+    "Mobile .hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
   );
 
   const mobHwToggle = computeStyleForExactSelectors(rules, [".hw-toggle"], mobile);
@@ -141,19 +145,17 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile hardware toggles must be >= 36px tall",
   );
 
-  const mobDocsBtn = computeStyleForExactSelectors(rules, ["#btn-directives-modal"], mobile);
-  const mobStoryBtn = computeStyleForExactSelectors(rules, ["#btn-narrative-modal"], mobile);
-  const mobStatsBtn = computeStyleForExactSelectors(rules, ["#btn-stats-nerds"], mobile);
-  assert.equal(mobDocsBtn.width, "100%", "Mobile docs button must be width: 100%");
-  assert.equal(mobStoryBtn.width, "100%", "Mobile story button must be width: 100%");
+  const mobActionBtn = computeStyleForExactSelectors(rules, [".hw-action-btn"], mobile);
+  const mobStatsBtn = computeStyleForExactSelectors(
+    rules,
+    [".hw-action-btn", ".hw-action-btn-full"],
+    mobile,
+  );
+  assert.equal(mobActionBtn.width, "100%", "Mobile top-bar action buttons must be width: 100%");
   assert.equal(mobStatsBtn.width, "100%", "Mobile stats button must be width: 100%");
   assert.ok(
-    parseInt(mobDocsBtn["min-height"] || "0", 10) >= 36,
-    "Mobile docs button must be >= 36px tall",
-  );
-  assert.ok(
-    parseInt(mobStoryBtn["min-height"] || "0", 10) >= 36,
-    "Mobile story button must be >= 36px tall",
+    parseInt(mobActionBtn["min-height"] || "0", 10) >= 36,
+    "Mobile top-bar action buttons must be >= 36px tall",
   );
   assert.ok(
     parseInt(mobStatsBtn["min-height"] || "0", 10) >= 36,
@@ -1065,4 +1067,192 @@ test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden
     "none",
     "@layer state .hidden must override @layer modules display: flex on .modal-backdrop",
   );
+});
+
+function assertCssModuleConstraints(relPath) {
+  const fullPath = path.join(ROOT, relPath);
+  assert.ok(fs.existsSync(fullPath), `Expected extracted stylesheet ${relPath}`);
+  const text = fs.readFileSync(fullPath, "utf8");
+  const lines = text.split(/\r?\n/);
+  assert.ok(lines.length < 300, `${relPath} must stay under 300 lines (got ${lines.length} lines)`);
+
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.doesNotMatch(
+    withoutComments,
+    /!important/i,
+    `${relPath} must contain zero !important declarations`,
+  );
+
+  // Strip declaration values and strings so hex colours do not trigger ID selector checks.
+  const withoutValues = withoutComments.replace(/"[^"]*"|'[^']*'/g, "").replace(/:[^;{}]+;/g, ";");
+  assert.doesNotMatch(
+    withoutValues,
+    /#[a-zA-Z_-][a-zA-Z0-9_-]*/,
+    `${relPath} must contain zero ID style selectors`,
+  );
+  return text;
+}
+
+test("shared button, help popover, and modal modules extract under 300 lines with co-located media queries and zero !important or ID selectors", () => {
+  const { links, cssText } = loadLinkedStylesheets();
+  const linkPaths = links.map((link) => link.path);
+  for (const rel of [
+    "./src/styles/buttons.css",
+    "./src/styles/help-popover.css",
+    "./src/styles/modal.css",
+  ]) {
+    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
+    assert.ok(
+      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
+      `${rel} must load after foundation.css`,
+    );
+    assert.ok(
+      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
+      `${rel} must load before legacy styles.css`,
+    );
+    assertCssModuleConstraints(rel);
+  }
+
+  const helpCss = fs.readFileSync(path.join(ROOT, "src/styles/help-popover.css"), "utf8");
+  assert.match(helpCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+  assert.match(helpCss, /@media\s*\(\s*prefers-reduced-motion:\s*no-preference\s*\)/);
+
+  const modalCss = fs.readFileSync(path.join(ROOT, "src/styles/modal.css"), "utf8");
+  assert.match(modalCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  const mobile = { width: 375, height: 812 };
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".btn-primary"], desktop)["min-width"],
+    "92px",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hw-help-panel"], desktop)["z-index"],
+    "var(--z-popover)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".modal-backdrop"], desktop)["z-index"],
+    "var(--z-modal)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".modal-cols"], mobile)["grid-template-columns"],
+    "1fr",
+  );
+});
+
+test("Boot Sequence module extracts under 300 lines with co-located media queries and zero !important or ID selectors", () => {
+  const { links, cssText } = loadLinkedStylesheets();
+  const linkPaths = links.map((link) => link.path);
+  const rel = "./src/styles/boot-sequence.css";
+  assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
+  assert.ok(
+    linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
+    `${rel} must load after foundation.css`,
+  );
+  assert.ok(
+    linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
+    `${rel} must load before legacy styles.css`,
+  );
+  const bootCss = assertCssModuleConstraints(rel);
+  assert.match(bootCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  const phone = { width: 390, height: 844 };
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".boot-sequence"], desktop)["z-index"],
+    "var(--z-boot)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, ['body[data-boot-state="booting"] .app-shell'], desktop)
+      .visibility,
+    "hidden",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(
+      rules,
+      ['html[data-boot-mode="immediate"] .boot-sequence'],
+      desktop,
+    ).display,
+    "none",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".boot-hint"], phone).bottom,
+    "var(--space-4)",
+  );
+});
+
+test("workbench shell, top bar, and hardware controls modules extract under 300 lines with co-located media queries and zero !important or ID selectors", () => {
+  const { html, links, cssText } = loadLinkedStylesheets();
+  const linkPaths = links.map((link) => link.path);
+  for (const rel of [
+    "./src/styles/workbench-shell.css",
+    "./src/styles/top-bar.css",
+    "./src/styles/hardware-controls.css",
+  ]) {
+    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
+    assert.ok(
+      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
+      `${rel} must load after foundation.css`,
+    );
+    assert.ok(
+      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
+      `${rel} must load before legacy styles.css`,
+    );
+    assertCssModuleConstraints(rel);
+  }
+
+  const shellCss = fs.readFileSync(path.join(ROOT, "src/styles/workbench-shell.css"), "utf8");
+  assert.match(shellCss, /@media\s*\(\s*max-width:\s*1200px\s*\)/);
+  assert.match(shellCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+
+  const topBarCss = fs.readFileSync(path.join(ROOT, "src/styles/top-bar.css"), "utf8");
+  assert.match(topBarCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+  assert.match(topBarCss, /@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)/);
+
+  const hwCss = fs.readFileSync(path.join(ROOT, "src/styles/hardware-controls.css"), "utf8");
+  assert.match(hwCss, /@media\s*\(\s*max-width:\s*820px\s*\)/);
+
+  const rules = parseStylesheet(cssText);
+  const desktop = { width: 1440, height: 900 };
+  const mobile = { width: 375, height: 812 };
+
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hw-toggle-value-latency"], desktop)["min-width"],
+    "76px",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hw-group-full"], mobile)["grid-column"],
+    "1 / -1",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hw-action-btn-full"], mobile)["grid-column"],
+    "1 / -1",
+  );
+
+  const reducedMotionRule = rules.find(
+    (rule) =>
+      rule.selector === ".brand-logo.sparkle-active .c64-logo-svg path" &&
+      rule.mediaQuery === "(prefers-reduced-motion: reduce)",
+  );
+  assert.ok(reducedMotionRule, "Sparkle reduced-motion rule must remain defined");
+  assert.equal(
+    reducedMotionRule.layer,
+    "state",
+    "Sparkle reduced-motion rule must live in @layer state so it overrides without !important",
+  );
+  assert.equal(reducedMotionRule.decls.animation, "none");
+
+  for (const id of [
+    "latency-mode-value",
+    "hw-group-sid",
+    "hw-group-latency",
+    "hw-group-digi",
+    "btn-directives-modal",
+    "btn-narrative-modal",
+    "btn-stats-nerds",
+  ]) {
+    assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
+  }
 });

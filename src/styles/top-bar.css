@@ -1,0 +1,291 @@
+/* ============================================================================
+   Top Bar: Studio Header, Brand Wordmark, Status LED, and Version Badge
+   Styles the top studio header bar and brand elements inside @layer modules,
+   with co-located responsive rules and reduced-motion override in @layer state.
+   ============================================================================ */
+
+@layer modules {
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: var(--space-2) var(--space-4);
+    background: linear-gradient(180deg, #151b28 0%, #0e121b 100%);
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  .brand-block {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .brand-led {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #47536b;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+    transition: all 0.2s ease;
+  }
+
+  .brand-led.playing {
+    background: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+  }
+
+  .brand-led.ready {
+    background: var(--accent-cyan);
+    box-shadow: 0 0 8px var(--accent-cyan);
+  }
+
+  .brand-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: var(--text-bright);
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 var(--space-2);
+  }
+
+  .brand-logo {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 3px;
+    transition: transform 0.1s ease;
+  }
+
+  .brand-logo:active {
+    transform: scale(0.97);
+  }
+
+  .brand-logo:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .c64-logo-svg {
+    display: block;
+    height: 18px;
+    width: auto;
+    shape-rendering: crispEdges;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+  }
+
+  .c64-logo-svg path {
+    fill: var(--text-bright);
+  }
+
+  /* Cycle VIC-II palette colours for the sparkle sweep on the C64 wordmark. */
+  @keyframes c64-sparkle-sweep {
+    0% {
+      fill: #ffffff;
+      filter: none;
+    }
+    15% {
+      fill: #75cec8;
+      filter: drop-shadow(0 0 2px #75cec8);
+    }
+    35% {
+      fill: #edf171;
+      filter: drop-shadow(0 0 3px #edf171);
+    }
+    55% {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 5px #ffffff);
+    }
+    75% {
+      fill: #a9ff9f;
+      filter: drop-shadow(0 0 3px #a9ff9f);
+    }
+    90% {
+      fill: #706deb;
+      filter: drop-shadow(0 0 2px #706deb);
+    }
+    100% {
+      fill: #ffffff;
+      filter: none;
+    }
+  }
+
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(1) {
+    animation: c64-sparkle-sweep 0.35s 0s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(2) {
+    animation: c64-sparkle-sweep 0.35s 0.07s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(3) {
+    animation: c64-sparkle-sweep 0.35s 0.14s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(4) {
+    animation: c64-sparkle-sweep 0.35s 0.21s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(5) {
+    animation: c64-sparkle-sweep 0.35s 0.28s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(6) {
+    animation: c64-sparkle-sweep 0.35s 0.35s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(7) {
+    animation: c64-sparkle-sweep 0.35s 0.44s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(8) {
+    animation: c64-sparkle-sweep 0.35s 0.51s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(9) {
+    animation: c64-sparkle-sweep 0.35s 0.58s steps(1);
+  }
+  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(10) {
+    animation: c64-sparkle-sweep 0.35s 0.65s steps(1);
+  }
+
+  .brand-accent {
+    color: var(--accent-cyan);
+    font-weight: 600;
+  }
+
+  .brand-version {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: rgba(56, 226, 255, 0.05);
+    border: 1px solid rgba(56, 226, 255, 0.22);
+    border-radius: var(--radius-pill);
+    padding: 0.5px 7px;
+    line-height: var(--leading-normal);
+    vertical-align: middle;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .brand-version:hover {
+    color: var(--accent-cyan);
+    border-color: rgba(56, 226, 255, 0.45);
+  }
+
+  .brand-subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+
+  @media (max-width: 1600px) and (min-width: 821px) {
+    .top-bar {
+      flex-wrap: wrap;
+      row-gap: var(--space-2);
+    }
+  }
+
+  @media (max-width: 1200px) and (min-width: 821px) {
+    .top-bar {
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      padding: 10px 14px;
+    }
+
+    .brand-block {
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 820px) {
+    .top-bar {
+      flex-wrap: wrap;
+      padding: var(--space-2) 10px;
+      gap: var(--space-2);
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .brand-led {
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .brand-block > div:last-child {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .brand-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--text-base);
+      line-height: 1.3;
+      row-gap: 3px;
+    }
+
+    .brand-logo {
+      order: 1;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .c64-logo-svg {
+      height: 15px;
+    }
+
+    .brand-accent {
+      width: 100%;
+      order: 2;
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      margin-top: 1px;
+      opacity: 0.95;
+    }
+
+    .brand-version {
+      order: 1;
+      margin-left: auto;
+      font-size: var(--text-2xs);
+      padding: 0 6px;
+      line-height: var(--leading-normal);
+    }
+
+    .brand-subtitle {
+      display: none;
+    }
+  }
+
+  @media (max-width: 820px) and (min-height: 560px) {
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-topbar);
+    }
+  }
+}
+
+@layer state {
+  /* Suppress sparkle animations in @layer state so higher-specificity :nth-of-type rules yield without !important. */
+  @media (prefers-reduced-motion: reduce) {
+    .brand-logo.sparkle-active .c64-logo-svg path {
+      animation: none;
+    }
+  }
+}

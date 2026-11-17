@@ -1,0 +1,219 @@
+/* ============================================================================
+   Hardware Controls: Transport Bar, SID and Audio Mode Switches, Drum Boost
+   Styles transport controls, hardware toggles, sliders, and action buttons in
+   the top bar inside @layer modules, with co-located responsive rules.
+   ============================================================================ */
+
+@layer modules {
+  .transport-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #0b0e15;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .hardware-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+  }
+
+  .hw-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hw-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .hw-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 22px;
+    cursor: pointer;
+  }
+
+  /* Keep the native checkbox accessible while the custom switch track renders visually. */
+  .hw-toggle input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .hw-toggle-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 16px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    background: #0c1018;
+    transition:
+      background 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .hw-toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition:
+      transform 120ms ease,
+      background 120ms ease;
+  }
+
+  .hw-toggle input:checked + .hw-toggle-switch {
+    border-color: var(--accent-cyan);
+    background: rgba(56, 226, 255, 0.16);
+  }
+
+  .hw-toggle input:checked + .hw-toggle-switch::after {
+    transform: translateX(16px);
+    background: var(--accent-cyan);
+  }
+
+  .hw-toggle input:focus-visible + .hw-toggle-switch {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
+
+  .hw-toggle-value {
+    min-width: 60px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--text-main);
+  }
+
+  /* CAUTION: Reserve 76px so INTERACTIVE and PLAYBACK labels do not shift adjacent controls. */
+  .hw-toggle-value-latency {
+    min-width: 76px;
+  }
+
+  .hw-hint {
+    width: 160px;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    line-height: var(--leading-normal);
+    color: var(--text-muted);
+  }
+
+  .hw-help-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+
+  .hw-slider {
+    width: 82px;
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+  }
+
+  @media (max-width: 1600px) and (min-width: 821px) {
+    .hardware-controls {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+
+  @media (max-width: 1200px) and (min-width: 821px) {
+    .transport-bar {
+      flex-shrink: 0;
+    }
+
+    .hardware-controls {
+      flex-wrap: wrap;
+      gap: var(--space-2) var(--space-3);
+    }
+  }
+
+  @media (max-width: 820px) {
+    .transport-bar {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 5px;
+      padding: 5px 6px;
+    }
+
+    .transport-bar button {
+      min-height: 38px;
+      flex: 1 1 auto;
+      justify-content: center;
+      padding: 6px var(--space-2);
+      touch-action: manipulation;
+    }
+
+    .transport-bar .btn-primary {
+      min-width: 96px;
+      flex: 1.4 1 auto;
+    }
+
+    .hardware-controls {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      align-items: end;
+      margin-left: 0;
+    }
+
+    .hw-group {
+      min-width: 0;
+    }
+
+    .hw-group-full {
+      grid-column: 1 / -1;
+    }
+
+    .hw-hint {
+      width: auto;
+      font-size: var(--text-2xs);
+    }
+
+    .hw-group-digi {
+      width: 100%;
+    }
+
+    .hw-toggle {
+      min-height: 36px;
+    }
+
+    .hw-toggle-value {
+      font-size: var(--text-md);
+    }
+
+    .hw-slider {
+      width: 100%;
+      height: 32px;
+    }
+
+    .hw-action-btn {
+      width: 100%;
+      min-height: 36px;
+      justify-content: center;
+      touch-action: manipulation;
+    }
+
+    .hw-action-btn-full {
+      grid-column: 1 / -1;
+    }
+  }
+}
