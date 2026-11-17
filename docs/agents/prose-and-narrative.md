@@ -22,7 +22,7 @@ Read the shipped labels before describing a control:
 | `AGENTS.md` and skill files | `writing-for-agents`. |
 | Commit messages | `cbeams-git-commit-messages`. |
 
-Skills resolve by name. Repo copies live under `.agents/skills/`. `project-narrative`, `cbeams-git-commit-messages` and `ste-80` are installed globally.
+Skills resolve by name. Repo copies live under `.agents/skills/`.
 
 ## Stage 2: sub-editor gate
 
