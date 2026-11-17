@@ -792,7 +792,7 @@ test("help panel becomes a bottom sheet at phone width", () => {
   assert.equal(desktop.transform, "translate(-50%, -50%)");
 });
 
-test("left panel stretches to match center panel on 2-column layouts, splits source and track panes evenly, and sizes bottom metadata card legibly", () => {
+test("left panel stretches to match center panel on 2-column layouts, prioritises Source Files Panel, and sizes bottom metadata card legibly", () => {
   const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
   const rules = parseStylesheet(css);
 
@@ -806,24 +806,39 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
       `${viewport.width}x${viewport.height} .panel-left must stretch with row height, not use fixed height (${panelLeft.height})`,
     );
 
-    for (const sel of [".game-list", ".track-list"]) {
-      const style = computeStyleForExactSelectors(rules, [sel], viewport);
-      assert.equal(
-        style.flex,
-        "1 1 0",
-        `${viewport.width}x${viewport.height} ${sel} must use flex: 1 1 0 for even 50/50 split`,
-      );
-      assert.equal(
-        style["max-height"],
-        "none",
-        `${viewport.width}x${viewport.height} ${sel} must uncap max-height`,
-      );
-      assert.equal(
-        style["min-height"],
-        "0",
-        `${viewport.width}x${viewport.height} ${sel} must set min-height: 0 so flex items scroll instead of overflowing`,
-      );
-    }
+    const gameList = computeStyleForExactSelectors(rules, [".game-list"], viewport);
+    assert.equal(
+      gameList.flex,
+      "0 1 auto",
+      `${viewport.width}x${viewport.height} .game-list must use flex: 0 1 auto to fit all source files first`,
+    );
+    assert.equal(
+      gameList["max-height"],
+      "none",
+      `${viewport.width}x${viewport.height} .game-list must uncap max-height`,
+    );
+    assert.equal(
+      gameList["min-height"],
+      "0",
+      `${viewport.width}x${viewport.height} .game-list must set min-height: 0 so it can shrink on very short viewports`,
+    );
+
+    const trackList = computeStyleForExactSelectors(rules, [".track-list"], viewport);
+    assert.equal(
+      trackList.flex,
+      "1 1 0",
+      `${viewport.width}x${viewport.height} .track-list must use flex: 1 1 0 to fill remaining space`,
+    );
+    assert.equal(
+      trackList["max-height"],
+      "none",
+      `${viewport.width}x${viewport.height} .track-list must uncap max-height`,
+    );
+    assert.equal(
+      trackList["min-height"],
+      "90px",
+      `${viewport.width}x${viewport.height} .track-list must keep a 90px floor on short viewports`,
+    );
 
     const metaCard = computeStyleForExactSelectors(rules, [".game-meta-card"], viewport);
     assert.equal(metaCard["font-size"], "11px");
@@ -835,7 +850,7 @@ test("left panel stretches to match center panel on 2-column layouts, splits sou
   const mobile = { width: 375, height: 812 };
   const mobGameList = computeStyleForExactSelectors(rules, [".game-list"], mobile);
   assert.equal(mobGameList.flex, "0 0 auto");
-  assert.equal(mobGameList["max-height"], "185px");
+  assert.equal(mobGameList["max-height"], "none");
 
   const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
   assert.equal(mobTrackList.flex, "1 1 auto");
