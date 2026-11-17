@@ -15,6 +15,7 @@ import {
 } from "../scripts/deploy.mjs";
 import { installHooks, isVersionOnlyDiff } from "../scripts/install_hooks.mjs";
 import { verifyDeploy } from "../scripts/verify_deploy.mjs";
+import { extractStylesheetLinks } from "./helpers/stylesheets.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -30,7 +31,7 @@ test("computeNextVersion refuses to lower version when package.json holds a futu
   );
 });
 
-test("updateHtmlVersion rewrites the title with the 1985-87 range", () => {
+test("updateHtmlVersion rewrites the title with the 1985-87 range and updates ?v= across all linked CSS stylesheets", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const updated = updateHtmlVersion(html, "2099.01.02");
 
@@ -39,6 +40,30 @@ test("updateHtmlVersion rewrites the title with the 1985-87 range", () => {
     /<title>Galway 2664 \/\/ Ocean 6502-SID Workbench \(1985-87\) v2099\.01\.02<\/title>/,
   );
   assert.doesNotMatch(updated, /1985-1987/);
+
+  const multiLinkHtml = [
+    "<!doctype html><html><head>",
+    "<title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.16.3</title>",
+    '<link rel="icon" href="./src/favicon.ico">',
+    '<link rel="stylesheet" href="./src/styles/foundation.css?v=2026.11.16.3">',
+    '<link href="./src/styles/overlays.css" rel="stylesheet">',
+    "<link rel='stylesheet' href='./src/styles/c64-monitor.css?v=2026.11.16.3'>",
+    "</head><body>",
+    '<span class="brand-version" id="app-version">v2026.11.16.3</span>',
+    '<script type="module" src="./src/main.js?v=2026.11.16.3"></script>',
+    "</body></html>",
+  ].join("\n");
+  const multiUpdated = updateHtmlVersion(multiLinkHtml, "2099.01.02");
+  const links = extractStylesheetLinks(multiUpdated);
+  assert.deepEqual(
+    links.map((link) => [link.path, link.version]),
+    [
+      ["./src/styles/foundation.css", "2099.01.02"],
+      ["./src/styles/overlays.css", "2099.01.02"],
+      ["./src/styles/c64-monitor.css", "2099.01.02"],
+    ],
+  );
+  assert.ok(multiUpdated.includes('<link rel="icon" href="./src/favicon.ico">'));
 });
 
 test("deploy preflight aborts when working tree is dirty", () => {
@@ -533,6 +558,10 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
         "+    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.17</title>",
         '-    href="./src/styles.css?v=2026.11.16.3"',
         '+    href="./src/styles.css?v=2026.11.17"',
+        '-    <link rel="stylesheet" href="./src/styles/foundation.css?v=2026.11.16.3">',
+        '+    <link rel="stylesheet" href="./src/styles/foundation.css?v=2026.11.17">',
+        '-    href="./src/styles/overlays.css?v=2026.11.16.3"',
+        '+    href="./src/styles/overlays.css?v=2026.11.17"',
       ].join("\n"),
     ),
     true,
@@ -627,13 +656,19 @@ test("calendar version is synchronized across all seven release locations", () =
   assert.ok(badgeMatch, "index.html header badge must declare CalVer version");
   assert.equal(badgeMatch[1], calver, "index.html header badge version must match package.json");
 
-  const stylesMatch = html.match(/href="\.\/src\/styles\.css\?v=([^"]+)"/);
-  assert.ok(stylesMatch, "index.html stylesheet must carry a CalVer query string");
-  assert.equal(
-    stylesMatch[1],
-    calver,
-    "index.html stylesheet query string must match package.json",
-  );
+  const stylesheetLinks = extractStylesheetLinks(html);
+  assert.ok(stylesheetLinks.length > 0, "index.html must link at least one local CSS stylesheet");
+  for (const link of stylesheetLinks) {
+    assert.ok(
+      link.version,
+      `index.html stylesheet "${link.path}" must carry a CalVer query string`,
+    );
+    assert.equal(
+      link.version,
+      calver,
+      `index.html stylesheet "${link.path}" query string must match package.json`,
+    );
+  }
 
   const mainMatch = html.match(/src="\.\/src\/main\.js\?v=([^"]+)"/);
   assert.ok(mainMatch, "index.html script must carry a CalVer query string");

@@ -16,8 +16,10 @@ export function isVersionOnlyDiff(diffText) {
     );
   if (changed.length === 0) return false;
   const calver = String.raw`20\d\d\.\d\d\.\d\d(?:\.\d+)?`;
+  const cssHref = String.raw`href=["']\.\/src\/(?:styles\.css|styles\/[^"'?]+\.css)\?v=${calver}["']`;
+  const cssLink = `(?:<link\\s+(?:rel=["']stylesheet["']\\s+)?${cssHref}(?:\\s+rel=["']stylesheet["'])?\\s*>?|${cssHref})`;
   const versionLine = new RegExp(
-    `^[+-]\\s*(?:"version":\\s*"${calver}",?|export const APP_VERSION = "${calver}";|<title>Galway 2664 \\/\\/ Ocean 6502-SID Workbench \\(1985-87\\) v${calver}<\\/title>|<span class="brand-version" id="app-version">v${calver}<\\/span>|href="\\.\\/src\\/styles\\.css\\?v=${calver}"|src="\\.\\/src\\/main\\.js\\?v=${calver}")$`,
+    `^[+-]\\s*(?:"version":\\s*"${calver}",?|export const APP_VERSION = "${calver}";|<title>Galway 2664 \\/\\/ Ocean 6502-SID Workbench \\(1985-87\\) v${calver}<\\/title>|<span class="brand-version" id="app-version">v${calver}<\\/span>|${cssLink}|src="\\.\\/src\\/main\\.js\\?v=${calver}")$`,
   );
   return changed.every((line) => versionLine.test(line));
 }

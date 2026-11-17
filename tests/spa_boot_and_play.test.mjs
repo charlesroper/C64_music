@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
 import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
+import { loadLinkedStylesheets } from "./helpers/stylesheets.mjs";
 
 function pullAudioFrames(player, blocks = 20, blockSize = 2048) {
   const left = new Float32Array(blockSize);
@@ -281,7 +282,7 @@ test("SID help popover uses the shared module and drum boost still works", () =>
 
 test("Audio Mode help markup explains the sound delay and links the Firefox setting", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const css = loadLinkedStylesheets().cssText;
   const groupStart = html.indexOf('id="hw-group-latency"');
   const groupEnd = html.indexOf('id="hw-group-digi"');
   assert.ok(groupStart > -1 && groupEnd > groupStart, "Audio Mode group must precede drum boost");
@@ -512,7 +513,7 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
 
 test("chrome labels use sentence case in source and uppercase through CSS", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const css = loadLinkedStylesheets().cssText;
   const fragment = (pattern, message) => {
     const match = html.match(pattern);
     assert.ok(match, message);
@@ -673,7 +674,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
   }
 
   const capsRule = css.match(/\.c64-caps\s*\{[^}]*\}/)?.[0];
-  assert.ok(capsRule, "src/styles.css must define .c64-caps");
+  assert.ok(capsRule, "Linked stylesheets must define .c64-caps");
   assert.match(capsRule, /text-transform:\s*uppercase/);
 
   for (const id of [
@@ -1692,7 +1693,7 @@ test("CalVer version number appears immediately after the title of the app", asy
   assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[7]), "Sparkle palette must include Yellow");
   assert.ok(C64_SPARKLE_PALETTE.includes(VIC_PALETTE[1]), "Sparkle palette must include White");
 
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const css = loadLinkedStylesheets().cssText;
   assert.ok(
     css.includes("@keyframes c64-sparkle-sweep"),
     "CSS must contain c64-sparkle-sweep keyframes",

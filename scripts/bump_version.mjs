@@ -43,10 +43,17 @@ export function updateHtmlVersion(html, nextVersion) {
       /<span class="brand-version" id="app-version">v[^<]*<\/span>/,
       `<span class="brand-version" id="app-version">v${nextVersion}</span>`,
     )
-    .replace(
-      /href="\.\/src\/styles\.css(?:\?v=[^"]*)?"/,
-      `href="./src/styles.css?v=${nextVersion}"`,
-    )
+    .replace(/<!--[\s\S]*?-->|<link\b[^>]*>/gi, (match) => {
+      if (match.startsWith("<!--")) return match;
+      if (!/\brel\s*=\s*(?:"[^"]*\bstylesheet\b[^"]*"|'[^']*\bstylesheet\b[^']*')/i.test(match)) {
+        return match;
+      }
+      return match.replace(
+        /\bhref=(["'])((?!https?:|\/\/)[^"'?#]+\.css)(?:\?v=[^"'#]*)?(#[^"']*)?\1/i,
+        (_, quote, hrefPath, hash = "") =>
+          `href=${quote}${hrefPath}?v=${nextVersion}${hash}${quote}`,
+      );
+    })
     .replace(
       /src="\.\/src\/(?:app|main)\.js(?:\?v=[^"]*)?"/,
       `src="./src/main.js?v=${nextVersion}"`,

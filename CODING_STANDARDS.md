@@ -69,7 +69,7 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 2. `package-lock.json`: root package `"version": "YYYY.MM.DD"`
 3. `index.html`: document title (`(1985-87) vYYYY.MM.DD`)
 4. `index.html`: header badge (`<span class="brand-version" id="app-version">vYYYY.MM.DD</span>`)
-5. `index.html`: stylesheet query string (`href="./src/styles.css?v=YYYY.MM.DD"`)
+5. `index.html`: every linked CSS stylesheet query string (`href="./src/styles.css?v=YYYY.MM.DD"` or `href="./src/styles/*.css?v=YYYY.MM.DD"`)
 6. `index.html`: script query string (`src="./src/main.js?v=YYYY.MM.DD"`)
 7. `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`
 **Rule 5.2 (Same-Day Micro Increments)**: Multiple releases on the same date append `.1`, `.2`, `.3`. A new calendar day resets to `YYYY.MM.DD`.

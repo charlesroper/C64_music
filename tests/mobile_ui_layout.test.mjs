@@ -1,104 +1,26 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createWorkbenchView } from "../src/workbench_view.js";
 import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
+import {
+  computeStyleForExactSelectors,
+  loadLinkedStylesheets,
+  parseStylesheet,
+} from "./helpers/stylesheets.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-// Parse CSS into ordered rules with optional @media condition so we can compute
-// active cascaded declarations for any viewport (e.g. 375x812 iPhone vs 1440x900 desktop).
-function parseStylesheet(cssText) {
-  const clean = cssText.replace(/\/\*[\s\S]*?\*\//g, "");
-  const rules = [];
-
-  function parseBlocks(src, mediaQuery = null) {
-    let i = 0;
-    while (i < src.length) {
-      while (i < src.length && /\s/.test(src[i])) i++;
-      if (i >= src.length) break;
-
-      const openBrace = src.indexOf("{", i);
-      if (openBrace === -1) break;
-      const header = src.slice(i, openBrace).trim();
-
-      let depth = 1;
-      let j = openBrace + 1;
-      while (j < src.length && depth > 0) {
-        if (src[j] === "{") depth++;
-        else if (src[j] === "}") depth--;
-        j++;
-      }
-      const body = src.slice(openBrace + 1, j - 1);
-
-      if (header.startsWith("@media")) {
-        const cond = header.replace(/^@media\s+/, "").trim();
-        parseBlocks(body, cond);
-      } else if (!header.startsWith("@")) {
-        const decls = {};
-        for (const stmt of body.split(";")) {
-          const colon = stmt.indexOf(":");
-          if (colon === -1) continue;
-          const prop = stmt.slice(0, colon).trim().toLowerCase();
-          const val = stmt
-            .slice(colon + 1)
-            .replace(/!important/gi, "")
-            .trim();
-          if (prop) decls[prop] = val;
-        }
-        for (const rawSel of header.split(",")) {
-          const sel = rawSel.trim();
-          if (sel) rules.push({ selector: sel, mediaQuery, decls });
-        }
-      }
-      i = j;
-    }
-  }
-
-  parseBlocks(clean, null);
-  return rules;
-}
-
-function matchesMedia(mediaQuery, { width, height }) {
-  if (!mediaQuery) return true;
-  const maxW = mediaQuery.match(/\(max-width:\s*(\d+)px\)/);
-  if (maxW && !(width <= Number(maxW[1]))) return false;
-  const minW = mediaQuery.match(/\(min-width:\s*(\d+)px\)/);
-  if (minW && !(width >= Number(minW[1]))) return false;
-  const maxH = mediaQuery.match(/\(max-height:\s*(\d+)px\)/);
-  if (maxH && !(height <= Number(maxH[1]))) return false;
-  const minH = mediaQuery.match(/\(min-height:\s*(\d+)px\)/);
-  if (minH && !(height >= Number(minH[1]))) return false;
-  return true;
-}
-
-// Exact selector string match (does not intersect compound class/attribute rules).
-function computeStyleForExactSelectors(rules, targetSelectors, viewport) {
-  const selectorSet = new Set(Array.isArray(targetSelectors) ? targetSelectors : [targetSelectors]);
-  const computed = {};
-  for (const rule of rules) {
-    if (!matchesMedia(rule.mediaQuery, viewport)) continue;
-    if (selectorSet.has(rule.selector)) {
-      for (const [k, v] of Object.entries(rule.decls)) {
-        if (k === "overflow") {
-          computed.overflow = v;
-          computed["overflow-x"] = v;
-          computed["overflow-y"] = v;
-        } else {
-          computed[k] = v;
-        }
-      }
-    }
-  }
-  return computed;
+function loadLinkedRules() {
+  return parseStylesheet(loadLinkedStylesheets().cssText);
 }
 
 test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layout, bounded code/track heights, and anti-zoom inputs while preserving 3-column desktop", () => {
-  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
+  const { html, cssText: css } = loadLinkedStylesheets();
   const rules = parseStylesheet(css);
 
   assert.match(
@@ -417,8 +339,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
 });
 
 test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, prevent C64 monitor crushing, preserve Panel 2 tunes visibility, and span .ASM source", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
   const laptop = { width: 1024, height: 768 };
 
   const bodyStyle = computeStyleForExactSelectors(rules, ["html", "body"], laptop);
@@ -533,8 +454,7 @@ test("HUD row guide and Follow voice initial states match markup defaults and st
 });
 
 test("SID hardware register strip ($D400-$D418) groups voices into labeled sections and stacks responsively on mobile", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
   const desktop = { width: 1440, height: 900 };
   const mobile = { width: 375, height: 812 };
 
@@ -637,8 +557,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
 });
 
 test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlighted numbers sit still without jitter", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
   const desktop = { width: 1440, height: 900 };
 
   const telSummary = computeStyleForExactSelectors(rules, [".telemetry-summary"], desktop);
@@ -777,8 +696,7 @@ test("source viewer smooth scrolling keeps pace with fast note steps and uses ad
 });
 
 test("help panel becomes a bottom sheet at phone width", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
   const phone = computeStyleForExactSelectors(rules, ".hw-help-panel", { width: 390, height: 844 });
   assert.equal(phone.inset, "auto 12px calc(12px + env(safe-area-inset-bottom)) 12px");
   assert.equal(phone.width, "auto");
@@ -793,8 +711,7 @@ test("help panel becomes a bottom sheet at phone width", () => {
 });
 
 test("left panel stretches to match center panel on 2-column layouts, prioritises Source Files Panel, and sizes bottom metadata card legibly", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
 
   for (const viewport of [
     { width: 980, height: 1600 },
@@ -874,8 +791,7 @@ test("left panel stretches to match center panel on 2-column layouts, prioritise
 });
 
 test("SID register strip uses tight vertical padding and never stretches in tall 2-column viewports", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
 
   const tabletGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], {
     width: 980,
@@ -937,8 +853,7 @@ test("oscilloscope card headers use fixed two-row layout with nowrap and tabular
     );
   }
 
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
   const desktop = { width: 1440, height: 900 };
 
   const card = computeStyleForExactSelectors(rules, [".voice-card"], desktop);
@@ -965,8 +880,7 @@ test("oscilloscope card headers use fixed two-row layout with nowrap and tabular
 });
 
 test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live register updates never shift or wrap", () => {
-  const css = fs.readFileSync(path.join(ROOT, "src/styles.css"), "utf8");
-  const rules = parseStylesheet(css);
+  const rules = loadLinkedRules();
 
   for (const viewport of [
     { width: 1440, height: 900 },
@@ -985,4 +899,120 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
     const style = computeStyleForExactSelectors(rules, [idSel], { width: 1440, height: 900 });
     assert.equal(style["min-width"], "2ch");
   }
+});
+
+test("loadLinkedStylesheets discovers and concatenates all linked CSS files from entry HTML in cascade order", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-css-links-"));
+  try {
+    fs.mkdirSync(path.join(dir, "src/styles"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "src/styles/a.css"), ".panel { color: red; }", "utf8");
+    fs.writeFileSync(path.join(dir, "src/styles/b.css"), ".panel { color: blue; }", "utf8");
+    const htmlPath = path.join(dir, "index.html");
+    fs.writeFileSync(
+      htmlPath,
+      [
+        "<!doctype html><html><head>",
+        '<link rel="icon" href="./favicon.ico">',
+        '<link rel="stylesheet" href="./src/styles/a.css?v=2026.11.17">',
+        "<link href='./src/styles/b.css?v=2026.11.17' rel='stylesheet'>",
+        "</head></html>",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const loaded = loadLinkedStylesheets({ htmlPath });
+    assert.deepEqual(
+      loaded.links.map((link) => link.path),
+      ["./src/styles/a.css", "./src/styles/b.css"],
+    );
+    assert.equal(
+      computeStyleForExactSelectors(parseStylesheet(loaded.cssText), [".panel"], {
+        width: 1440,
+        height: 900,
+      }).color,
+      "blue",
+    );
+
+    fs.writeFileSync(path.join(dir, "empty.html"), "<html><head></head></html>", "utf8");
+    assert.throws(
+      () => loadLinkedStylesheets({ htmlPath: path.join(dir, "empty.html") }),
+      /No stylesheet/,
+    );
+
+    fs.writeFileSync(
+      path.join(dir, "missing.html"),
+      '<link rel="stylesheet" href="./src/styles/missing.css">',
+      "utf8",
+    );
+    assert.throws(
+      () => loadLinkedStylesheets({ htmlPath: path.join(dir, "missing.html") }),
+      /Missing linked stylesheet/,
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("parseStylesheet traverses @layer statements and blocks alongside @media and applies layer cascade precedence", () => {
+  const css = `
+    @layer reset, tokens, base, modules, state;
+
+    :root { --accent: cyan; }
+    .unlayered-wins { display: block; }
+
+    @layer state {
+      .hidden { display: none; }
+      .unlayered-wins { display: none; }
+      @media (max-width: 820px) {
+        .panel { display: none; }
+      }
+    }
+
+    @media (max-width: 820px) {
+      @layer modules {
+        .panel { display: flex; }
+      }
+    }
+
+    @layer modules {
+      .hidden { display: flex; }
+      .panel { display: grid; }
+      @layer sub {
+        .sub-override { color: orange; }
+      }
+      .sub-override { color: lime; }
+    }
+
+    @layer {
+      .anon { opacity: 0.5; }
+    }
+  `;
+
+  const rules = parseStylesheet(css);
+  const desktop = { width: 1440, height: 900 };
+  const mobile = { width: 375, height: 812 };
+
+  assert.equal(computeStyleForExactSelectors(rules, [":root"], desktop)["--accent"], "cyan");
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hidden"], desktop).display,
+    "none",
+    "@layer state must override @layer modules even when @layer modules appears later",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".unlayered-wins"], desktop).display,
+    "block",
+    "Unlayered rules must override @layer rules regardless of source order",
+  );
+  assert.equal(computeStyleForExactSelectors(rules, [".panel"], desktop).display, "grid");
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".panel"], mobile).display,
+    "none",
+    "@media inside @layer state must beat @layer modules inside @media",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".sub-override"], desktop).color,
+    "lime",
+    "Direct rules inside @layer modules must beat nested @layer sub",
+  );
+  assert.equal(computeStyleForExactSelectors(rules, [".anon"], desktop).opacity, "0.5");
 });
