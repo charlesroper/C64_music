@@ -129,6 +129,10 @@ export async function bootWorkbench(options = {}) {
     reducedMotion,
     skip: skipBoot,
     tapeSound,
+    ...(options.schedule ? { schedule: options.schedule } : {}),
+    ...(options.cancel ? { cancel: options.cancel } : {}),
+    ...(options.setIntervalFn ? { setIntervalFn: options.setIntervalFn } : {}),
+    ...(options.clearIntervalFn ? { clearIntervalFn: options.clearIntervalFn } : {}),
     onGate({ target }) {
       bootTarget = target;
       loadBootTargetPaused();

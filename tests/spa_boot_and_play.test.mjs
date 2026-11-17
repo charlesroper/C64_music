@@ -1480,11 +1480,51 @@ test("tapping PLAY on mobile while WASM/.asm assets are still downloading unlock
   }
 });
 
+function createBootClock() {
+  let now = 0;
+  let seq = 0;
+  const timers = new Map();
+  const add = (fn, ms, interval) => {
+    const id = ++seq;
+    timers.set(id, { fn, ms, at: now + ms, interval });
+    return id;
+  };
+  const cancel = (id) => timers.delete(id);
+  return {
+    schedule: (fn, ms) => add(fn, ms, false),
+    cancel,
+    setIntervalFn: (fn, ms) => add(fn, ms, true),
+    clearIntervalFn: cancel,
+    advance(ms) {
+      const end = now + ms;
+      while (true) {
+        let next = null;
+        for (const [id, timer] of timers) {
+          if (timer.at <= end && (!next || timer.at < next.timer.at)) {
+            next = { id, timer };
+          }
+        }
+        if (!next) break;
+        now = next.timer.at;
+        if (next.timer.interval) next.timer.at += next.timer.ms;
+        else timers.delete(next.id);
+        next.timer.fn();
+      }
+      now = end;
+    },
+  };
+}
+
 test("gate tap after prewarm retries tape sound once audio is prepared", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  const clock = createBootClock();
   try {
     const tape = { starts: 0, stops: 0 };
     await bootWorkbench({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      setIntervalFn: clock.setIntervalFn,
+      clearIntervalFn: clock.clearIntervalFn,
       tapeSound: {
         start() {
           tape.starts++;
@@ -1495,13 +1535,7 @@ test("gate tap after prewarm retries tape sound once audio is prepared", async (
       },
     });
     const live = harness.elementsById.get("boot-live");
-    const gateDeadline = Date.now() + 4000;
-    while (
-      live.textContent !== "Press play on tape to start Wizball" &&
-      Date.now() < gateDeadline
-    ) {
-      await new Promise((r) => setTimeout(r, 20));
-    }
+    clock.advance(1600);
     assert.equal(live.textContent, "Press play on tape to start Wizball");
     assert.equal(tape.starts, 0, "Tape sound must wait for the gate");
 
@@ -1514,22 +1548,26 @@ test("gate tap after prewarm retries tape sound once audio is prepared", async (
 
 test("gate tap before the player loads unlocks audio and the player adopts it", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  const clock = createBootClock();
   try {
     const origFetch = globalThis.fetch;
+    let releaseFetch;
+    const fetchGate = new Promise((resolve) => {
+      releaseFetch = resolve;
+    });
     globalThis.fetch = async (url) => {
-      await new Promise((r) => setTimeout(r, 2500));
+      await fetchGate;
       return origFetch(url);
     };
 
-    const bootPromise = bootWorkbench();
+    const bootPromise = bootWorkbench({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      setIntervalFn: clock.setIntervalFn,
+      clearIntervalFn: clock.clearIntervalFn,
+    });
     const live = harness.elementsById.get("boot-live");
-    const gateDeadline = Date.now() + 4000;
-    while (
-      live.textContent !== "Press play on tape to start Wizball" &&
-      Date.now() < gateDeadline
-    ) {
-      await new Promise((r) => setTimeout(r, 20));
-    }
+    clock.advance(1600);
     assert.equal(live.textContent, "Press play on tape to start Wizball");
 
     // The player and its audio listeners do not exist yet. The gate tap is the
@@ -1538,6 +1576,7 @@ test("gate tap before the player loads unlocks audio and the player adopts it", 
     assert.ok(harness.audioState.ctx, "The gate tap must unlock audio inside the gesture");
     assert.equal(harness.audioState.ctx.state, "running");
 
+    releaseFetch();
     const { player } = await bootPromise;
     const tapeDeadline = Date.now() + 2000;
     while (harness.audioState.bufferSources < 1 && Date.now() < tapeDeadline) {
@@ -1562,6 +1601,7 @@ test("gate tap before the player loads unlocks audio and the player adopts it", 
 
 test("touch gate tap unlocks audio on pointerup when pointerdown has no user activation", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  const clock = createBootClock();
   try {
     let userActivationActive = false;
     let constructedContexts = 0;
@@ -1578,15 +1618,14 @@ test("touch gate tap unlocks audio on pointerup when pointerdown has no user act
       }
     };
 
-    await bootWorkbench();
+    await bootWorkbench({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      setIntervalFn: clock.setIntervalFn,
+      clearIntervalFn: clock.clearIntervalFn,
+    });
     const live = harness.elementsById.get("boot-live");
-    const gateDeadline = Date.now() + 4000;
-    while (
-      live.textContent !== "Press play on tape to start Wizball" &&
-      Date.now() < gateDeadline
-    ) {
-      await new Promise((r) => setTimeout(r, 20));
-    }
+    clock.advance(1600);
     assert.equal(live.textContent, "Press play on tape to start Wizball");
 
     userActivationActive = false;

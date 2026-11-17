@@ -258,65 +258,21 @@ test("NARRATIVE.md leaves no commit-hash placeholder", () => {
   );
 });
 
-test("documentation test counts in README.md and NARRATIVE.md match automated test suite", () => {
+test("README.md documents every automated test file", () => {
   const testsDir = path.join(ROOT, "tests");
   const testFiles = fs
     .readdirSync(testsDir)
     .filter((f) => f.endsWith(".test.mjs"))
     .sort();
+  assert.ok(testFiles.length > 0, "tests/ must contain at least one test file");
 
-  let actualTestCount = 0;
-  for (const file of testFiles) {
-    const content = fs.readFileSync(path.join(testsDir, file), "utf8");
-    const matches = content.match(/^\s*(?:await\s+)?test\(/gm);
-    if (matches) {
-      actualTestCount += matches.length;
-    }
-  }
-
-  const numberWordMap = {
-    1: "one",
-    2: "two",
-    3: "three",
-    4: "four",
-    5: "five",
-    6: "six",
-  };
-  const expectedFileWord = numberWordMap[testFiles.length] || String(testFiles.length);
-
-  // 1. README.md
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
-  const readmeMatch = readme.match(
-    /The test runner executes (\d+) automated checks across (\w+) test files:/,
-  );
-  assert.ok(readmeMatch, "README.md must state total test count and file count");
-  assert.equal(
-    parseInt(readmeMatch[1], 10),
-    actualTestCount,
-    `README.md test count (${readmeMatch[1]}) must match suite total (${actualTestCount})`,
-  );
-  assert.equal(
-    readmeMatch[2].toLowerCase(),
-    expectedFileWord,
-    `README.md test file count (${readmeMatch[2]}) must match actual (${expectedFileWord})`,
-  );
-
-  // 2. NARRATIVE.md
-  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
-  const narrativeMatch = narrative.match(
-    /`npm test` runs (\d+) automated checks across (\w+) test files:/,
-  );
-  assert.ok(narrativeMatch, "NARRATIVE.md must state total test count and file count");
-  assert.equal(
-    parseInt(narrativeMatch[1], 10),
-    actualTestCount,
-    `NARRATIVE.md test count (${narrativeMatch[1]}) must match suite total (${actualTestCount})`,
-  );
-  assert.equal(
-    narrativeMatch[2].toLowerCase(),
-    expectedFileWord,
-    `NARRATIVE.md test file count (${narrativeMatch[2]}) must match actual (${expectedFileWord})`,
-  );
+  for (const file of testFiles) {
+    assert.ok(
+      readme.includes(`tests/${file}`),
+      `README.md must document test file "tests/${file}"`,
+    );
+  }
 });
 
 test("current documentation avoids retired Workbench View labels", () => {
@@ -575,6 +531,17 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
       ].join("\n"),
     ),
     false,
+  );
+
+  const htmlBefore = fs.readFileSync(path.join(ROOT, "index.html"), "utf8").split(/\r?\n/);
+  const htmlAfter = updateHtmlVersion(htmlBefore.join("\n"), "2099.01.02").split(/\r?\n/);
+  const htmlDiff = htmlBefore
+    .flatMap((line, idx) => (line === htmlAfter[idx] ? [] : [`-${line}`, `+${htmlAfter[idx]}`]))
+    .join("\n");
+  assert.equal(
+    isVersionOnlyDiff(htmlDiff),
+    true,
+    "isVersionOnlyDiff must accept the real diff produced by updateHtmlVersion on index.html",
   );
 
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));

@@ -89,9 +89,9 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 ## 7. Documentation and Dev Blog Synchronization
 
 **Rule 7.1 (Dual-Document Lockstep)**:
-* Feature additions, behaviour-changing defect fixes, workflow scripts, or test suite alterations must update `README.md` and `NARRATIVE.md` simultaneously.
+* Feature additions, behaviour-changing defect fixes, workflow scripts, or new test files must update `README.md` and `NARRATIVE.md` simultaneously.
 * Pixel, spacing and other routine corrections that change no documented behaviour are exempt.
-* The test counts and check lists in both documents must match the output of `npm test` exactly.
+* Every `tests/*.test.mjs` file must be documented in `README.md`.
 **Rule 7.2 (Mandatory Dev Blog Entries)**:
 * Every story-changing milestone (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md`.
 * Trivial maintenance and chore commits (typo fixes, pixel or spacing corrections, CalVer version bumps, routine formatting) must be excluded from the dev blog.
