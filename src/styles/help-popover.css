@@ -7,7 +7,7 @@
 @layer modules {
   .hw-help-trigger {
     position: relative;
-    /* CAUTION: Keep top: -5.1px to align the 20px circle with the 9px hint cap height. */
+    /* CAUTION: Keep top: -5.1px on .hw-help-trigger. Other offsets break cap-height alignment with the 9px hint. */
     top: -5.1px;
     flex: 0 0 auto;
     width: 20px;

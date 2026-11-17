@@ -1091,49 +1091,34 @@ test("foundation stylesheet defines cascade layers, expanded tokens, and .hidden
   );
 });
 
-function assertCssModuleConstraints(relPath) {
-  const fullPath = path.join(ROOT, relPath);
-  assert.ok(fs.existsSync(fullPath), `Expected extracted stylesheet ${relPath}`);
-  const text = fs.readFileSync(fullPath, "utf8");
-  const lines = text.split(/\r?\n/);
-  assert.ok(lines.length < 450, `${relPath} must stay under 450 lines (got ${lines.length} lines)`);
+function assertExtractedModulesOrder(linkPaths, expectedRelPaths, afterRelPath) {
+  let prevIdx = linkPaths.indexOf(afterRelPath);
+  assert.ok(prevIdx > -1, `index.html must link ${afterRelPath}`);
+  const legacyIdx = linkPaths.indexOf("./src/styles.css");
+  assert.ok(legacyIdx > -1, "index.html must link legacy ./src/styles.css");
 
-  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
-  assert.doesNotMatch(
-    withoutComments,
-    /!important/i,
-    `${relPath} must contain zero !important declarations`,
-  );
-
-  // Strip declaration values and strings so hex colours do not trigger ID selector checks.
-  const withoutValues = withoutComments.replace(/"[^"]*"|'[^']*'/g, "").replace(/:[^;{}]+;/g, ";");
-  assert.doesNotMatch(
-    withoutValues,
-    /#[a-zA-Z_-][a-zA-Z0-9_-]*/,
-    `${relPath} must contain zero ID style selectors`,
-  );
-  return text;
+  for (const rel of expectedRelPaths) {
+    const idx = linkPaths.indexOf(rel);
+    assert.ok(idx > -1, `index.html must link ${rel}`);
+    assert.ok(idx > prevIdx, `${rel} must load after ${linkPaths[prevIdx]}`);
+    assert.ok(idx < legacyIdx, `${rel} must load before legacy styles.css`);
+    prevIdx = idx;
+  }
 }
 
-test("shared button, help popover, and modal modules extract under 300 lines with co-located media queries and zero !important or ID selectors", () => {
-  const { links, cssText } = loadLinkedStylesheets();
-  const linkPaths = links.map((link) => link.path);
-  for (const rel of [
-    "./src/styles/buttons.css",
-    "./src/styles/help-popover.css",
-    "./src/styles/modal.css",
-  ]) {
-    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
-    assert.ok(
-      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
-      `${rel} must load after foundation.css`,
-    );
-    assert.ok(
-      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
-      `${rel} must load before legacy styles.css`,
-    );
-    assertCssModuleConstraints(rel);
+function assertPreservedIds(html, ids) {
+  for (const id of ids) {
+    assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
   }
+}
+
+test("shared button, help popover, and modal modules extract with co-located media queries and expected computed styles", () => {
+  const { links, cssText } = loadLinkedStylesheets();
+  assertExtractedModulesOrder(
+    links.map((link) => link.path),
+    ["./src/styles/buttons.css", "./src/styles/help-popover.css", "./src/styles/modal.css"],
+    "./src/styles/foundation.css",
+  );
 
   const helpCss = fs.readFileSync(path.join(ROOT, "src/styles/help-popover.css"), "utf8");
   assert.match(helpCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
@@ -1163,20 +1148,15 @@ test("shared button, help popover, and modal modules extract under 300 lines wit
   );
 });
 
-test("Boot Sequence module extracts under 300 lines with co-located media queries and zero !important or ID selectors", () => {
+test("Boot Sequence module extracts with co-located media queries and expected computed styles", () => {
   const { links, cssText } = loadLinkedStylesheets();
-  const linkPaths = links.map((link) => link.path);
   const rel = "./src/styles/boot-sequence.css";
-  assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
-  assert.ok(
-    linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
-    `${rel} must load after foundation.css`,
+  assertExtractedModulesOrder(
+    links.map((link) => link.path),
+    [rel],
+    "./src/styles/foundation.css",
   );
-  assert.ok(
-    linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
-    `${rel} must load before legacy styles.css`,
-  );
-  const bootCss = assertCssModuleConstraints(rel);
+  const bootCss = fs.readFileSync(path.join(ROOT, rel), "utf8");
   assert.match(bootCss, /@media\s*\(\s*max-width:\s*560px\s*\)/);
 
   const rules = parseStylesheet(cssText);
@@ -1205,25 +1185,17 @@ test("Boot Sequence module extracts under 300 lines with co-located media querie
   );
 });
 
-test("workbench shell, top bar, and hardware controls modules extract under 300 lines with co-located media queries and zero !important or ID selectors", () => {
+test("workbench shell, top bar, and hardware controls modules extract with co-located media queries and state-layer reduced motion", () => {
   const { html, links, cssText } = loadLinkedStylesheets();
-  const linkPaths = links.map((link) => link.path);
-  for (const rel of [
-    "./src/styles/workbench-shell.css",
-    "./src/styles/top-bar.css",
-    "./src/styles/hardware-controls.css",
-  ]) {
-    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
-    assert.ok(
-      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/foundation.css"),
-      `${rel} must load after foundation.css`,
-    );
-    assert.ok(
-      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
-      `${rel} must load before legacy styles.css`,
-    );
-    assertCssModuleConstraints(rel);
-  }
+  assertExtractedModulesOrder(
+    links.map((link) => link.path),
+    [
+      "./src/styles/workbench-shell.css",
+      "./src/styles/top-bar.css",
+      "./src/styles/hardware-controls.css",
+    ],
+    "./src/styles/foundation.css",
+  );
 
   const shellCss = fs.readFileSync(path.join(ROOT, "src/styles/workbench-shell.css"), "utf8");
   assert.match(shellCss, /@media\s*\(\s*max-width:\s*1200px\s*\)/);
@@ -1266,7 +1238,7 @@ test("workbench shell, top bar, and hardware controls modules extract under 300 
   );
   assert.equal(reducedMotionRule.decls.animation, "none");
 
-  for (const id of [
+  assertPreservedIds(html, [
     "latency-mode-value",
     "hw-group-sid",
     "hw-group-latency",
@@ -1274,37 +1246,19 @@ test("workbench shell, top bar, and hardware controls modules extract under 300 
     "btn-directives-modal",
     "btn-narrative-modal",
     "btn-stats-nerds",
-  ]) {
-    assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
-  }
+  ]);
 });
 
-test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract under 450 lines with co-located media queries, CAUTION comments, and zero ID selectors", () => {
+test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract in order with co-located media queries and CAUTION notices", () => {
   const { html, links, cssText } = loadLinkedStylesheets();
-  const linkPaths = links.map((link) => link.path);
-  const extracted = [
-    "./src/styles/source-panel.css",
-    "./src/styles/c64-monitor.css",
-    "./src/styles/oscilloscopes-panel.css",
-  ];
-  for (const rel of extracted) {
-    assert.ok(linkPaths.includes(rel), `index.html must link ${rel}`);
-    assert.ok(
-      linkPaths.indexOf(rel) > linkPaths.indexOf("./src/styles/boot-sequence.css"),
-      `${rel} must load after boot-sequence.css`,
-    );
-    assert.ok(
-      linkPaths.indexOf(rel) < linkPaths.indexOf("./src/styles.css"),
-      `${rel} must load before legacy styles.css`,
-    );
-    assertCssModuleConstraints(rel);
-  }
-  assert.ok(
-    linkPaths.indexOf("./src/styles/source-panel.css") <
-      linkPaths.indexOf("./src/styles/c64-monitor.css") &&
-      linkPaths.indexOf("./src/styles/c64-monitor.css") <
-        linkPaths.indexOf("./src/styles/oscilloscopes-panel.css"),
-    "Extracted modules must load in panel order: source-panel, c64-monitor, oscilloscopes-panel",
+  assertExtractedModulesOrder(
+    links.map((link) => link.path),
+    [
+      "./src/styles/source-panel.css",
+      "./src/styles/c64-monitor.css",
+      "./src/styles/oscilloscopes-panel.css",
+    ],
+    "./src/styles/boot-sequence.css",
   );
 
   const sourceCss = fs.readFileSync(path.join(ROOT, "src/styles/source-panel.css"), "utf8");
@@ -1353,14 +1307,12 @@ test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract under 4
     "inline-block",
   );
 
-  for (const id of [
+  assertPreservedIds(html, [
     "c64-monitor-canvas",
     "tel-frame",
     "tel-pc",
     "tel-d418",
     "flt-res",
     "flt-vol",
-  ]) {
-    assert.ok(html.includes(`id="${id}"`), `index.html must preserve #${id} for DOM/ARIA wiring`);
-  }
+  ]);
 });

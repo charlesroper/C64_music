@@ -101,7 +101,7 @@
     color: var(--text-main);
   }
 
-  /* CAUTION: Reserve 76px so INTERACTIVE and PLAYBACK labels do not shift adjacent controls. */
+  /* CAUTION: Reserve 76px on .hw-toggle-value-latency. INTERACTIVE and PLAYBACK labels otherwise shift adjacent controls. */
   .hw-toggle-value-latency {
     min-width: 76px;
   }

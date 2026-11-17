@@ -725,3 +725,92 @@ test("verifyDeploy polls Pages workflow, verifies live version, and pushes deplo
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("extracted CSS modules stay under 450 lines with @layer, zero !important, zero ID selectors, and STE-80 comments", () => {
+  const stylesDir = path.join(ROOT, "src/styles");
+  const files = fs
+    .readdirSync(stylesDir)
+    .filter((f) => f.endsWith(".css"))
+    .sort();
+  assert.ok(files.length > 0, "src/styles/ must contain extracted CSS modules");
+
+  const allowedTechnicalIng = new Set([
+    "padding",
+    "spacing",
+    "sizing",
+    "rendering",
+    "timing",
+    "ring",
+    "string",
+  ]);
+
+  for (const file of files) {
+    const relPath = `src/styles/${file}`;
+    const text = fs.readFileSync(path.join(stylesDir, file), "utf8");
+    const lines = text.split(/\r?\n/);
+    assert.ok(lines.length < 450, `${relPath} must stay under 450 lines (got ${lines.length})`);
+
+    const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+    assert.match(withoutComments, /@layer\b/, `${relPath} must declare or wrap rules in @layer`);
+    assert.doesNotMatch(
+      withoutComments,
+      /!important/i,
+      `${relPath} must contain zero !important declarations`,
+    );
+
+    // Strip declaration values and strings so hex colours do not trigger ID selector checks.
+    const withoutValues = withoutComments
+      .replace(/"[^"]*"|'[^']*'/g, "")
+      .replace(/:[^;{}]+;/g, ";");
+    assert.doesNotMatch(
+      withoutValues,
+      /#[a-zA-Z_-][a-zA-Z0-9_-]*/,
+      `${relPath} must contain zero ID style selectors`,
+    );
+
+    for (const match of text.matchAll(/\/\*[\s\S]*?\*\//g)) {
+      const rawLines = match[0]
+        .replace(/^\/\*|\*\/$/g, "")
+        .split(/\r?\n/)
+        .map((line) => line.replace(/={3,}/g, "").trim())
+        .filter(Boolean);
+      if (rawLines.length === 0) continue;
+
+      const isBanner = match[0].includes("====");
+      const proseLines = isBanner && rawLines.length > 1 ? rawLines.slice(1) : rawLines;
+      const cleaned = proseLines.join(" ").replace(/\s+/g, " ").trim();
+      if (!cleaned) continue;
+
+      const body = cleaned.includes("CAUTION:") ? cleaned.split("CAUTION:")[1].trim() : cleaned;
+      if (cleaned.includes("CAUTION:")) {
+        const sentences = body
+          .split(/\.(?:\s+|$)/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        assert.ok(
+          sentences.length >= 2,
+          `${relPath} CAUTION comment must state [Preventive action]. [Consequence].: "${cleaned}"`,
+        );
+      }
+
+      const proseOnly = body.replace(/`[^`]+`/g, "");
+      for (const word of proseOnly.match(/\b[a-z]+ing\b/gi) ?? []) {
+        assert.ok(
+          allowedTechnicalIng.has(word.toLowerCase()),
+          `${relPath} CSS comment uses non-STE-80 -ing word "${word}": "${cleaned}"`,
+        );
+      }
+
+      for (const sentence of body
+        .split(/\.(?:\s+|$)/)
+        .map((s) => s.trim())
+        .filter(Boolean)) {
+        const words = sentence.split(/\s+/).filter(Boolean);
+        assert.ok(
+          words.length <= 25,
+          `${relPath} CSS comment sentence exceeds 25 words (${words.length}): "${sentence}"`,
+        );
+      }
+    }
+  }
+});
