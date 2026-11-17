@@ -20,3 +20,4 @@ Keep always-loaded guidance minimal. Engineering and review rules live in `CODIN
 - **Triage labels:** `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` (`docs/agents/triage-labels.md`).
 - **Domain docs:** Single `GLOSSARY.md` and `docs/adr/` at repo root (`docs/agents/domain.md`).
 - **Browser verification:** Read `docs/agents/browser-verification.md` before running headless browser checks.
+- **Skill overrides (`implement`, `tdd`, `code-review`, `grill-with-docs`):** Open `implement` responses with `Issue #<n>: <title>` and run typechecking only where configured; `tdd` treats `ready-for-agent` Testing Decisions and acceptance criteria as pre-agreed seams; `code-review` defaults unspecified fixed points to `HEAD~1` (`HEAD~2` with a `Record ... commit` follow-up) or uncommitted `HEAD`; keep `grill-with-docs` model-invocable.

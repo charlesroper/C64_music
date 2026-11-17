@@ -120,7 +120,7 @@ Commit messages must adhere to Chris Beams' guidelines:
 ## 9. Test-Driven Development (TDD)
 
 **Rule 9.1 (Test-First Bug Fixes)**: Every bug fix must begin with a reproduction that fails at the baseline commit before any fix code is written. For a visual defect, a repeatable rendered check that measures the defect counts as the reproduction.
-**Rule 9.2 (Seam-Driven Assertions)**: Tests must assert on external caller-observable behavior through module seams. Tests must not inspect internal private state or duplicate the implementation in assertions.
+**Rule 9.2 (Seam-Driven Assertions)**: Tests must assert on external caller-observable behavior through module seams. Tests must not inspect internal private state or duplicate the implementation in assertions. When implementing a spec or `ready-for-agent` issue whose `Testing Decisions` or acceptance criteria list the seams under test, treat those seams as pre-agreed.
 **Rule 9.3 (Strict Element Identification)**: Browser harness mocks must throw on missing element IDs to prevent silent drift between test doubles and production markup.
 **Rule 9.4 (Bounded Failure Output)**: When asserting against a large fixture such as `index.html` or a full document, extract the relevant tag or slice first. A failing assertion must print the fragment under test, not the whole file.
 **Rule 9.5 (Static Markup Assertions)**: Static `index.html` tests may inspect markup when no DOM seam exists. Assert a representative set of text and class values, tolerate formatter whitespace with `\s*` or a fragment helper, and avoid copies of full attribute order.
