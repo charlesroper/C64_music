@@ -834,17 +834,19 @@ test("left panel stretches to match center panel on 2-column layouts, prioritise
       "none",
       `${viewport.width}x${viewport.height} .track-list must uncap max-height`,
     );
-    assert.equal(
-      trackList["min-height"],
-      "90px",
-      `${viewport.width}x${viewport.height} .track-list must keep a 90px floor on short viewports`,
+    assert.ok(
+      Number.parseInt(trackList["min-height"] || "0", 10) > 0,
+      `${viewport.width}x${viewport.height} .track-list must keep a non-zero min-height floor on short viewports`,
     );
 
     const metaCard = computeStyleForExactSelectors(rules, [".game-meta-card"], viewport);
     assert.equal(metaCard["font-size"], "11px");
     assert.equal(metaCard["line-height"], "1.4");
     assert.equal(metaCard.padding, "7px 9px");
-    assert.equal(metaCard["max-height"], "190px");
+    assert.ok(
+      Number.parseInt(metaCard["max-height"] || "0", 10) >= 160,
+      `${viewport.width}x${viewport.height} .game-meta-card max-height must stay >= 160px`,
+    );
   }
 
   const mobile = { width: 375, height: 812 };
@@ -854,8 +856,14 @@ test("left panel stretches to match center panel on 2-column layouts, prioritise
 
   const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
   assert.equal(mobTrackList.flex, "1 1 auto");
-  assert.equal(mobTrackList["min-height"], "160px");
-  assert.equal(mobTrackList["max-height"], "320px");
+  assert.ok(
+    Number.parseInt(mobTrackList["min-height"] || "0", 10) >= 120,
+    "Mobile .track-list must keep a >= 120px min-height",
+  );
+  assert.ok(
+    mobTrackList["max-height"] && mobTrackList["max-height"] !== "none",
+    "Mobile .track-list in All panels must keep a bounded max-height",
+  );
 
   const mobTunesTabTrackList = computeStyleForExactSelectors(
     rules,

@@ -13,7 +13,7 @@ import {
   verifyNarrativeCommitLinks,
   verifyRemote,
 } from "../scripts/deploy.mjs";
-import { installHooks } from "../scripts/install_hooks.mjs";
+import { installHooks, isVersionOnlyDiff } from "../scripts/install_hooks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -103,6 +103,7 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
     "npm run check:lint",
     "npm test",
     "npm run check:help-popovers",
+    "npm run check:layout",
     "git push fork main",
     "git rev-parse --short HEAD",
   ]);
@@ -505,10 +506,41 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
       /grep -vE 'HIGH CHURN/,
       "hook must hide churn warnings from the fixed-threshold project memory check",
     );
+    assert.match(
+      content,
+      /isVersionOnlyDiff/,
+      "hook must support fast repo_rules check on version-only release commits",
+    );
     assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+
+  assert.equal(
+    isVersionOnlyDiff(
+      [
+        '-  "version": "2026.11.16.3",',
+        '+  "version": "2026.11.17",',
+        '-export const APP_VERSION = "2026.11.16.3";',
+        '+export const APP_VERSION = "2026.11.17";',
+        "-    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.16.3</title>",
+        "+    <title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v2026.11.17</title>",
+        '-    href="./src/styles.css?v=2026.11.16.3"',
+        '+    href="./src/styles.css?v=2026.11.17"',
+      ].join("\n"),
+    ),
+    true,
+  );
+  assert.equal(
+    isVersionOnlyDiff(
+      [
+        '-  "version": "2026.11.16.3",',
+        '+  "version": "2026.11.17",',
+        '+    <div class="extra">markup edit</div>',
+      ].join("\n"),
+    ),
+    false,
+  );
 
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   assert.equal(
@@ -520,19 +552,18 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
   assert.ok(readme.includes("npm run hooks:install"), "README must document the hook install step");
 });
 
-test("help popover browser check stays a release gate, not a CI job", () => {
+test("browser release gates stay out of CI workflow", () => {
   const workflow = fs.readFileSync(path.join(ROOT, ".github/workflows/checks.yml"), "utf8");
   const deployScript = fs.readFileSync(path.join(ROOT, "scripts/deploy.mjs"), "utf8");
   const docs = fs.readFileSync(path.join(ROOT, "docs/agents/browser-verification.md"), "utf8");
 
-  assert.ok(
-    deployScript.includes("check:help-popovers"),
-    "scripts/deploy.mjs must run the help popover check before pushing",
-  );
-  assert.ok(
-    !workflow.includes("check:help-popovers"),
-    "checks.yml must not run check:help-popovers. It needs a pinned Chromium and font-independent tolerances; see CODING_STANDARDS Rule 6.4.",
-  );
+  for (const gate of ["check:help-popovers", "check:layout"]) {
+    assert.ok(deployScript.includes(gate), `scripts/deploy.mjs must run ${gate} before pushing`);
+    assert.ok(
+      !workflow.includes(gate),
+      `checks.yml must not run ${gate}. It needs a pinned Chromium and font-independent tolerances; see CODING_STANDARDS Rule 6.4.`,
+    );
+  }
   assert.match(
     docs,
     /## Release-only checks/,

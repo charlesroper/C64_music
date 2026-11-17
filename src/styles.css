@@ -665,6 +665,7 @@ button.active {
 }
 
 /* ==================== LEFT PANEL: GAMES & TRACKS ==================== */
+/* Mobile overrides live at @media (max-width: 820px) and @media (max-width: 560px) below. */
 .game-list {
   display: flex;
   flex-direction: column;
@@ -2150,6 +2151,13 @@ button.active {
   }
   .panel-right {
     min-height: 440px;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 1201px) {
+  .panel-right {
+    height: 0;
+    min-height: max(520px, 100%);
   }
 }
 

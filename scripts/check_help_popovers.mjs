@@ -1,15 +1,11 @@
 import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import { createServer } from "node:http";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { resolveBrowserEngine } from "./browser_engines.mjs";
+import { createStaticServer } from "./browser_harness.mjs";
 
 // Release gate, not a CI job. This check needs a real Chromium build and asserts
 // font-sensitive pixel geometry, so it runs in the deploy preflight only.
 // See docs/agents/browser-verification.md and CODING_STANDARDS Rule 6.4.
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SIZES = [
   [360, 800],
   [390, 844],
@@ -17,40 +13,6 @@ const SIZES = [
   [1280, 600],
   [1440, 900],
 ];
-const MIME_TYPES = {
-  ".asm": "text/plain",
-  ".css": "text/css",
-  ".html": "text/html",
-  ".js": "text/javascript",
-  ".json": "application/json",
-  ".md": "text/markdown",
-  ".mjs": "text/javascript",
-  ".txt": "text/plain",
-  ".wasm": "application/wasm",
-};
-
-function createStaticServer() {
-  return createServer(async (request, response) => {
-    try {
-      const url = new URL(request.url || "/", "http://127.0.0.1");
-      const relativePath = url.pathname === "/" ? "/index.html" : url.pathname;
-      const filePath = path.resolve(ROOT, `.${decodeURIComponent(relativePath)}`);
-      if (!filePath.startsWith(ROOT)) {
-        response.writeHead(403);
-        response.end("forbidden");
-        return;
-      }
-      const body = await readFile(filePath);
-      response.writeHead(200, {
-        "Content-Type": MIME_TYPES[path.extname(filePath)] || "application/octet-stream",
-      });
-      response.end(body);
-    } catch {
-      response.writeHead(404);
-      response.end("not found");
-    }
-  });
-}
 
 function startChrome(chromePath) {
   const child = spawn(

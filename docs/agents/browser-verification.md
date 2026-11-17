@@ -26,7 +26,7 @@ No engine produces audible output here. The sandbox has no audio device. A real 
 
 ## Install
 
-`playwright-core` is a pinned dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`. Ad-hoc browser scripts must import `playwright-core` (never `playwright`) and `resolveBrowserEngine` from `scripts/browser_engines.mjs` instead of hand-scanning browser caches:
+`playwright-core` is a pinned dev dependency. It provides the engine API and executable paths but never downloads browsers during `npm ci`. Ad-hoc browser scripts must import `playwright-core` (never `playwright`), `resolveBrowserEngine` from `scripts/browser_engines.mjs`, and `createStaticServer` / `waitForWorkbenchReady` from `scripts/browser_harness.mjs` instead of duplicating server boilerplate or hand-scanning browser caches:
 
 ```js
 const { path: executablePath } = resolveBrowserEngine("chromium");
@@ -115,7 +115,7 @@ registerProcessor("probe", Probe);
 
 ## Release-only checks
 
-`npm run check:help-popovers` is a release gate, not a CI job. `scripts/deploy.mjs` runs it before every push to `fork/main`. It stays out of `.github/workflows/checks.yml` for three reasons:
+`npm run check:help-popovers` and `npm run check:layout` are release gates, not CI jobs. `scripts/deploy.mjs` runs both before every push to `fork/main`. They stay out of `.github/workflows/checks.yml` for three reasons:
 
 - It needs a real Chromium build with the Popover API. `scripts/check_help_popovers.mjs` launches a browser, drives DevTools over a websocket and navigates five viewports. The GitHub runner supplies whichever Chrome version the image carries that week.
 - It asserts pixel geometry. The bottom-sheet tolerance is 14px and icon centring is 1px. Those numbers were tuned against this machine's fonts; a runner without JetBrains Mono and Inter falls back to different metrics.

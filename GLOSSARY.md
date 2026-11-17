@@ -1,4 +1,5 @@
 # Galway 2664 Domain Glossary
+<!-- Note: tests/repo_rules.test.mjs rejects multi-word _Avoid_ terms that still appear in README.md or NARRATIVE.md sections 1 to 7. -->
 
 Commodore 64 6502-SID music workbench and live assembly player for Martin Galway's Ocean Software audio routines (1985-87).
 
