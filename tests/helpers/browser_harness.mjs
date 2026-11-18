@@ -299,14 +299,46 @@ export function createBrowserHarness({
   }
 
   // Parse authentic markup tags and register known elements
-  for (const m of html.matchAll(/<([a-zA-Z0-9-]+)([^>]*)>/g)) {
-    const tag = m[1];
-    const attrs = m[2];
-    if (tag.startsWith("!--") || tag.startsWith("/")) continue;
+  const VOID_TAGS = new Set([
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+  ]);
+  const tagStack = [];
+  for (const m of html.matchAll(/<(\/?)([a-zA-Z0-9-]+)([^>]*)>/g)) {
+    const isClose = m[1] === "/";
+    const tag = m[2];
+    const attrs = m[3];
+    if (isClose) {
+      const upper = tag.toUpperCase();
+      for (let i = tagStack.length - 1; i >= 0; i--) {
+        if (tagStack[i].tagName === upper) {
+          tagStack.length = i;
+          break;
+        }
+      }
+      continue;
+    }
 
     const idMatch = attrs.match(/\bid="([^"]+)"/);
     const id = idMatch ? idMatch[1] : "";
     const el = new MockElement(tag, id);
+    if (tagStack.length > 0) {
+      const parent = tagStack[tagStack.length - 1];
+      el.parentElement = parent;
+      parent.children.push(el);
+    }
 
     const classMatch = attrs.match(/\bclass="([^"]+)"/);
     if (classMatch) {
@@ -348,6 +380,9 @@ export function createBrowserHarness({
       if (!inner.includes("<")) {
         el.textContent = inner.replace(/\s+/g, " ").trim();
       }
+    }
+    if (!VOID_TAGS.has(tag.toLowerCase()) && !attrs.trimEnd().endsWith("/")) {
+      tagStack.push(el);
     }
   }
 

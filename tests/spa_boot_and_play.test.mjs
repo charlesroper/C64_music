@@ -518,7 +518,7 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
     assert.ok(led.classList.contains("topBar-led-isReady"));
     assert.ok(!led.classList.contains("topBar-led-isPlaying"));
 
-    for (const selector of [".tunesPanel-badge", ".sourceFiles-itemBadge", ".now-playing-pill"]) {
+    for (const selector of [".tunesPanel-badge", ".sourceFiles-itemBadge", ".nowPlayingPill"]) {
       for (const element of globalThis.document.querySelectorAll(selector)) {
         assert.ok(
           !element.classList.contains("c64Caps"),
@@ -526,6 +526,41 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
         );
       }
     }
+
+    const keypadButtons = globalThis.document.querySelectorAll(
+      "#c64-keypad-buttons .c64KeyInjector-button",
+    );
+    assert.ok(
+      keypadButtons.length > 0,
+      "C64 Key Injector must render .c64KeyInjector-button items",
+    );
+    assert.ok(
+      keypadButtons[0].classList.contains("button"),
+      "C64 Key Injector buttons must carry shared .button class",
+    );
+
+    const hudTags = globalThis.document.querySelectorAll("#hud-guide-overlay .hudGuide-tag");
+    assert.ok(hudTags.length > 0, "HUD Row Guide must render .hudGuide-tag elements");
+    assert.ok(
+      globalThis.document.querySelectorAll("#hud-guide-overlay .hudGuide-tag--right").length > 0,
+      "HUD Row Guide must apply .hudGuide-tag--right modifier for right-aligned tags",
+    );
+
+    const muteBtn = globalThis.document.querySelector('[data-mute="0"]');
+    const voiceCard = muteBtn.closest(".voiceCard");
+    assert.ok(voiceCard, "Mute button must sit inside .voiceCard");
+    muteBtn.click();
+    assert.equal(muteBtn.classList.contains("voiceCard-button-isMuted"), true);
+    assert.equal(voiceCard.classList.contains("voiceCard-isMuted"), true);
+    muteBtn.click();
+    assert.equal(muteBtn.classList.contains("voiceCard-button-isMuted"), false);
+    assert.equal(voiceCard.classList.contains("voiceCard-isMuted"), false);
+
+    const soloBtn = globalThis.document.querySelector('[data-solo="0"]');
+    soloBtn.click();
+    assert.equal(soloBtn.classList.contains("voiceCard-button-isSolo"), true);
+    soloBtn.click();
+    assert.equal(soloBtn.classList.contains("voiceCard-button-isSolo"), false);
     const toggle = harness.elementsById.get("btn-toggle-edit");
     assert.equal(toggle.textContent, "Edit source");
     toggle.click();
@@ -678,13 +713,13 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     "Filter and $D418 DAC",
   ]) {
     assert.ok(
-      html.includes(`<span class="voice-name c64Caps">${name}</span>`),
+      html.includes(`<span class="voiceCard-name c64Caps">${name}</span>`),
       `Voice name "${name}" must wrap only its static text`,
     );
   }
   for (const label of ["Frame:", "CPU PC:", "$D418 writes/frm:"]) {
     assert.ok(
-      html.includes(`<span class="tel-lbl c64Caps">${label}</span>`),
+      html.includes(`<span class="telemetrySummary-label c64Caps">${label}</span>`),
       `Telemetry label "${label}" must wrap only its static text`,
     );
   }
@@ -693,7 +728,10 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     "The SID strip label must wrap only its static text",
   );
   assert.match(
-    fragment(/<span class="morse-badge c64Caps"[\s\S]*?<\/span\s*>/, "Morse badge must exist"),
+    fragment(
+      /<span class="morseBanner-badge c64Caps"[\s\S]*?<\/span\s*>/,
+      "Morse badge must exist",
+    ),
     /Secret Morse transmitter active/,
   );
   for (const id of ["btn-close-modal", "btn-close-narrative-modal"]) {
@@ -2612,6 +2650,11 @@ test("telemetry change guards eliminate redundant DOM writes and morse re-render
     tel.morseIndex = 1;
     view.renderTelemetry(tel);
     assert.equal(morseInnerHtmlWrites, 1, "Advancing morseIndex must rebuild morse stream");
+    assert.match(
+      morseHtml,
+      /<span class="morseBanner-char morseBanner-char-isDone">[^<]<\/span><span class="morseBanner-char morseBanner-char-isCurrent">/,
+      "Morse stream must mark completed and current characters with MaintainableCSS state classes",
+    );
 
     // Frame 6: Keeping the new morseIndex does not rebuild
     morseInnerHtmlWrites = 0;

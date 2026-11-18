@@ -591,7 +591,7 @@ export function createWorkbenchView({
     container.innerHTML = "";
     for (const k of keys) {
       const btn = doc.createElement("button");
-      btn.className = "key-btn";
+      btn.className = "button c64KeyInjector-button";
       btn.textContent = k;
       btn.title =
         k === "RET"
@@ -857,7 +857,7 @@ export function createWorkbenchView({
     overlay.innerHTML = "";
     for (const r of rows) {
       const tag = doc.createElement("div");
-      tag.className = `hud-tag${r.right ? " right" : ""}`;
+      tag.className = `hudGuide-tag${r.right ? " hudGuide-tag--right" : ""}`;
       const topPct = ((36 + r.row * 8) / 272) * 100;
       tag.style.top = `${topPct.toFixed(2)}%`;
       tag.textContent = r.text;
@@ -882,10 +882,10 @@ export function createWorkbenchView({
     for (let i = 0; i < secret.length; i++) {
       const cls =
         i < activeIndex
-          ? "morse-char done"
+          ? "morseBanner-char morseBanner-char-isDone"
           : i === activeIndex
-            ? "morse-char current"
-            : "morse-char";
+            ? "morseBanner-char morseBanner-char-isCurrent"
+            : "morseBanner-char";
       html += `<span class="${cls}">${secret[i]}</span>`;
     }
     container.innerHTML = html;
@@ -1518,10 +1518,10 @@ export function createWorkbenchView({
       addListener(btn, "click", () => {
         const ch = parseInt(btn.dataset.mute, 10);
         state.muteMask ^= 1 << ch;
-        btn.classList.toggle("active-mute", Boolean(state.muteMask & (1 << ch)));
-        const card = btn.closest ? btn.closest(".voice-card") : null;
+        btn.classList.toggle("voiceCard-button-isMuted", Boolean(state.muteMask & (1 << ch)));
+        const card = btn.closest ? btn.closest(".voiceCard") : null;
         if (card && ch < 3) {
-          card.classList.toggle("muted", Boolean(state.muteMask & (1 << ch)));
+          card.classList.toggle("voiceCard-isMuted", Boolean(state.muteMask & (1 << ch)));
         }
         if (state.player) state.player.setHardwareOptions({ muteMask: state.muteMask });
       });
@@ -1533,7 +1533,10 @@ export function createWorkbenchView({
         const ch = parseInt(btn.dataset.solo, 10);
         state.soloVoice = state.soloVoice === ch ? -1 : ch;
         soloButtons.forEach((b) => {
-          b.classList.toggle("active-solo", parseInt(b.dataset.solo, 10) === state.soloVoice);
+          b.classList.toggle(
+            "voiceCard-button-isSolo",
+            parseInt(b.dataset.solo, 10) === state.soloVoice,
+          );
         });
         if (state.player) state.player.setHardwareOptions({ soloVoice: state.soloVoice });
       });

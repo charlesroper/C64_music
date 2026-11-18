@@ -78,11 +78,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   }
 
   // 4. Scopes grid and modal columns collapse to 1 column on narrow 375px phones
-  const mobScopes = computeStyleForExactSelectors(rules, [".scopes-grid"], mobile);
+  const mobScopes = computeStyleForExactSelectors(rules, [".oscilloscopesPanel"], mobile);
   assert.equal(
     mobScopes["grid-template-columns"],
     "1fr",
-    "Narrow mobile .scopes-grid must stack 1fr so voice headers and waveforms fit",
+    "Narrow mobile .oscilloscopesPanel must stack 1fr so voice headers and waveforms fit",
   );
 
   const mobModalCols = computeStyleForExactSelectors(rules, [".modal-columns"], mobile);
@@ -116,7 +116,11 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     `Mobile transport buttons must be >= 36px tall, got ${mobTransportBtn["min-height"]}`,
   );
 
-  const mobKeyBtn = computeStyleForExactSelectors(rules, ["button", ".key-btn"], mobile);
+  const mobKeyBtn = computeStyleForExactSelectors(
+    rules,
+    [".button", ".c64KeyInjector-button"],
+    mobile,
+  );
   assert.ok(
     parseInt(mobKeyBtn["min-height"] || "0", 10) >= 34,
     `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`,
@@ -428,7 +432,7 @@ test("HUD row guide and Follow voice initial states match markup defaults and st
   );
   assert.match(
     html,
-    /<div class="hud-guide-overlay hidden" id="hud-guide-overlay"><\/div>/,
+    /<div class="hudGuide hidden" id="hud-guide-overlay"><\/div>/,
     "HUD row guide overlay element must start with 'hidden' class in index.html",
   );
 
@@ -570,37 +574,49 @@ test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlig
   const rules = loadLinkedRules();
   const desktop = { width: 1440, height: 900 };
 
-  const telSummary = computeStyleForExactSelectors(rules, [".telemetry-summary"], desktop);
+  const telSummary = computeStyleForExactSelectors(rules, [".telemetrySummary"], desktop);
   assert.equal(
     telSummary["font-variant-numeric"],
     "tabular-nums",
-    ".telemetry-summary must enforce tabular-nums",
+    ".telemetrySummary must enforce tabular-nums",
   );
   assert.equal(
     telSummary["white-space"],
     "nowrap",
-    ".telemetry-summary must have white-space: nowrap",
+    ".telemetrySummary must have white-space: nowrap",
   );
 
-  const telFrame = computeStyleForExactSelectors(rules, [".tel-value-frame"], desktop);
+  const telFrame = computeStyleForExactSelectors(
+    rules,
+    [".telemetrySummary-value", ".telemetrySummary-value--frame"],
+    desktop,
+  );
   assert.equal(
     telFrame["min-width"],
     "5.5ch",
-    ".tel-value-frame must have fixed min-width: 5.5ch to prevent number jitter",
+    ".telemetrySummary-value--frame must have fixed min-width: 5.5ch to prevent number jitter",
   );
 
-  const telPc = computeStyleForExactSelectors(rules, [".tel-value-pc"], desktop);
+  const telPc = computeStyleForExactSelectors(
+    rules,
+    [".telemetrySummary-value", ".telemetrySummary-value--pc"],
+    desktop,
+  );
   assert.equal(
     telPc["min-width"],
     "5ch",
-    ".tel-value-pc must have fixed min-width: 5ch to prevent hex address jitter",
+    ".telemetrySummary-value--pc must have fixed min-width: 5ch to prevent hex address jitter",
   );
 
-  const telD418 = computeStyleForExactSelectors(rules, [".tel-value-d418"], desktop);
+  const telD418 = computeStyleForExactSelectors(
+    rules,
+    [".telemetrySummary-value", ".telemetrySummary-value--d418"],
+    desktop,
+  );
   assert.equal(
     telD418["min-width"],
     "2.5ch",
-    ".tel-value-d418 must have fixed min-width: 2.5ch to prevent drum write jitter",
+    ".telemetrySummary-value--d418 must have fixed min-width: 2.5ch to prevent drum write jitter",
   );
 });
 
@@ -837,18 +853,18 @@ test("SID register strip uses tight vertical padding and never stretches in tall
 
 test("oscilloscope card headers use fixed two-row layout with nowrap and tabular-nums so live updates never jump", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const scopesStart = html.indexOf('<div class="scopes-grid">');
+  const scopesStart = html.indexOf('<div class="oscilloscopesPanel">');
   const scopesEnd = html.indexOf("<!-- RIGHT PANEL:", scopesStart);
   assert.ok(
     scopesStart > -1 && scopesEnd > scopesStart,
-    "Expected .scopes-grid fragment in index.html",
+    "Expected .oscilloscopesPanel fragment in index.html",
   );
   const scopesHtml = html.slice(scopesStart, scopesEnd);
 
-  const headerRows = scopesHtml.match(/class="voice-header-row"/g) || [];
-  const telemetryRows = scopesHtml.match(/class="voice-telemetry-row"/g) || [];
-  assert.equal(headerRows.length, 4, "All 4 voice cards must have .voice-header-row");
-  assert.equal(telemetryRows.length, 4, "All 4 voice cards must have .voice-telemetry-row");
+  const headerRows = scopesHtml.match(/class="voiceCard-headerRow"/g) || [];
+  const telemetryRows = scopesHtml.match(/class="voiceCard-telemetryRow"/g) || [];
+  assert.equal(headerRows.length, 4, "All 4 voice cards must have .voiceCard-headerRow");
+  assert.equal(telemetryRows.length, 4, "All 4 voice cards must have .voiceCard-telemetryRow");
 
   for (const [noteId, pcId] of [
     ["v0-note", "v0-pc"],
@@ -857,36 +873,36 @@ test("oscilloscope card headers use fixed two-row layout with nowrap and tabular
     ["filter-mode-tag", "seq-pc"],
   ]) {
     const rowPattern = new RegExp(
-      `<div\\s+[^>]*class="voice-telemetry-row"[^>]*>[\\s\\S]*?id="${noteId}"[\\s\\S]*?id="${pcId}"[\\s\\S]*?<\\/div>`,
+      `<div\\s+[^>]*class="voiceCard-telemetryRow"[^>]*>[\\s\\S]*?id="${noteId}"[\\s\\S]*?id="${pcId}"[\\s\\S]*?<\\/div>`,
     );
     assert.match(
       scopesHtml,
       rowPattern,
-      `Expected ${noteId} and ${pcId} inside .voice-telemetry-row`,
+      `Expected ${noteId} and ${pcId} inside .voiceCard-telemetryRow`,
     );
   }
 
   const rules = loadLinkedRules();
   const desktop = { width: 1440, height: 900 };
 
-  const card = computeStyleForExactSelectors(rules, [".voice-card"], desktop);
-  assert.equal(card["min-width"], "0", ".voice-card must set min-width: 0 inside CSS grid");
+  const card = computeStyleForExactSelectors(rules, [".voiceCard"], desktop);
+  assert.equal(card["min-width"], "0", ".voiceCard must set min-width: 0 inside CSS grid");
 
-  const header = computeStyleForExactSelectors(rules, [".voice-card-header"], desktop);
+  const header = computeStyleForExactSelectors(rules, [".voiceCard-header"], desktop);
   assert.equal(header["flex-direction"], "column");
 
-  for (const rowSel of [".voice-header-row", ".voice-telemetry-row"]) {
+  for (const rowSel of [".voiceCard-headerRow", ".voiceCard-telemetryRow"]) {
     const rowStyle = computeStyleForExactSelectors(rules, [rowSel], desktop);
     assert.equal(rowStyle.display, "flex");
     assert.equal(rowStyle["justify-content"], "space-between");
   }
 
-  for (const textSel of [".voice-name", ".voice-note", ".voice-pc-tag"]) {
+  for (const textSel of [".voiceCard-name", ".voiceCard-note", ".voiceCard-pcTag"]) {
     const style = computeStyleForExactSelectors(rules, [textSel], desktop);
     assert.equal(style["white-space"], "nowrap", `${textSel} must stay on a single line`);
   }
 
-  for (const numSel of [".voice-note", ".voice-pc-tag"]) {
+  for (const numSel of [".voiceCard-note", ".voiceCard-pcTag"]) {
     const style = computeStyleForExactSelectors(rules, [numSel], desktop);
     assert.equal(style["font-variant-numeric"], "tabular-nums");
   }
@@ -900,7 +916,7 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
     { width: 980, height: 1600 },
     { width: 375, height: 812 },
   ]) {
-    const regs = computeStyleForExactSelectors(rules, [".voice-regs"], viewport);
+    const regs = computeStyleForExactSelectors(rules, [".voiceCard-regs"], viewport);
     assert.equal(regs.display, "grid");
     assert.equal(regs["grid-template-columns"], "minmax(0, 1fr) auto");
     assert.equal(regs["font-variant-numeric"], "tabular-nums");
@@ -908,10 +924,14 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
     assert.notEqual(regs["flex-wrap"], "wrap");
   }
 
-  const fltRegValue = computeStyleForExactSelectors(rules, [".flt-reg-value"], {
-    width: 1440,
-    height: 900,
-  });
+  const fltRegValue = computeStyleForExactSelectors(
+    rules,
+    [".voiceCard-regValue", ".voiceCard-regValue--fixed"],
+    {
+      width: 1440,
+      height: 900,
+    },
+  );
   assert.equal(fltRegValue["min-width"], "2ch");
 });
 
@@ -1310,13 +1330,63 @@ test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract in orde
   const rules = parseStylesheet(cssText);
   const desktop = { width: 1440, height: 900 };
   assert.equal(
-    computeStyleForExactSelectors(rules, [".c64-monitor-canvas"], desktop)["image-rendering"],
+    computeStyleForExactSelectors(rules, [".c64Monitor-canvas"], desktop)["image-rendering"],
     "pixelated",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".flt-reg-value"], desktop).display,
+    computeStyleForExactSelectors(
+      rules,
+      [".voiceCard-regValue", ".voiceCard-regValue--fixed"],
+      desktop,
+    ).display,
     "inline-block",
   );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".voiceCard", ".voiceCard-isMuted"], desktop).opacity,
+    "0.52",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".hudGuide-tag", ".hudGuide-tag--right"], desktop).left,
+    "auto",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(
+      rules,
+      [".morseBanner-char", ".morseBanner-char-isCurrent"],
+      desktop,
+    )["font-weight"],
+    "800",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(
+      rules,
+      [".voiceCard-button", ".voiceCard-button-isMuted"],
+      desktop,
+    ).color,
+    "var(--text-danger)",
+  );
+  assert.equal(
+    computeStyleForExactSelectors(rules, [".voiceCard-button", ".voiceCard-button-isSolo"], desktop)
+      .color,
+    "var(--accent-yellow)",
+  );
+
+  const maintainableSelectorPattern =
+    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::hover)?$/;
+  for (const [name, css] of [
+    ["c64-monitor.css", monitorCss],
+    ["oscilloscopes-panel.css", scopesCss],
+  ]) {
+    for (const rule of parseStylesheet(css)) {
+      for (const part of rule.selector.split(",").map((s) => s.trim())) {
+        assert.match(
+          part,
+          maintainableSelectorPattern,
+          `${name} selector "${part}" must use single-class MaintainableCSS lowerCamelCase grammar`,
+        );
+      }
+    }
+  }
 
   assertPreservedIds(html, [
     "c64-monitor-canvas",

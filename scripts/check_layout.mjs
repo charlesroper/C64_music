@@ -19,8 +19,8 @@ const VIEWPORTS = [
 async function checkVoiceFooterLock(page, viewport) {
   const measure = () =>
     page.evaluate(() =>
-      [...document.querySelectorAll(".voice-card")].map((card, index) => {
-        const regs = card.querySelector(".voice-regs");
+      [...document.querySelectorAll(".voiceCard")].map((card, index) => {
+        const regs = card.querySelector(".voiceCard-regs");
         const rr = regs.getBoundingClientRect();
         const spans = [...regs.children].map((el) => {
           const r = el.getBoundingClientRect();

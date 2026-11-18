@@ -435,7 +435,7 @@
           <div class="panel-header">
             <div class="panel-headerGroup">
               <span class="panel-title">3. Live C64 monitor ($0400 screen, $D020 border)</span>
-              <span class="now-playing-pill" id="now-playing-pill">READY</span>
+              <span class="nowPlayingPill" id="now-playing-pill">READY</span>
             </div>
             <div class="panel-headerGroup">
               <label
@@ -453,33 +453,33 @@
           </div>
 
           <!-- C64 Screen + Raster Border Canvas -->
-          <div class="c64-monitor-wrapper">
-            <div class="c64-canvas-container" id="c64-canvas-container">
+          <div class="c64Monitor">
+            <div class="c64Monitor-canvasContainer" id="c64-canvas-container">
               <canvas
-                class="c64-monitor-canvas"
+                class="c64Monitor-canvas"
                 id="c64-monitor-canvas"
                 width="384"
                 height="272"
               ></canvas>
-              <div class="crt-overlay" id="crt-overlay"></div>
-              <div class="hud-guide-overlay hidden" id="hud-guide-overlay"></div>
+              <div class="c64Monitor-crtOverlay" id="crt-overlay"></div>
+              <div class="hudGuide hidden" id="hud-guide-overlay"></div>
             </div>
 
             <!-- Rambo II Secret Morse Code Live Decoder Banner (shown when rambload.asm is active) -->
-            <div class="morse-banner hidden" id="morse-banner">
-              <div class="morse-header">
-                <span class="morse-badge c64Caps"
+            <div class="morseBanner hidden" id="morse-banner">
+              <div class="morseBanner-header">
+                <span class="morseBanner-badge c64Caps"
                   >Secret Morse transmitter active (STARTMC / $D400-$D401)</span
                 >
-                <span class="morse-state" id="morse-state-readout">CHAR #0</span>
+                <span class="morseBanner-state" id="morse-state-readout">CHAR #0</span>
               </div>
-              <div class="morse-stream" id="morse-stream"></div>
+              <div class="morseBanner-stream" id="morse-stream"></div>
             </div>
 
             <!-- Interactive C64 Key Injector Bar (simulates $F13E GETIN / KeyScan) -->
-            <div class="c64-keypad-bar">
+            <div class="c64KeyInjector">
               <span
-                class="keypad-label c64Caps"
+                class="c64KeyInjector-label c64Caps"
                 id="c64-keypad-label"
                 title="Inject PETSCII key directly into the C64 driver loop ($F13E / KeyScan)"
               >
@@ -487,7 +487,7 @@
               </span>
               <!-- biome-ignore lint/a11y/useSemanticElements: the group label sits in the surrounding bar; a fieldset would change the existing keypad layout -->
               <div
-                class="keypad-buttons"
+                class="c64KeyInjector-buttons"
                 id="c64-keypad-buttons"
                 role="group"
                 aria-labelledby="c64-keypad-label"
@@ -498,35 +498,41 @@
           <!-- Four-channel oscilloscopes & SID Voice Telemetry -->
           <div class="panel-header panel-header--sub">
             <span class="panel-title">4. MOS 6581/8580 oscilloscopes and voice telemetry</span>
-            <div class="telemetry-summary" id="telemetry-summary">
-              <span class="tel-item tel-item-frame"
-                ><span class="tel-lbl c64Caps">Frame:</span>
-                <strong class="tel-value-frame" id="tel-frame">0</strong></span
+            <div class="telemetrySummary" id="telemetry-summary">
+              <span class="telemetrySummary-item telemetrySummary-item--frame"
+                ><span class="telemetrySummary-label c64Caps">Frame:</span>
+                <strong class="telemetrySummary-value telemetrySummary-value--frame" id="tel-frame"
+                  >0</strong
+                ></span
               >
-              <span class="tel-item tel-item-pc"
-                ><span class="tel-lbl c64Caps">CPU PC:</span>
-                <strong class="tel-value-pc" id="tel-pc">$0000</strong></span
+              <span class="telemetrySummary-item telemetrySummary-item--pc"
+                ><span class="telemetrySummary-label c64Caps">CPU PC:</span>
+                <strong class="telemetrySummary-value telemetrySummary-value--pc" id="tel-pc"
+                  >$0000</strong
+                ></span
               >
-              <span class="tel-item tel-item-d418"
-                ><span class="tel-lbl c64Caps">$D418 writes/frm:</span>
-                <strong class="tel-value-d418" id="tel-d418">0</strong></span
+              <span class="telemetrySummary-item telemetrySummary-item--d418"
+                ><span class="telemetrySummary-label c64Caps">$D418 writes/frm:</span>
+                <strong class="telemetrySummary-value telemetrySummary-value--d418" id="tel-d418"
+                  >0</strong
+                ></span
               >
             </div>
           </div>
 
-          <div class="scopes-grid">
+          <div class="oscilloscopesPanel">
             <!-- Voice 1 -->
-            <div class="voice-card" data-voice="0">
-              <div class="voice-card-header">
-                <div class="voice-header-row">
-                  <div class="voice-title-group">
-                    <span class="voice-dot v-cyan"></span>
-                    <span class="voice-name c64Caps">Voice 1 ($D400)</span>
+            <div class="voiceCard" data-voice="0">
+              <div class="voiceCard-header">
+                <div class="voiceCard-headerRow">
+                  <div class="voiceCard-titleGroup">
+                    <span class="voiceCard-dot voiceCard-dot--cyan"></span>
+                    <span class="voiceCard-name c64Caps">Voice 1 ($D400)</span>
                   </div>
-                  <div class="voice-controls">
+                  <div class="voiceCard-controls">
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-mute="0"
                       title="Mute voice 1 (press 1)"
                       aria-label="Mute voice 1"
@@ -536,7 +542,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-solo="0"
                       title="Solo voice 1"
                       aria-label="Solo voice 1"
@@ -545,37 +551,43 @@
                     </button>
                   </div>
                 </div>
-                <div class="voice-telemetry-row">
-                  <span class="voice-note" id="v0-note">---</span>
+                <div class="voiceCard-telemetryRow">
+                  <span class="voiceCard-note" id="v0-note">---</span>
                   <span
-                    class="voice-pc-tag"
+                    class="voiceCard-pcTag"
                     id="v0-pc"
                     title="Click to jump to Voice 1 sequence pointer in source"
                     >PC0: $----</span
                   >
                 </div>
               </div>
-              <canvas class="scope-canvas" id="scope-v0" width="260" height="68"></canvas>
-              <div class="voice-regs">
-                <span id="v0-wf" class="wf-tags">---</span>
-                <span>PW: <strong id="v0-pw">$000</strong></span>
-                <span>ADSR: <strong id="v0-adsr">00/00</strong></span>
-                <span>ENV: <strong id="v0-env">00</strong></span>
+              <canvas class="voiceCard-canvas" id="scope-v0" width="260" height="68"></canvas>
+              <div class="voiceCard-regs">
+                <span id="v0-wf" class="voiceCard-reg voiceCard-waveform">---</span>
+                <span class="voiceCard-reg"
+                  >PW: <strong class="voiceCard-regValue" id="v0-pw">$000</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ADSR: <strong class="voiceCard-regValue" id="v0-adsr">00/00</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ENV: <strong class="voiceCard-regValue" id="v0-env">00</strong></span
+                >
               </div>
             </div>
 
             <!-- Voice 2 -->
-            <div class="voice-card" data-voice="1">
-              <div class="voice-card-header">
-                <div class="voice-header-row">
-                  <div class="voice-title-group">
-                    <span class="voice-dot v-magenta"></span>
-                    <span class="voice-name c64Caps">Voice 2 ($D407)</span>
+            <div class="voiceCard" data-voice="1">
+              <div class="voiceCard-header">
+                <div class="voiceCard-headerRow">
+                  <div class="voiceCard-titleGroup">
+                    <span class="voiceCard-dot voiceCard-dot--magenta"></span>
+                    <span class="voiceCard-name c64Caps">Voice 2 ($D407)</span>
                   </div>
-                  <div class="voice-controls">
+                  <div class="voiceCard-controls">
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-mute="1"
                       title="Mute voice 2 (press 2)"
                       aria-label="Mute voice 2"
@@ -585,7 +597,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-solo="1"
                       title="Solo voice 2"
                       aria-label="Solo voice 2"
@@ -594,37 +606,43 @@
                     </button>
                   </div>
                 </div>
-                <div class="voice-telemetry-row">
-                  <span class="voice-note" id="v1-note">---</span>
+                <div class="voiceCard-telemetryRow">
+                  <span class="voiceCard-note" id="v1-note">---</span>
                   <span
-                    class="voice-pc-tag"
+                    class="voiceCard-pcTag"
                     id="v1-pc"
                     title="Click to jump to Voice 2 sequence pointer in source"
                     >PC1: $----</span
                   >
                 </div>
               </div>
-              <canvas class="scope-canvas" id="scope-v1" width="260" height="68"></canvas>
-              <div class="voice-regs">
-                <span id="v1-wf" class="wf-tags">---</span>
-                <span>PW: <strong id="v1-pw">$000</strong></span>
-                <span>ADSR: <strong id="v1-adsr">00/00</strong></span>
-                <span>ENV: <strong id="v1-env">00</strong></span>
+              <canvas class="voiceCard-canvas" id="scope-v1" width="260" height="68"></canvas>
+              <div class="voiceCard-regs">
+                <span id="v1-wf" class="voiceCard-reg voiceCard-waveform">---</span>
+                <span class="voiceCard-reg"
+                  >PW: <strong class="voiceCard-regValue" id="v1-pw">$000</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ADSR: <strong class="voiceCard-regValue" id="v1-adsr">00/00</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ENV: <strong class="voiceCard-regValue" id="v1-env">00</strong></span
+                >
               </div>
             </div>
 
             <!-- Voice 3 -->
-            <div class="voice-card" data-voice="2">
-              <div class="voice-card-header">
-                <div class="voice-header-row">
-                  <div class="voice-title-group">
-                    <span class="voice-dot v-yellow"></span>
-                    <span class="voice-name c64Caps">Voice 3 ($D40E)</span>
+            <div class="voiceCard" data-voice="2">
+              <div class="voiceCard-header">
+                <div class="voiceCard-headerRow">
+                  <div class="voiceCard-titleGroup">
+                    <span class="voiceCard-dot voiceCard-dot--yellow"></span>
+                    <span class="voiceCard-name c64Caps">Voice 3 ($D40E)</span>
                   </div>
-                  <div class="voice-controls">
+                  <div class="voiceCard-controls">
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-mute="2"
                       title="Mute voice 3 (press 3)"
                       aria-label="Mute voice 3"
@@ -634,7 +652,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-solo="2"
                       title="Solo voice 3"
                       aria-label="Solo voice 3"
@@ -643,37 +661,43 @@
                     </button>
                   </div>
                 </div>
-                <div class="voice-telemetry-row">
-                  <span class="voice-note" id="v2-note">---</span>
+                <div class="voiceCard-telemetryRow">
+                  <span class="voiceCard-note" id="v2-note">---</span>
                   <span
-                    class="voice-pc-tag"
+                    class="voiceCard-pcTag"
                     id="v2-pc"
                     title="Click to jump to Voice 3 sequence pointer in source"
                     >PC2: $----</span
                   >
                 </div>
               </div>
-              <canvas class="scope-canvas" id="scope-v2" width="260" height="68"></canvas>
-              <div class="voice-regs">
-                <span id="v2-wf" class="wf-tags">---</span>
-                <span>PW: <strong id="v2-pw">$000</strong></span>
-                <span>ADSR: <strong id="v2-adsr">00/00</strong></span>
-                <span>ENV: <strong id="v2-env">00</strong></span>
+              <canvas class="voiceCard-canvas" id="scope-v2" width="260" height="68"></canvas>
+              <div class="voiceCard-regs">
+                <span id="v2-wf" class="voiceCard-reg voiceCard-waveform">---</span>
+                <span class="voiceCard-reg"
+                  >PW: <strong class="voiceCard-regValue" id="v2-pw">$000</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ADSR: <strong class="voiceCard-regValue" id="v2-adsr">00/00</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >ENV: <strong class="voiceCard-regValue" id="v2-env">00</strong></span
+                >
               </div>
             </div>
 
-            <!-- Master Mix + Multimode Filter + $D418 Digi DAC -->
-            <div class="voice-card master-card">
-              <div class="voice-card-header">
-                <div class="voice-header-row">
-                  <div class="voice-title-group">
-                    <span class="voice-dot v-green"></span>
-                    <span class="voice-name c64Caps">Filter and $D418 DAC</span>
+            <!-- Filter and Digi-Drum Card ($D418 Digi DAC) -->
+            <div class="voiceCard">
+              <div class="voiceCard-header">
+                <div class="voiceCard-headerRow">
+                  <div class="voiceCard-titleGroup">
+                    <span class="voiceCard-dot voiceCard-dot--green"></span>
+                    <span class="voiceCard-name c64Caps">Filter and $D418 DAC</span>
                   </div>
-                  <div class="voice-controls">
+                  <div class="voiceCard-controls">
                     <button
                       type="button"
-                      class="btn-mini"
+                      class="button voiceCard-button"
                       data-mute="3"
                       title="Mute digi drums (press 4)"
                       aria-label="Mute digi drums"
@@ -683,22 +707,36 @@
                     </button>
                   </div>
                 </div>
-                <div class="voice-telemetry-row">
-                  <span class="voice-note" id="filter-mode-tag">LP</span>
+                <div class="voiceCard-telemetryRow">
+                  <span class="voiceCard-note" id="filter-mode-tag">LP</span>
                   <span
-                    class="voice-pc-tag"
+                    class="voiceCard-pcTag"
                     id="seq-pc"
                     title="Click to jump to drum sequencer pointer (seqPC) in source"
                     >DRUM: ----</span
                   >
                 </div>
               </div>
-              <canvas class="scope-canvas" id="scope-master" width="260" height="68"></canvas>
-              <div class="voice-regs">
-                <span>FC: <strong id="flt-fc">$000 (30Hz)</strong></span>
-                <span>RES: <strong class="flt-reg-value" id="flt-res">0</strong></span>
-                <span>ROUT: <strong id="flt-rout">---</strong></span>
-                <span>VOL: <strong class="flt-reg-value" id="flt-vol">15</strong></span>
+              <canvas class="voiceCard-canvas" id="scope-master" width="260" height="68"></canvas>
+              <div class="voiceCard-regs">
+                <span class="voiceCard-reg"
+                  >FC: <strong class="voiceCard-regValue" id="flt-fc">$000 (30Hz)</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >RES:
+                  <strong class="voiceCard-regValue voiceCard-regValue--fixed" id="flt-res"
+                    >0</strong
+                  ></span
+                >
+                <span class="voiceCard-reg"
+                  >ROUT: <strong class="voiceCard-regValue" id="flt-rout">---</strong></span
+                >
+                <span class="voiceCard-reg"
+                  >VOL:
+                  <strong class="voiceCard-regValue voiceCard-regValue--fixed" id="flt-vol"
+                    >15</strong
+                  ></span
+                >
               </div>
             </div>
           </div>
