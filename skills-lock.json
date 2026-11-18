@@ -134,13 +134,6 @@
       "skillPath": "maintainable-css/SKILL.md",
       "computedHash": "0637e73d55d9e2b3f0a5fd9108c335e6d922d677bbac11b59120c1d07c95abf8"
     },
-    "migrate-to-shoehorn": {
-      "source": "mattpocock/skills",
-      "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
-      "sourceType": "github",
-      "skillPath": "skills/misc/migrate-to-shoehorn/SKILL.md",
-      "computedHash": "a63549df6d5b5c6595029f8c504ccf31a12f01312f03db70da4b45cb10ba5ca8"
-    },
     "on-writing-well": {
       "source": "charlesroper/skills",
       "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
@@ -203,13 +196,6 @@
       "sourceType": "github",
       "skillPath": "skills/misc/setup-pre-commit/SKILL.md",
       "computedHash": "98523a8db5977c41a095834df8697123bb845ff6ddbb9500733b161f11441a37"
-    },
-    "setup-ts-deep-modules": {
-      "source": "mattpocock/skills",
-      "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
-      "sourceType": "github",
-      "skillPath": "skills/in-progress/setup-ts-deep-modules/SKILL.md",
-      "computedHash": "8a3136caaea8fa439521917a624496769eba40cf8c59f62b4113a0dc916288a3"
     },
     "ste-80": {
       "source": "charlesroper/skills",
