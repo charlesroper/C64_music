@@ -222,7 +222,8 @@ export function parseStylesheet(cssText) {
         for (const stmt of splitDeclarations(body)) {
           const colon = stmt.indexOf(":");
           if (colon === -1) continue;
-          const prop = stmt.slice(0, colon).trim().toLowerCase();
+          const rawProp = stmt.slice(0, colon).trim();
+          const prop = rawProp.startsWith("--") ? rawProp : rawProp.toLowerCase();
           const val = stmt
             .slice(colon + 1)
             .replace(/!important/gi, "")

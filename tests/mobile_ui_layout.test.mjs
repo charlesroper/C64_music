@@ -179,9 +179,9 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.equal(dotV2BaseStyle.background, "var(--voiceLegend-dotBg)");
   assert.equal(dotV2BaseStyle["box-shadow"], "var(--voiceLegend-dotShadow)");
   const dotV2Style = computeStyleForExactSelectors(rules, [".voiceLegend-dot--v2"], mobile);
-  assert.match(dotV2Style["--voicelegend-dotbg"], /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["--voicelegend-dotshadow"], /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["--voicelegend-dotshadow"], /(?:#ffffff|var\(--text-bright\))/);
+  assert.match(dotV2Style["--voiceLegend-dotBg"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["--voiceLegend-dotShadow"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["--voiceLegend-dotShadow"], /(?:#ffffff|var\(--text-bright\))/);
 
   const v3SelectedStyle = computeStyleForExactSelectors(
     rules,
@@ -200,8 +200,8 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   assert.match(disabledDotStyle.background, /var\(--text-dim\)/);
 
   const v3ModStyle = computeStyleForExactSelectors(rules, [".voiceLegend-chip--v2"], mobile);
-  assert.match(v3ModStyle["--voicelegend-followborder"], /var\(--accent-yellow\)/);
-  assert.match(v3ModStyle["--voicelegend-followbg"], /rgba\(255,\s*170,\s*0/);
+  assert.match(v3ModStyle["--voiceLegend-followBorder"], /var\(--accent-yellow\)/);
+  assert.match(v3ModStyle["--voiceLegend-followBg"], /rgba\(255,\s*170,\s*0/);
 
   const v3FollowStyle = computeStyleForExactSelectors(
     rules,
@@ -883,8 +883,9 @@ test("SID register strip uses tight vertical padding and never stretches in tall
 
 test("oscilloscope card headers use fixed two-row layout with nowrap and tabular-nums so live updates never jump", () => {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const scopesStart = html.indexOf('<div class="oscilloscopesPanel">');
-  const scopesEnd = html.indexOf("<!-- RIGHT PANEL:", scopesStart);
+  const scopesOpen = html.match(/<div\b[^>]*class="[^"]*\boscilloscopesPanel\b[^"]*"[^>]*>/);
+  const scopesStart = scopesOpen ? scopesOpen.index : -1;
+  const scopesEnd = scopesStart >= 0 ? html.indexOf("<!-- RIGHT PANEL:", scopesStart) : -1;
   assert.ok(
     scopesStart > -1 && scopesEnd > scopesStart,
     "Expected .oscilloscopesPanel fragment in index.html",

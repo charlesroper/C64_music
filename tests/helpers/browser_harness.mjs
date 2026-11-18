@@ -272,6 +272,22 @@ export function createBrowserHarness({
       return null;
     }
 
+    querySelectorAll(sel) {
+      const matches = [];
+      const walk = (node) => {
+        for (const child of node.children || []) {
+          if (matchesSelector(child, sel)) matches.push(child);
+          walk(child);
+        }
+      };
+      walk(this);
+      return matches;
+    }
+
+    querySelector(sel) {
+      return this.querySelectorAll(sel)[0] || null;
+    }
+
     getContext(type = "2d") {
       if (type === "2d") {
         if (!this._ctx2d) {

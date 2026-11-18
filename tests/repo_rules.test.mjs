@@ -863,12 +863,15 @@ test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar"
   const mobileTabBypass =
     /^\.workbenchShell-grid\[data-mobile-view="[a-z]+"\] \.[a-z][a-zA-Z0-9-]*$/;
 
+  const allRules = [];
+  const hoverPropsByBase = new Map();
   for (const file of fs
     .readdirSync(stylesDir)
     .filter((f) => f.endsWith(".css"))
     .sort()) {
     const css = fs.readFileSync(path.join(stylesDir, file), "utf8");
     for (const rule of parseStylesheet(css)) {
+      allRules.push({ file, ...rule });
       for (const part of rule.selector.split(",").map((s) => s.trim())) {
         if (singleClassModules.has(file) && !mobileTabBypass.test(part)) {
           assert.match(
@@ -885,7 +888,39 @@ test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar"
             `src/styles/${file} class ".${match[1]}" must use MaintainableCSS lowerCamelCase grammar`,
           );
         }
+        const hoverMatch = part.match(/^(\.[a-z][a-zA-Z0-9-]*):hover$/);
+        if (hoverMatch) {
+          const props = hoverPropsByBase.get(hoverMatch[1]) || new Set();
+          for (const key of Object.keys(rule.decls)) props.add(key);
+          hoverPropsByBase.set(hoverMatch[1], props);
+        }
       }
+    }
+  }
+
+  for (const rule of allRules) {
+    for (const part of rule.selector.split(",").map((s) => s.trim())) {
+      const stateMatch = part.match(/^(\.[a-z][a-zA-Z0-9-]*)-is[A-Z][a-zA-Z0-9]*$/);
+      if (!stateMatch) continue;
+      const base = stateMatch[1];
+      const baseHover = hoverPropsByBase.get(base) || new Set();
+      const buttonHover = base.endsWith("-button")
+        ? hoverPropsByBase.get(".button") || new Set()
+        : new Set();
+      const overlapsHover = Object.keys(rule.decls).some(
+        (k) => baseHover.has(k) || buttonHover.has(k),
+      );
+      if (!overlapsHover) continue;
+      const hasHoverPair = allRules.some((other) =>
+        other.selector
+          .split(",")
+          .map((s) => s.trim())
+          .includes(`${part}:hover`),
+      );
+      assert.ok(
+        hasHoverPair,
+        `src/styles/${rule.file} "${part}" overrides :hover properties and must pair with "${part}:hover"`,
+      );
     }
   }
 });

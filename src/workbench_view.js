@@ -748,7 +748,7 @@ export function createWorkbenchView({
       chip.classList.toggle("voiceLegend-chip-isDisabled", !enabled);
       chip.classList.toggle("voiceLegend-chip-isSelected", selected);
       chip.classList.toggle("voiceLegend-chip-isFollowed", following);
-      const dot = chip.querySelector?.(".voiceLegend-dot") || chip.children?.[0];
+      const dot = chip.querySelector?.(".voiceLegend-dot");
       if (dot?.classList) {
         dot.classList.toggle("voiceLegend-dot-isDisabled", !enabled);
         dot.classList.toggle("voiceLegend-dot-isFollowed", following);

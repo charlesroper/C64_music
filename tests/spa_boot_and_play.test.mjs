@@ -81,6 +81,8 @@ test("unified browser harness enforces strict element IDs and shares environment
     assert.ok(chips.length >= 4, "Expected legend chips");
     const v1Chip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="1"]');
     assert.ok(v1Chip, "Expected Voice 2 legend chip");
+    assert.ok(v1Chip.querySelector(".voiceLegend-dot"), "Expected scoped element querySelector");
+    assert.equal(v1Chip.querySelectorAll(".voiceLegend-dot").length, 1);
   } finally {
     harness.restoreGlobals();
   }
