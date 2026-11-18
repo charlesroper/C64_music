@@ -43,6 +43,7 @@ Split the single 3,030-line stylesheet into modular, zero-build CSS files under 
   2. Pair shared `.button` with `.module-button` on buttons, and pair active state selectors with `:hover` (`.module-button-isState, .module-button-isState:hover`) so single-class state rules match `.button:hover` `(0,2,0)` specificity.
   3. Avoid `GLOSSARY.md` `_Avoid_` terms in both class names and CSS comments (`tests/repo_rules.test.mjs` enforces comment compliance).
   4. Run `npm run check:lint` before `npm test`, then run `npm run check:layout` and `npm run check:help-popovers` sequentially.
+  5. When auditing selectors across `src/styles/`, query `parseStylesheet` from `tests/helpers/stylesheets.mjs` via a short `node -e` check before reading full CSS module files.
 - Intentional exceptions to strict single-class-only rules:
   - Mobile tab visibility rules (`.workbenchShell-grid[data-mobile-view="..."] .<module>`) scope child panel display under `workbenchShell-grid` inside `@media (max-width: 820px)` instead of duplicating mobile tab classes on every panel in JS.
   - Sub-regions sitting in `.panel-header` or sibling slots outside the main content container (`.nowPlayingPill`, `.tunesFilter`, `.telemetrySummary`, `.sourceStats`, `.sourceRecovery`, `.sourceEditor`) use standalone `.module` roots rather than `.parent-child` names outside their DOM parent.

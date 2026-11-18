@@ -90,7 +90,7 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 
 **Rule 7.1 (Dual-Document Lockstep)**:
 * Feature additions, behaviour-changing defect fixes, workflow scripts, or new test files must update `README.md` and `NARRATIVE.md` simultaneously.
-* Pixel, spacing and other routine corrections that change no documented behaviour are exempt.
+* Pixel, spacing and other routine corrections that change no documented behaviour, plus test-only hardening in existing `tests/*.test.mjs` files (and keeping their `README.md` summaries current), are exempt from `NARRATIVE.md` updates.
 * Every `tests/*.test.mjs` file must be documented in `README.md`.
 **Rule 7.2 (Mandatory Dev Blog Entries)**:
 * Every story-changing milestone (new feature, significant bug fix, architectural seam, performance optimization, or notable failure/reversal) must append a dated entry (`### DD Month YYYY: title`) to Section 8 of `NARRATIVE.md`.
@@ -124,6 +124,7 @@ Commit messages must adhere to Chris Beams' guidelines:
 **Rule 9.3 (Strict Element Identification)**: Browser harness mocks must throw on missing element IDs to prevent silent drift between test doubles and production markup.
 **Rule 9.4 (Bounded Failure Output)**: When asserting against a large fixture such as `index.html` or a full document, extract the relevant tag or slice first. A failing assertion must print the fragment under test, not the whole file.
 **Rule 9.5 (Static Markup Assertions)**: Static `index.html` tests may inspect markup when no DOM seam exists. Assert a representative set of text and class values, tolerate formatter whitespace with `\s*` or a fragment helper, and avoid copies of full attribute order.
+**Rule 9.6 (Complete Guardrail Coverage)**: Static repository checks in `tests/repo_rules.test.mjs` must discover target files from the directory or `index.html` links rather than partial opt-in allowlists, and must pair each guardrail with negative unit tests proving violations fail.
 
 ---
 
