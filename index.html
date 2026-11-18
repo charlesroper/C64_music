@@ -40,23 +40,23 @@
         </symbol>
       </defs>
     </svg>
-    <div class="app-shell">
+    <div class="workbenchShell">
       <!-- ==================== TOP STUDIO HEADER & TRANSPORT ==================== -->
-      <header class="top-bar">
-        <div class="brand-block">
-          <div class="brand-led" id="status-led" title="WASM 6510 and SID engine ready"></div>
-          <div>
-            <div class="brand-title">
+      <header class="topBar">
+        <div class="topBar-brand">
+          <div class="topBar-led" id="status-led" title="WASM 6510 and SID engine ready"></div>
+          <div class="topBar-brandText">
+            <div class="topBar-title">
               <!-- biome-ignore lint/a11y/useSemanticElements: the brand mark is a decorative wordmark, not a control surface; a real button element would fight the layout styling -->
               <span
-                class="brand-logo"
+                class="topBar-logo"
                 role="button"
                 tabindex="0"
                 aria-label="Galway 2664"
                 title="Galway 2664 (click for retro C64 sparkle)"
               >
                 <svg
-                  class="c64-logo-svg"
+                  class="topBar-logoSvg"
                   viewBox="0 0 90 10"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -116,23 +116,23 @@
                     d="M86,1h2v1h-2z M85,2h3v1h-3z M84,3h4v1h-4z M82,4h2v1h-2z M86,4h2v1h-2z M82,5h7v1h-7z M86,6h2v1h-2z M86,7h2v1h-2z"
                   />
                 </svg>
-                <span class="sr-only">Galway 2664</span>
+                <span class="srOnly">Galway 2664</span>
               </span>
-              <span class="brand-accent c64-caps">// Ocean 6502-SID workbench</span>
-              <span class="brand-version" id="app-version">v2026.11.17.2</span>
+              <span class="topBar-accent c64Caps">// Ocean 6502-SID workbench</span>
+              <span class="topBar-version" id="app-version">v2026.11.17.2</span>
             </div>
-            <div class="brand-subtitle">
+            <div class="topBar-subtitle">
               Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64
               soundtracks, with a live assembler.
             </div>
           </div>
         </div>
 
-        <div class="transport-bar">
+        <div class="transportBar">
           <button
             type="button"
             id="btn-prev"
-            class="button"
+            class="button transportBar-button"
             title="Previous track (press [)"
             aria-label="Previous track"
             aria-keyshortcuts="["
@@ -142,21 +142,26 @@
           <button
             type="button"
             id="btn-play"
-            class="button button--primary"
+            class="button button--primary transportBar-button transportBar-button--primary"
             title="Play or pause (press space)"
             aria-keyshortcuts="Space"
           >
             <span id="play-icon" aria-hidden="true">&#9654;</span>
-            <span class="c64-caps" id="play-label">Play</span>
+            <span class="c64Caps" id="play-label">Play</span>
           </button>
-          <button type="button" id="btn-restart" class="button" title="Restart current track">
+          <button
+            type="button"
+            id="btn-restart"
+            class="button transportBar-button"
+            title="Restart current track"
+          >
             <span aria-hidden="true">&#8634;</span>
-            <span class="c64-caps">Restart</span>
+            <span class="c64Caps">Restart</span>
           </button>
           <button
             type="button"
             id="btn-next"
-            class="button"
+            class="button transportBar-button"
             title="Next track (press ])"
             aria-label="Next track"
             aria-keyshortcuts="]"
@@ -166,7 +171,7 @@
           <button
             type="button"
             id="btn-ffwd"
-            class="button"
+            class="button transportBar-button"
             title="Fast-forward 4x"
             aria-label="Fast-forward 4x"
           >
@@ -175,21 +180,22 @@
           </button>
         </div>
 
-        <div class="hardware-controls">
-          <div class="hw-group hw-group-full" id="hw-group-sid">
-            <span class="hw-label c64-caps" id="sid-model-label">SID chip</span>
-            <label class="hw-toggle">
+        <div class="hardwareControls">
+          <div class="hardwareControls-group hardwareControls-group--full" id="hw-group-sid">
+            <span class="hardwareControls-label c64Caps" id="sid-model-label">SID chip</span>
+            <label class="hardwareControls-toggle">
               <input
                 type="checkbox"
                 id="chk-sid-8580"
+                class="hardwareControls-toggleInput"
                 aria-labelledby="sid-model-label"
                 aria-describedby="sid-model-hint"
               >
-              <span class="hw-toggle-switch" aria-hidden="true"></span>
-              <span class="hw-toggle-value" id="sid-model-value">6581</span>
+              <span class="hardwareControls-toggleSwitch" aria-hidden="true"></span>
+              <span class="hardwareControls-toggleValue" id="sid-model-value">6581</span>
             </label>
-            <div class="hw-help-row">
-              <span class="hw-hint" id="sid-model-hint"
+            <div class="hardwareControls-helpRow">
+              <span class="hardwareControls-hint" id="sid-model-hint"
                 >Most Galway tracks were written for the 6581.</span
               >
               <button
@@ -236,22 +242,25 @@
             </div>
           </div>
 
-          <div class="hw-group hw-group-full" id="hw-group-latency">
-            <span class="hw-label c64-caps" id="latency-mode-label">Audio mode</span>
-            <label class="hw-toggle">
+          <div class="hardwareControls-group hardwareControls-group--full" id="hw-group-latency">
+            <span class="hardwareControls-label c64Caps" id="latency-mode-label">Audio mode</span>
+            <label class="hardwareControls-toggle">
               <input
                 type="checkbox"
                 id="chk-latency-interactive"
+                class="hardwareControls-toggleInput"
                 aria-labelledby="latency-mode-label"
                 aria-describedby="latency-mode-hint"
               >
-              <span class="hw-toggle-switch" aria-hidden="true"></span>
-              <span class="hw-toggle-value hw-toggle-value-latency" id="latency-mode-value"
+              <span class="hardwareControls-toggleSwitch" aria-hidden="true"></span>
+              <span
+                class="hardwareControls-toggleValue hardwareControls-toggleValue--latency"
+                id="latency-mode-value"
                 >PLAYBACK</span
               >
             </label>
-            <div class="hw-help-row">
-              <span class="hw-hint" id="latency-mode-hint"
+            <div class="hardwareControls-helpRow">
+              <span class="hardwareControls-hint" id="latency-mode-hint"
                 >Playback is the default for clean audio.</span
               >
               <button
@@ -312,18 +321,21 @@
             </div>
           </div>
 
-          <div class="hw-group hw-group-full hw-group-digi" id="hw-group-digi">
+          <div
+            class="hardwareControls-group hardwareControls-group--full hardwareControls-group--digi"
+            id="hw-group-digi"
+          >
             <label
-              class="hw-label"
+              class="hardwareControls-label"
               for="slider-digi-boost"
               title="Boost Galway's $D418 digital-to-analogue percussion"
             >
-              <span class="c64-caps">Drum boost ($D418)</span> <span id="digi-boost-val">1.3x</span>
+              <span class="c64Caps">Drum boost ($D418)</span> <span id="digi-boost-val">1.3x</span>
             </label>
             <input
               type="range"
               id="slider-digi-boost"
-              class="hw-slider"
+              class="hardwareControls-slider"
               min="0"
               max="2.5"
               step="0.1"
@@ -334,7 +346,7 @@
           <button
             type="button"
             id="btn-directives-modal"
-            class="button button--secondary hw-action-btn c64-caps"
+            class="button button--secondary hardwareControls-actionButton c64Caps"
             title="Ocean assembler docs"
           >
             Ocean assembler docs
@@ -343,7 +355,7 @@
           <button
             type="button"
             id="btn-narrative-modal"
-            class="button button--secondary hw-action-btn c64-caps"
+            class="button button--secondary hardwareControls-actionButton c64Caps"
             title="Galway 2664: history, architecture and source code"
           >
             The story
@@ -352,7 +364,7 @@
           <button
             type="button"
             id="btn-stats-nerds"
-            class="button button--secondary hw-action-btn hw-action-btn-full c64-caps"
+            class="button button--secondary hardwareControls-actionButton hardwareControls-actionButton--full c64Caps"
             title="Show audio timing, missed audio quanta and output latency"
           >
             Stats for nerds
@@ -361,74 +373,80 @@
       </header>
 
       <!-- ==================== MOBILE STUDIO VIEW TABS ==================== -->
-      <nav class="mobile-view-tabs" id="mobile-view-tabs" aria-label="Mobile studio panels">
+      <nav class="mobileTabs" id="mobile-view-tabs" aria-label="Mobile studio panels">
         <button
           type="button"
-          class="button mobile-tab-btn button-isActive c64-caps"
+          class="button mobileTabs-button button-isActive c64Caps"
           data-mobile-tab="all"
         >
           All panels
         </button>
-        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="monitor">
+        <button type="button" class="button mobileTabs-button c64Caps" data-mobile-tab="monitor">
           Monitor
         </button>
-        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="tunes">
+        <button type="button" class="button mobileTabs-button c64Caps" data-mobile-tab="tunes">
           Tunes
         </button>
-        <button type="button" class="button mobile-tab-btn c64-caps" data-mobile-tab="asm">
+        <button type="button" class="button mobileTabs-button c64Caps" data-mobile-tab="asm">
           Source
         </button>
       </nav>
 
       <!-- ==================== MAIN 3-COLUMN WORKBENCH GRID ==================== -->
-      <main class="workbench-grid" id="workbench-grid" data-mobile-view="all">
+      <main class="workbenchShell-grid" id="workbench-grid" data-mobile-view="all">
         <!-- LEFT PANEL: GAME CARTRIDGES & TRACK/SFX BROWSER -->
-        <section class="panel panel-left">
+        <section class="panel panel--left">
           <div class="panel-header">
             <span class="panel-title">1. Source files (.asm)</span>
             <span class="panel-badge" id="asm-compile-badge" aria-live="polite" aria-atomic="true"
-              ><span class="c64-caps" id="asm-compile-state">Assembled OK</span
+              ><span class="c64Caps" id="asm-compile-state">Assembled OK</span
               ><span id="asm-compile-detail"></span></span
             >
           </div>
 
-          <div class="game-list" id="game-list"></div>
+          <div class="sourceFiles" id="game-list"></div>
 
-          <div class="panel-header panel-subheader">
+          <div class="panel-header panel-header--sub">
             <span class="panel-title" id="tracks-panel-title">2. Tunes and arcade SFX</span>
-            <div class="filter-pills">
-              <button type="button" class="button pill button-isActive c64-caps" data-filter="all">
+            <div class="tunesFilter">
+              <button
+                type="button"
+                class="button tunesFilter-pill button-isActive c64Caps"
+                data-filter="all"
+              >
                 All
               </button>
-              <button type="button" class="button pill c64-caps" data-filter="music">Music</button>
-              <button type="button" class="button pill c64-caps" data-filter="sfx">
+              <button type="button" class="button tunesFilter-pill c64Caps" data-filter="music">
+                Music
+              </button>
+              <button type="button" class="button tunesFilter-pill c64Caps" data-filter="sfx">
                 SFX / drums
               </button>
             </div>
           </div>
 
-          <div class="track-list" id="track-list"></div>
+          <div class="tunesPanel" id="track-list"></div>
 
-          <div class="game-meta-card" id="game-meta-card"></div>
+          <div class="gameMetaCard" id="game-meta-card"></div>
         </section>
 
         <!-- CENTER PANEL: LIVE C64 RASTER MONITOR AND SID OSCILLOSCOPES AND FILTER -->
-        <section class="panel panel-center">
+        <section class="panel panel--center">
           <div class="panel-header">
-            <div class="header-left-group">
+            <div class="panel-headerGroup">
               <span class="panel-title">3. Live C64 monitor ($0400 screen, $D020 border)</span>
               <span class="now-playing-pill" id="now-playing-pill">READY</span>
             </div>
-            <div class="header-right-group">
+            <div class="panel-headerGroup">
               <label
-                class="toggle-label"
+                class="toggleLabel"
                 title="Overlay labels explaining Martin Galway's raw memory dump rows on $0400"
               >
-                <input type="checkbox" id="chk-hud-overlay">
+                <input type="checkbox" id="chk-hud-overlay" class="toggleLabel-input">
                 <span>HUD row guide</span>
               </label>
-              <label class="toggle-label" title="Show C64 CRT scanline effect">
-                <input type="checkbox" id="chk-crt-scanlines" checked>
+              <label class="toggleLabel" title="Show C64 CRT scanline effect">
+                <input type="checkbox" id="chk-crt-scanlines" class="toggleLabel-input" checked>
                 <span>CRT scanlines</span>
               </label>
             </div>
@@ -450,7 +468,7 @@
             <!-- Rambo II Secret Morse Code Live Decoder Banner (shown when rambload.asm is active) -->
             <div class="morse-banner hidden" id="morse-banner">
               <div class="morse-header">
-                <span class="morse-badge c64-caps"
+                <span class="morse-badge c64Caps"
                   >Secret Morse transmitter active (STARTMC / $D400-$D401)</span
                 >
                 <span class="morse-state" id="morse-state-readout">CHAR #0</span>
@@ -461,7 +479,7 @@
             <!-- Interactive C64 Key Injector Bar (simulates $F13E GETIN / KeyScan) -->
             <div class="c64-keypad-bar">
               <span
-                class="keypad-label c64-caps"
+                class="keypad-label c64Caps"
                 id="c64-keypad-label"
                 title="Inject PETSCII key directly into the C64 driver loop ($F13E / KeyScan)"
               >
@@ -478,19 +496,19 @@
           </div>
 
           <!-- Four-channel oscilloscopes & SID Voice Telemetry -->
-          <div class="panel-header panel-subheader">
+          <div class="panel-header panel-header--sub">
             <span class="panel-title">4. MOS 6581/8580 oscilloscopes and voice telemetry</span>
             <div class="telemetry-summary" id="telemetry-summary">
               <span class="tel-item tel-item-frame"
-                ><span class="tel-lbl c64-caps">Frame:</span>
+                ><span class="tel-lbl c64Caps">Frame:</span>
                 <strong class="tel-value-frame" id="tel-frame">0</strong></span
               >
               <span class="tel-item tel-item-pc"
-                ><span class="tel-lbl c64-caps">CPU PC:</span>
+                ><span class="tel-lbl c64Caps">CPU PC:</span>
                 <strong class="tel-value-pc" id="tel-pc">$0000</strong></span
               >
               <span class="tel-item tel-item-d418"
-                ><span class="tel-lbl c64-caps">$D418 writes/frm:</span>
+                ><span class="tel-lbl c64Caps">$D418 writes/frm:</span>
                 <strong class="tel-value-d418" id="tel-d418">0</strong></span
               >
             </div>
@@ -503,7 +521,7 @@
                 <div class="voice-header-row">
                   <div class="voice-title-group">
                     <span class="voice-dot v-cyan"></span>
-                    <span class="voice-name c64-caps">Voice 1 ($D400)</span>
+                    <span class="voice-name c64Caps">Voice 1 ($D400)</span>
                   </div>
                   <div class="voice-controls">
                     <button
@@ -552,7 +570,7 @@
                 <div class="voice-header-row">
                   <div class="voice-title-group">
                     <span class="voice-dot v-magenta"></span>
-                    <span class="voice-name c64-caps">Voice 2 ($D407)</span>
+                    <span class="voice-name c64Caps">Voice 2 ($D407)</span>
                   </div>
                   <div class="voice-controls">
                     <button
@@ -601,7 +619,7 @@
                 <div class="voice-header-row">
                   <div class="voice-title-group">
                     <span class="voice-dot v-yellow"></span>
-                    <span class="voice-name c64-caps">Voice 3 ($D40E)</span>
+                    <span class="voice-name c64Caps">Voice 3 ($D40E)</span>
                   </div>
                   <div class="voice-controls">
                     <button
@@ -650,7 +668,7 @@
                 <div class="voice-header-row">
                   <div class="voice-title-group">
                     <span class="voice-dot v-green"></span>
-                    <span class="voice-name c64-caps">Filter and $D418 DAC</span>
+                    <span class="voice-name c64Caps">Filter and $D418 DAC</span>
                   </div>
                   <div class="voice-controls">
                     <button
@@ -687,21 +705,21 @@
         </section>
 
         <!-- RIGHT PANEL: LIVE OCEAN .ASM SOURCE CODE AND IN-BROWSER ASSEMBLER -->
-        <section class="panel panel-right">
+        <section class="panel panel--right">
           <div class="panel-header">
-            <div class="header-left-group">
+            <div class="panel-headerGroup">
               <span class="panel-title" id="source-file-title"
-                ><span class="c64-caps">5. Ocean source:</span
+                ><span class="c64Caps">5. Ocean source:</span
                 ><span id="source-file-name"></span></span
               >
               <span class="source-stats" id="source-stats">0 lines</span>
             </div>
-            <div class="header-right-group">
+            <div class="panel-headerGroup">
               <label
-                class="toggle-label"
+                class="toggleLabel"
                 title="Auto-scroll code viewer to follow selected voice or drum sequencer pattern"
               >
-                <input type="checkbox" id="chk-follow-pc">
+                <input type="checkbox" id="chk-follow-pc" class="toggleLabel-input">
                 <span>Follow voice</span>
               </label>
               <button
@@ -715,7 +733,7 @@
               <button
                 type="button"
                 id="btn-reassemble"
-                class="button button--miniAction button--accent c64-caps hidden"
+                class="button button--miniAction button--accent c64Caps hidden"
                 title="Assemble modified source and hot-reload into C64 RAM"
               >
                 Assemble and run
@@ -794,7 +812,7 @@
 
         <!-- Live SID Hardware Registers Strip ($D400-$D418) -->
         <div class="sid-hex-strip">
-          <span class="sid-hex-label c64-caps">SID registers ($D400-$D418):</span>
+          <span class="sid-hex-label c64Caps">SID registers ($D400-$D418):</span>
           <div class="sid-hex-cells" id="sid-hex-cells"></div>
         </div>
       </main>
@@ -813,7 +831,7 @@
         <div class="bootSequence-scanlines" aria-hidden="true"></div>
       </div>
       <div class="bootSequence-hint hidden" id="boot-hint">Click or press any key to start</div>
-      <div class="sr-only" id="boot-live" aria-live="polite"></div>
+      <div class="srOnly" id="boot-live" aria-live="polite"></div>
     </div>
 
     <!-- ==================== OCEAN ASSEMBLER DIRECTIVES MODAL ==================== -->
@@ -821,7 +839,7 @@
       <div class="modal-card">
         <div class="modal-header">
           <h2 class="modal-title">Ocean 1985-87 6502 assembler and Galway engine reference</h2>
-          <button type="button" id="btn-close-modal" class="button c64-caps">
+          <button type="button" id="btn-close-modal" class="button c64Caps">
             <svg class="icon" aria-hidden="true" focusable="false">
               <use href="#icon-close"></use>
             </svg>
@@ -913,7 +931,7 @@
       <div class="modal-card modal-card--narrative">
         <div class="modal-header">
           <h2 class="modal-title">Galway 2664: history, architecture and source code</h2>
-          <button type="button" id="btn-close-narrative-modal" class="button c64-caps">
+          <button type="button" id="btn-close-narrative-modal" class="button c64Caps">
             <svg class="icon" aria-hidden="true" focusable="false">
               <use href="#icon-close"></use>
             </svg>

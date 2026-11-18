@@ -341,7 +341,7 @@ test("Audio Mode help markup explains the sound delay and links the Firefox sett
   assert.match(panel, /Use the Firefox buffer setting instead/);
   assert.doesNotMatch(panel, /Audio delay help/);
 
-  const toggleLabel = group.match(/<label class="hw-toggle">[\s\S]*?<\/label>/)[0];
+  const toggleLabel = group.match(/<label class="hardwareControls-toggle">[\s\S]*?<\/label>/)[0];
   assert.doesNotMatch(toggleLabel, /Firefox buffer setting/);
 
   const linkMatch = panelMatch[0].match(/<a\b[^>]*class="helpPopover-link"[^>]*>[\s\S]*?<\/a\s*>/);
@@ -497,11 +497,24 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
   });
   try {
     view.selectGameAndTrack("wizball.asm", "wiz-title", false);
-    for (const selector of [".t-badge", ".game-item-badge", ".now-playing-pill"]) {
+    const activeGame = globalThis.document.querySelector(".sourceFiles-item-isActive");
+    const activeTrack = globalThis.document.querySelector(".tunesPanel-item-isActive");
+    assert.ok(activeGame, "Active game row must carry sourceFiles-item-isActive");
+    assert.ok(activeTrack, "Active track row must carry tunesPanel-item-isActive");
+    const led = harness.elementsById.get("status-led");
+    assert.ok(led.classList.contains("topBar-led-isReady"));
+    view.setPlaying(true);
+    assert.ok(led.classList.contains("topBar-led-isPlaying"));
+    assert.ok(!led.classList.contains("topBar-led-isReady"));
+    view.setPlaying(false);
+    assert.ok(led.classList.contains("topBar-led-isReady"));
+    assert.ok(!led.classList.contains("topBar-led-isPlaying"));
+
+    for (const selector of [".tunesPanel-badge", ".sourceFiles-itemBadge", ".now-playing-pill"]) {
       for (const element of globalThis.document.querySelectorAll(selector)) {
         assert.ok(
-          !element.classList.contains("c64-caps"),
-          `${selector} carries its own case and must not gain c64-caps`,
+          !element.classList.contains("c64Caps"),
+          `${selector} carries its own case and must not gain c64Caps`,
         );
       }
     }
@@ -538,19 +551,19 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     );
 
   assert.match(
-    fragment(/<span class="brand-accent c64-caps">[\s\S]*?<\/span>/, "Brand accent must exist"),
+    fragment(/<span class="topBar-accent c64Caps">[\s\S]*?<\/span>/, "Brand accent must exist"),
     /\/\/ Ocean 6502-SID workbench/,
   );
   assert.match(
     fragment(/<span[^>]*id="play-label"[^>]*>[\s\S]*?<\/span>/, "Play label must exist"),
     />\s*Play\s*</,
   );
-  assert.match(idTag("play-label"), /class="[^"]*c64-caps/);
+  assert.match(idTag("play-label"), /class="[^"]*c64Caps/);
   assert.match(
     fragment(/<span[^>]*id="sid-model-label"[^>]*>[\s\S]*?<\/span>/, "SID label must exist"),
     />\s*SID chip\s*</,
   );
-  assert.match(idTag("sid-model-label"), /class="[^"]*c64-caps/);
+  assert.match(idTag("sid-model-label"), /class="[^"]*c64Caps/);
   assert.match(
     fragment(
       /<span[^>]*id="latency-mode-label"[^>]*>[\s\S]*?<\/span>/,
@@ -558,7 +571,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     ),
     />\s*Audio mode\s*</,
   );
-  assert.match(idTag("latency-mode-label"), /class="[^"]*c64-caps/);
+  assert.match(idTag("latency-mode-label"), /class="[^"]*c64Caps/);
   assert.match(
     fragment(
       /<h3[^>]*id="sid-model-help-title"[^>]*>[\s\S]*?<\/h3>/,
@@ -574,16 +587,16 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     />\s*Audio mode\s*</,
   );
   assert.ok(
-    html.includes('<span class="c64-caps">Drum boost ($D418)</span>'),
+    html.includes('<span class="c64Caps">Drum boost ($D418)</span>'),
     "The drum boost label must wrap only its static text",
   );
-  assert.match(buttonHtml("btn-restart"), /<span class="c64-caps">Restart<\/span>/);
+  assert.match(buttonHtml("btn-restart"), /<span class="c64Caps">Restart<\/span>/);
   assert.match(
     fragment(/<button\b[^>]*id="btn-directives-modal"[\s\S]*?<\/button>/, "Docs button must exist"),
     />\s*Ocean assembler docs\s*</,
   );
-  assert.match(idTag("btn-directives-modal"), /class="[^"]*c64-caps/);
-  assert.match(idTag("asm-compile-state"), /class="[^"]*c64-caps/);
+  assert.match(idTag("btn-directives-modal"), /class="[^"]*c64Caps/);
+  assert.match(idTag("asm-compile-state"), /class="[^"]*c64Caps/);
   assert.match(
     idTag("asm-compile-badge"),
     /aria-live="polite"/,
@@ -596,8 +609,8 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
   );
   assert.doesNotMatch(
     idTag("asm-compile-badge"),
-    /c64-caps/,
-    "The badge container holds the dynamic detail and must not gain c64-caps",
+    /c64Caps/,
+    "The badge container holds the dynamic detail and must not gain c64Caps",
   );
   assert.match(
     fragment(
@@ -607,16 +620,16 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     />\s*Assembled OK\s*</,
   );
   assert.match(buttonHtml("btn-reassemble"), />\s*Assemble and run\s*</);
-  assert.match(idTag("btn-reassemble"), /class="[^"]*c64-caps/);
+  assert.match(idTag("btn-reassemble"), /class="[^"]*c64Caps/);
   assert.match(
     fragment(/<button\b[^>]*id="btn-stats-nerds"[\s\S]*?<\/button>/, "Stats button must exist"),
     />\s*Stats for nerds\s*</,
   );
-  assert.match(idTag("btn-stats-nerds"), /class="[^"]*c64-caps/);
+  assert.match(idTag("btn-stats-nerds"), /class="[^"]*c64Caps/);
   assert.match(buttonHtml("btn-narrative-modal"), />\s*The story\s*</);
-  assert.match(idTag("btn-narrative-modal"), /class="[^"]*c64-caps/);
+  assert.match(idTag("btn-narrative-modal"), /class="[^"]*c64Caps/);
   const sourcePrefix = fragment(
-    /<span class="c64-caps">5\. Ocean source:<\/span\s*>/,
+    /<span class="c64Caps">5\. Ocean source:<\/span\s*>/,
     "The source title must wrap only its static prefix",
   );
   assert.match(sourcePrefix, /5\. Ocean source:/);
@@ -627,7 +640,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     ["tunes", "Tunes"],
     ["asm", "Source"],
   ]) {
-    assert.match(dataTag("mobile-tab", tab), /class="[^"]*c64-caps/);
+    assert.match(dataTag("mobile-tab", tab), /class="[^"]*c64Caps/);
     assert.match(
       fragment(
         new RegExp(`<button\\b[^>]*data-mobile-tab="${tab}"[^>]*>[\\s\\S]*?</button>`),
@@ -641,7 +654,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     ["music", "Music"],
     ["sfx", "SFX / drums"],
   ]) {
-    assert.match(dataTag("filter", filter), /class="[^"]*c64-caps/);
+    assert.match(dataTag("filter", filter), /class="[^"]*c64Caps/);
     assert.match(
       fragment(
         new RegExp(`<button\\b[^>]*data-filter="${filter}"[^>]*>[\\s\\S]*?</button>`),
@@ -657,32 +670,32 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     "Filter and $D418 DAC",
   ]) {
     assert.ok(
-      html.includes(`<span class="voice-name c64-caps">${name}</span>`),
+      html.includes(`<span class="voice-name c64Caps">${name}</span>`),
       `Voice name "${name}" must wrap only its static text`,
     );
   }
   for (const label of ["Frame:", "CPU PC:", "$D418 writes/frm:"]) {
     assert.ok(
-      html.includes(`<span class="tel-lbl c64-caps">${label}</span>`),
+      html.includes(`<span class="tel-lbl c64Caps">${label}</span>`),
       `Telemetry label "${label}" must wrap only its static text`,
     );
   }
   assert.ok(
-    html.includes('<span class="sid-hex-label c64-caps">SID registers ($D400-$D418):</span>'),
+    html.includes('<span class="sid-hex-label c64Caps">SID registers ($D400-$D418):</span>'),
     "The SID strip label must wrap only its static text",
   );
   assert.match(
-    fragment(/<span class="morse-badge c64-caps"[\s\S]*?<\/span\s*>/, "Morse badge must exist"),
+    fragment(/<span class="morse-badge c64Caps"[\s\S]*?<\/span\s*>/, "Morse badge must exist"),
     /Secret Morse transmitter active/,
   );
   for (const id of ["btn-close-modal", "btn-close-narrative-modal"]) {
     const closeButton = buttonHtml(id);
-    assert.match(closeButton, /class="[^"]*c64-caps/);
+    assert.match(closeButton, /class="[^"]*c64Caps/);
     assert.match(closeButton, /\bClose\b/);
   }
 
-  const capsRule = css.match(/\.c64-caps\s*\{[^}]*\}/)?.[0];
-  assert.ok(capsRule, "Linked stylesheets must define .c64-caps");
+  const capsRule = css.match(/\.c64Caps\s*\{[^}]*\}/)?.[0];
+  assert.ok(capsRule, "Linked stylesheets must define .c64Caps");
   assert.match(capsRule, /text-transform:\s*uppercase/);
 
   for (const id of [
@@ -696,7 +709,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
   ]) {
     assert.doesNotMatch(
       idTag(id),
-      /c64-caps/,
+      /c64Caps/,
       `#${id} carries dynamic content and must keep its case`,
     );
   }
@@ -1024,7 +1037,7 @@ test("Stats groups metrics and keeps each label with its value", () => {
       "The Stats title must use sentence case in source",
     );
     assert.ok(
-      globalThis.document.querySelector(".diag-title").classList.contains("c64-caps"),
+      globalThis.document.querySelector(".diag-title").classList.contains("c64Caps"),
       "The Stats title must gain uppercase through CSS",
     );
     assert.deepEqual(
@@ -1038,9 +1051,9 @@ test("Stats groups metrics and keeps each label with its value", () => {
       ".diag-group--process .diag-group-title",
     );
     assert.equal(processTitle.children[1].textContent, " (ms)");
-    assert.ok(!processTitle.children[1].classList.contains("c64-caps"));
+    assert.ok(!processTitle.children[1].classList.contains("c64Caps"));
     assert.ok(
-      processTitle.children[0].classList.contains("c64-caps"),
+      processTitle.children[0].classList.contains("c64Caps"),
       "Only the Process word must gain uppercase through CSS",
     );
     assert.equal(
@@ -1674,14 +1687,14 @@ test("CalVer version number appears immediately after the title of the app", asy
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 
-  // Brand title contains Galway 2664 logo with accessible text and brand-version badge
-  const match = html.match(/<div class="brand-title">([\s\S]*?)<\/div>/);
-  assert.ok(match, "index.html must contain brand-title");
+  // Brand title contains Galway 2664 logo with accessible text and topBar-version badge
+  const match = html.match(/<div class="topBar-title">([\s\S]*?)<\/div>/);
+  assert.ok(match, "index.html must contain topBar-title");
 
   const titleContent = match[1];
   assert.match(
     titleContent,
-    /<span[^>]*class="brand-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[\s\S]*?<span class="sr-only">Galway 2664<\/span>[\s\S]*?<\/span>[\s\S]*?<span class="brand-accent c64-caps">\/\/ Ocean 6502-SID workbench<\/span>[\s\S]*?<span class="brand-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
+    /<span[^>]*class="topBar-logo"[^>]*role="(?:img|button)"[^>]*aria-label="Galway 2664"[\s\S]*?<span class="srOnly">Galway 2664<\/span>[\s\S]*?<\/span>[\s\S]*?<span class="topBar-accent c64Caps">\/\/ Ocean 6502-SID workbench<\/span>[\s\S]*?<span class="topBar-version" id="app-version">v([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?)<\/span>/,
     "Version badge must be placed immediately after the app title",
   );
 
@@ -1745,12 +1758,12 @@ test("CalVer version number appears immediately after the title of the app", asy
 
   const css = loadLinkedStylesheets().cssText;
   assert.ok(
-    css.includes("@keyframes c64-sparkle-sweep"),
-    "CSS must contain c64-sparkle-sweep keyframes",
+    css.includes("@keyframes topBar-sparkleSweep"),
+    "CSS must contain topBar-sparkleSweep keyframes",
   );
   assert.ok(
-    css.includes(".brand-logo.sparkle-active"),
-    "CSS must contain sparkle-active class selector",
+    css.includes(".topBar-logo-isSparkling"),
+    "CSS must contain topBar-logo-isSparkling state class selector",
   );
 });
 
@@ -1760,7 +1773,7 @@ test("brand header, document title and package description agree on the 1985-87 
   const subtitle =
     "Cycle-accurate MOS 6510 and 6581/8580 SID emulator for Ocean's 1985-87 C64 soundtracks, with a live assembler.";
   const renderedSubtitle = html
-    .match(/<div class="brand-subtitle">([\s\S]*?)<\/div>/)?.[1]
+    .match(/<div class="topBar-subtitle">([\s\S]*?)<\/div>/)?.[1]
     .replace(/\s+/g, " ")
     .trim();
 
@@ -1810,7 +1823,7 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
     // Badge should show failure, recovery line visible, editor open, text preserved
     assert.equal(badgeState.textContent, "Assembly failed:");
     assert.match(badgeDetail.textContent, /Unknown instruction or directive/);
-    assert.ok(badge.classList.contains("is-error"), "Badge should mark error state");
+    assert.ok(badge.classList.contains("panel-badge-isError"), "Badge should mark error state");
     assert.equal(recoveryEl.textContent, "Fix the source, then select Assemble and run.");
     assert.ok(!recoveryEl.classList.contains("hidden"), "Recovery copy must show on failure");
     assert.equal(editorEl.value, "SYNTAX_ERROR_UNKNOWN_OPCODE ???");
@@ -1838,7 +1851,10 @@ test("source editor surfaces assembly errors, preserves edits on syntax failure,
 
     assert.equal(badgeState.textContent, "Assembled and playing");
     assert.equal(badgeDetail.textContent, "");
-    assert.ok(!badge.classList.contains("is-error"), "Badge error state must clear on success");
+    assert.ok(
+      !badge.classList.contains("panel-badge-isError"),
+      "Badge error state must clear on success",
+    );
     assert.equal(recoveryEl.textContent, "");
     assert.ok(recoveryEl.classList.contains("hidden"), "Recovery copy must hide on success");
     assert.ok(editorEl.classList.contains("hidden"), "Editor should close on success");

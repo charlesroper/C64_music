@@ -5,7 +5,7 @@
    ============================================================================ */
 
 @layer modules {
-  .top-bar {
+  .topBar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -16,13 +16,13 @@
     flex-shrink: 0;
   }
 
-  .brand-block {
+  .topBar-brand {
     display: flex;
     align-items: center;
     gap: 11px;
   }
 
-  .brand-led {
+  .topBar-led {
     width: 11px;
     height: 11px;
     border-radius: 50%;
@@ -31,17 +31,17 @@
     transition: all 0.2s ease;
   }
 
-  .brand-led.playing {
+  .topBar-led-isPlaying {
     background: var(--accent-green);
     box-shadow: 0 0 10px var(--accent-green);
   }
 
-  .brand-led.ready {
+  .topBar-led-isReady {
     background: var(--accent-cyan);
     box-shadow: 0 0 8px var(--accent-cyan);
   }
 
-  .brand-title {
+  .topBar-title {
     font-family: var(--font-mono);
     font-size: var(--text-lg);
     font-weight: 800;
@@ -53,7 +53,7 @@
     gap: 0 var(--space-2);
   }
 
-  .brand-logo {
+  .topBar-logo {
     display: inline-flex;
     align-items: center;
     line-height: 1;
@@ -65,16 +65,16 @@
     transition: transform 0.1s ease;
   }
 
-  .brand-logo:active {
+  .topBar-logo:active {
     transform: scale(0.97);
   }
 
-  .brand-logo:focus-visible {
+  .topBar-logo:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
   }
 
-  .c64-logo-svg {
+  .topBar-logoSvg {
     display: block;
     height: 18px;
     width: auto;
@@ -82,12 +82,12 @@
     filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
   }
 
-  .c64-logo-svg path {
+  .topBar-logoSvg path {
     fill: var(--text-bright);
   }
 
   /* Cycle VIC-II palette colours for the sparkle sweep on the C64 wordmark. */
-  @keyframes c64-sparkle-sweep {
+  @keyframes topBar-sparkleSweep {
     0% {
       fill: #ffffff;
       filter: none;
@@ -118,43 +118,43 @@
     }
   }
 
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(1) {
-    animation: c64-sparkle-sweep 0.35s 0s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(1) {
+    animation: topBar-sparkleSweep 0.35s 0s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(2) {
-    animation: c64-sparkle-sweep 0.35s 0.07s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(2) {
+    animation: topBar-sparkleSweep 0.35s 0.07s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(3) {
-    animation: c64-sparkle-sweep 0.35s 0.14s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(3) {
+    animation: topBar-sparkleSweep 0.35s 0.14s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(4) {
-    animation: c64-sparkle-sweep 0.35s 0.21s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(4) {
+    animation: topBar-sparkleSweep 0.35s 0.21s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(5) {
-    animation: c64-sparkle-sweep 0.35s 0.28s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(5) {
+    animation: topBar-sparkleSweep 0.35s 0.28s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(6) {
-    animation: c64-sparkle-sweep 0.35s 0.35s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(6) {
+    animation: topBar-sparkleSweep 0.35s 0.35s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(7) {
-    animation: c64-sparkle-sweep 0.35s 0.44s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(7) {
+    animation: topBar-sparkleSweep 0.35s 0.44s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(8) {
-    animation: c64-sparkle-sweep 0.35s 0.51s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(8) {
+    animation: topBar-sparkleSweep 0.35s 0.51s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(9) {
-    animation: c64-sparkle-sweep 0.35s 0.58s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(9) {
+    animation: topBar-sparkleSweep 0.35s 0.58s steps(1);
   }
-  .brand-logo.sparkle-active .c64-logo-svg path:nth-of-type(10) {
-    animation: c64-sparkle-sweep 0.35s 0.65s steps(1);
+  .topBar-logo-isSparkling .topBar-logoSvg path:nth-of-type(10) {
+    animation: topBar-sparkleSweep 0.35s 0.65s steps(1);
   }
 
-  .brand-accent {
+  .topBar-accent {
     color: var(--accent-cyan);
     font-weight: 600;
   }
 
-  .brand-version {
+  .topBar-version {
     display: inline-flex;
     align-items: center;
     font-family: var(--font-mono);
@@ -173,44 +173,44 @@
       color 0.15s ease;
   }
 
-  .brand-version:hover {
+  .topBar-version:hover {
     color: var(--accent-cyan);
     border-color: rgba(56, 226, 255, 0.45);
   }
 
-  .brand-subtitle {
+  .topBar-subtitle {
     font-size: var(--text-sm);
     color: var(--text-muted);
     margin-top: 1px;
   }
 
   @media (max-width: 1600px) and (min-width: 821px) {
-    .top-bar {
+    .topBar {
       flex-wrap: wrap;
       row-gap: var(--space-2);
     }
   }
 
   @media (max-width: 1200px) and (min-width: 821px) {
-    .top-bar {
+    .topBar {
       flex-wrap: wrap;
       gap: 10px 14px;
       padding: 10px 14px;
     }
 
-    .brand-block {
+    .topBar-brand {
       min-width: 0;
     }
   }
 
   @media (max-width: 820px) {
-    .top-bar {
+    .topBar {
       flex-wrap: wrap;
       padding: var(--space-2) 10px;
       gap: var(--space-2);
     }
 
-    .brand-block {
+    .topBar-brand {
       display: flex;
       align-items: flex-start;
       gap: 10px;
@@ -218,17 +218,17 @@
       min-width: 0;
     }
 
-    .brand-led {
+    .topBar-led {
       margin-top: 3px;
       flex-shrink: 0;
     }
 
-    .brand-block > div:last-child {
+    .topBar-brandText {
       flex: 1;
       min-width: 0;
     }
 
-    .brand-title {
+    .topBar-title {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
@@ -238,17 +238,17 @@
       row-gap: 3px;
     }
 
-    .brand-logo {
+    .topBar-logo {
       order: 1;
       display: inline-flex;
       align-items: center;
     }
 
-    .c64-logo-svg {
+    .topBar-logoSvg {
       height: 15px;
     }
 
-    .brand-accent {
+    .topBar-accent {
       width: 100%;
       order: 2;
       display: block;
@@ -259,7 +259,7 @@
       opacity: 0.95;
     }
 
-    .brand-version {
+    .topBar-version {
       order: 1;
       margin-left: auto;
       font-size: var(--text-2xs);
@@ -267,13 +267,13 @@
       line-height: var(--leading-normal);
     }
 
-    .brand-subtitle {
+    .topBar-subtitle {
       display: none;
     }
   }
 
   @media (max-width: 820px) and (min-height: 560px) {
-    .top-bar {
+    .topBar {
       position: sticky;
       top: 0;
       z-index: var(--z-topbar);
@@ -284,7 +284,7 @@
 @layer state {
   /* Suppress sparkle animations in @layer state so higher-specificity :nth-of-type rules yield without !important. */
   @media (prefers-reduced-motion: reduce) {
-    .brand-logo.sparkle-active .c64-logo-svg path {
+    .topBar-logo-isSparkling .topBar-logoSvg path {
       animation: none;
     }
   }

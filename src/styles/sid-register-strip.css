@@ -190,8 +190,8 @@
       box-sizing: border-box;
     }
 
-    .workbench-grid[data-mobile-view="monitor"] .sid-hex-strip,
-    .workbench-grid[data-mobile-view="tunes"] .sid-hex-strip {
+    .workbenchShell-grid[data-mobile-view="monitor"] .sid-hex-strip,
+    .workbenchShell-grid[data-mobile-view="tunes"] .sid-hex-strip {
       display: none;
     }
 

@@ -655,7 +655,7 @@ export function createBrowserHarness({
       ]);
       const readyDeadline = Date.now() + timeoutMs;
       const led = elementsById.get("status-led");
-      while (led && !led.classList.contains("ready") && Date.now() < readyDeadline) {
+      while (led && !led.classList.contains("topBar-led-isReady") && Date.now() < readyDeadline) {
         await new Promise((r) => setTimeout(r, 20));
       }
     },

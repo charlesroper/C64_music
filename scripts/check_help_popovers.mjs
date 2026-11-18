@@ -105,7 +105,7 @@ async function waitForApp(send) {
   while (Date.now() < deadline) {
     const ready = await evaluate(
       send,
-      "Boolean(window.__workbenchState?.player && document.querySelector('.track-item'))",
+      "Boolean(window.__workbenchState?.player && document.querySelector('.tunesPanel-item'))",
     );
     if (ready) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -146,7 +146,7 @@ async function readLayout(send, id) {
     `(() => {
       const panel = document.getElementById("${id}-help-panel");
       const trigger = document.getElementById("${id}-help-trigger");
-      const transport = document.querySelector(".transport-bar");
+      const transport = document.querySelector(".transportBar");
       const p = panel.getBoundingClientRect();
       const t = trigger.getBoundingClientRect();
       const b = transport.getBoundingClientRect();
@@ -191,7 +191,7 @@ async function readHintLineAlignment(send, triggerId) {
     send,
     `(() => {
       const button = document.getElementById("${triggerId}");
-      const hint = button.parentElement.querySelector(".hw-hint");
+      const hint = button.parentElement.querySelector(".hardwareControls-hint");
       const probe = document.createElement("span");
       probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
       hint.prepend(probe);

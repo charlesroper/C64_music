@@ -513,13 +513,16 @@ export function createWorkbenchView({
 
     for (const game of GAME_FILES) {
       const div = doc.createElement("div");
-      div.className = `game-item${game.id === state.activeGameId ? " active" : ""}`;
+      div.classList.add("sourceFiles-item");
+      if (game.id === state.activeGameId) {
+        div.classList.add("sourceFiles-item-isActive");
+      }
       div.innerHTML = `
-        <div class="game-item-left">
-          <span class="game-item-title">${game.title} (${game.year})</span>
-          <span class="game-item-file">${game.id}</span>
+        <div class="sourceFiles-itemMain">
+          <span class="sourceFiles-itemTitle">${game.title} (${game.year})</span>
+          <span class="sourceFiles-itemFile">${game.id}</span>
         </div>
-        <span class="game-item-badge">${game.badge}</span>
+        <span class="sourceFiles-itemBadge">${game.badge}</span>
       `;
       div.addEventListener("click", () => {
         selectGameAndTrack(game.id, game.tracks[0].id, true);
@@ -543,25 +546,35 @@ export function createWorkbenchView({
 
     for (const track of filtered) {
       const div = doc.createElement("div");
-      div.className = `track-item${track.id === state.activeTrackId ? " active" : ""}`;
+      div.classList.add("tunesPanel-item");
+      if (track.id === state.activeTrackId) {
+        div.classList.add("tunesPanel-item-isActive");
+      }
 
-      const hzClass = track.hz === 200 ? "hz-200" : track.hz === 100 ? "hz-100" : "hz-50";
+      const hzClass =
+        track.hz === 200
+          ? "tunesPanel-badge--hz200"
+          : track.hz === 100
+            ? "tunesPanel-badge--hz100"
+            : "tunesPanel-badge--hz50";
       const hzText = track.withDrums ? `${track.hz}Hz + DIGI` : `${track.hz}Hz`;
-      const keyBadge = track.key ? `<span class="t-badge key-tag">KEY [${track.key}]</span>` : "";
+      const keyBadge = track.key
+        ? `<span class="tunesPanel-badge tunesPanel-badge--key">KEY [${track.key}]</span>`
+        : "";
       const durBadge = track.durationHint
-        ? `<span class="t-badge">${track.durationHint}</span>`
+        ? `<span class="tunesPanel-badge">${track.durationHint}</span>`
         : "";
 
       div.innerHTML = `
-        <div class="track-row-top">
-          <span class="track-name">${track.name}</span>
-          <div class="track-badges">
+        <div class="tunesPanel-rowTop">
+          <span class="tunesPanel-name">${track.name}</span>
+          <div class="tunesPanel-badges">
             ${keyBadge}
-            <span class="t-badge ${hzClass}">${hzText}</span>
+            <span class="tunesPanel-badge ${hzClass}">${hzText}</span>
             ${durBadge}
           </div>
         </div>
-        <div class="track-desc">${track.description}</div>
+        <div class="tunesPanel-desc">${track.description}</div>
       `;
 
       div.addEventListener("click", () => {
@@ -1236,16 +1249,16 @@ export function createWorkbenchView({
       if (playIcon) playIcon.innerHTML = "&#10074;&#10074;";
       if (playLabel) playLabel.textContent = "Pause";
       if (led) {
-        led.classList.remove("ready");
-        led.classList.add("playing");
+        led.classList.remove("topBar-led-isReady");
+        led.classList.add("topBar-led-isPlaying");
       }
     } else {
       if (btnPlay) btnPlay.classList.remove("button-isPlaying");
       if (playIcon) playIcon.innerHTML = "&#9654;";
       if (playLabel) playLabel.textContent = "Play";
       if (led) {
-        led.classList.remove("playing");
-        led.classList.add("ready");
+        led.classList.remove("topBar-led-isPlaying");
+        led.classList.add("topBar-led-isReady");
       }
     }
   }
@@ -1472,7 +1485,7 @@ export function createWorkbenchView({
       });
     }
 
-    const filterPills = doc.querySelectorAll ? doc.querySelectorAll(".filter-pills .pill") : [];
+    const filterPills = doc.querySelectorAll ? doc.querySelectorAll(".tunesFilter-pill") : [];
     filterPills.forEach((pill) => {
       addListener(pill, "click", () => {
         filterPills.forEach((p) => {
@@ -1696,7 +1709,7 @@ export function createWorkbenchView({
           state.sourceRowCache.delete(fileToUpdate);
         } catch (err) {
           hasAssemblyError = true;
-          if (badgeEl) badgeEl.classList.add("is-error");
+          if (badgeEl) badgeEl.classList.add("panel-badge-isError");
           if (stateEl) stateEl.textContent = "Assembly failed:";
           if (detailEl) detailEl.textContent = ` ${err.message || String(err)}`;
           if (recoveryEl) {
@@ -1708,7 +1721,7 @@ export function createWorkbenchView({
 
         hasAssemblyError = false;
         state.isEditorDirty = false;
-        if (badgeEl) badgeEl.classList.remove("is-error");
+        if (badgeEl) badgeEl.classList.remove("panel-badge-isError");
         if (stateEl) stateEl.textContent = "Assembled and playing";
         if (detailEl) detailEl.textContent = "";
         if (recoveryEl) {
@@ -1761,21 +1774,21 @@ export function createWorkbenchView({
       });
     }
 
-    const brandLogo = doc.querySelector ? doc.querySelector(".brand-logo") : null;
-    if (brandLogo) {
+    const topBarLogo = doc.querySelector ? doc.querySelector(".topBar-logo") : null;
+    if (topBarLogo) {
       let sparkleTimer = null;
       const triggerSparkle = () => {
-        brandLogo.classList.remove("sparkle-active");
-        void brandLogo.offsetWidth;
-        brandLogo.classList.add("sparkle-active");
+        topBarLogo.classList.remove("topBar-logo-isSparkling");
+        void topBarLogo.offsetWidth;
+        topBarLogo.classList.add("topBar-logo-isSparkling");
         if (sparkleTimer) clearTimeout(sparkleTimer);
         sparkleTimer = setTimeout(() => {
-          brandLogo.classList.remove("sparkle-active");
+          topBarLogo.classList.remove("topBar-logo-isSparkling");
         }, 1000);
       };
 
-      addListener(brandLogo, "click", triggerSparkle);
-      addListener(brandLogo, "keydown", (e) => {
+      addListener(topBarLogo, "click", triggerSparkle);
+      addListener(topBarLogo, "keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           triggerSparkle();

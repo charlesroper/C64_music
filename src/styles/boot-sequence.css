@@ -6,13 +6,13 @@
 
 @layer modules {
   /* Hide the workbench shell at first paint until the Boot Sequence finishes. */
-  body[data-boot-state="booting"] .app-shell {
+  body[data-boot-state="booting"] .workbenchShell {
     visibility: hidden;
     pointer-events: none;
   }
 
   /* Reveal the workbench immediately when skipBoot or reduced motion is active. */
-  html[data-boot-mode="immediate"] body[data-boot-state="booting"] .app-shell {
+  html[data-boot-mode="immediate"] body[data-boot-state="booting"] .workbenchShell {
     visibility: visible;
     pointer-events: auto;
   }

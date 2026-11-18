@@ -221,7 +221,7 @@ export async function bootWorkbench(options = {}) {
   addGestureListeners(prepareAudio);
 
   const led = view.elements.get("status-led");
-  if (led) led.classList.add("ready");
+  if (led) led.classList.add("topBar-led-isReady");
 
   prewarm.finally(() => {
     prewarmDone = true;

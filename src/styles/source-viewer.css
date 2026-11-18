@@ -404,7 +404,7 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    .workbench-grid[data-mobile-view="asm"] .source-viewer {
+    .workbenchShell-grid[data-mobile-view="asm"] .source-viewer {
       height: 64dvh;
       max-height: 64dvh;
     }

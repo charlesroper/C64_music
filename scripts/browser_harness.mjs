@@ -48,7 +48,7 @@ export async function waitForWorkbenchReady(page) {
       Boolean(window.__workbenchState?.player) &&
       document.getElementById("play-label")?.textContent !== "LOADING..." &&
       document.getElementById("game-meta-card")?.textContent.trim().length > 0 &&
-      document.querySelectorAll(".track-item").length > 0 &&
+      document.querySelectorAll(".tunesPanel-item").length > 0 &&
       document.querySelectorAll(".asm-line").length > 0,
   );
 }

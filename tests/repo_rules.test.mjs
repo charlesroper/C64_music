@@ -49,7 +49,7 @@ test("updateHtmlVersion rewrites the title with the 1985-87 range and updates ?v
     '<link href="./src/styles/overlays.css" rel="stylesheet">',
     "<link rel='stylesheet' href='./src/styles/c64-monitor.css?v=2026.11.16.3'>",
     "</head><body>",
-    '<span class="brand-version" id="app-version">v2026.11.16.3</span>',
+    '<span class="topBar-version" id="app-version">v2026.11.16.3</span>',
     '<script type="module" src="./src/main.js?v=2026.11.16.3"></script>',
     "</body></html>",
   ].join("\n");
@@ -624,7 +624,7 @@ test("calendar version is synchronized across all seven release locations", () =
   assert.ok(titleMatch, "index.html title must declare CalVer version");
   assert.equal(titleMatch[1], calver, "index.html title version must match package.json");
 
-  const badgeMatch = html.match(/<span class="brand-version" id="app-version">v([^<]+)<\/span>/);
+  const badgeMatch = html.match(/<span class="topBar-version" id="app-version">v([^<]+)<\/span>/);
   assert.ok(badgeMatch, "index.html header badge must declare CalVer version");
   assert.equal(badgeMatch[1], calver, "index.html header badge version must match package.json");
 

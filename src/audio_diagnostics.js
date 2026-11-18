@@ -319,7 +319,7 @@ function createDiagnosticsLayout(doc) {
   header.classList.add("diag-header");
 
   const title = doc.createElement("h2");
-  title.classList.add("diag-title", "c64-caps");
+  title.classList.add("diag-title", "c64Caps");
   title.textContent = "Stats for nerds";
   header.appendChild(title);
 
@@ -362,7 +362,7 @@ function createDiagnosticsLayout(doc) {
     const groupTitle = doc.createElement("div");
     groupTitle.classList.add("diag-group-title");
     const groupTitleText = doc.createElement("span");
-    groupTitleText.classList.add("c64-caps");
+    groupTitleText.classList.add("c64Caps");
     groupTitleText.textContent = group.title;
     groupTitle.appendChild(groupTitleText);
     if (group.unit) {

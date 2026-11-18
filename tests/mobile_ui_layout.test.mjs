@@ -48,23 +48,27 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile html/body must prevent horizontal page overflow (overflow-x: hidden)",
   );
 
-  const mobShell = computeStyleForExactSelectors(rules, [".app-shell"], mobile);
-  assert.equal(mobShell.height, "auto", "Mobile .app-shell must allow vertical growth");
-  assert.equal(mobShell.width, "100%", "Mobile .app-shell must use 100% width instead of 100vw");
+  const mobShell = computeStyleForExactSelectors(rules, [".workbenchShell"], mobile);
+  assert.equal(mobShell.height, "auto", "Mobile .workbenchShell must allow vertical growth");
+  assert.equal(
+    mobShell.width,
+    "100%",
+    "Mobile .workbenchShell must use 100% width instead of 100vw",
+  );
 
   // 2. Workbench grid collapses from 3 columns on desktop to 1 column on 375px phone
-  const deskGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], desktop);
+  const deskGrid = computeStyleForExactSelectors(rules, [".workbenchShell-grid"], desktop);
   assert.match(deskGrid["grid-template-columns"], /320px/);
 
-  const mobGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], mobile);
+  const mobGrid = computeStyleForExactSelectors(rules, [".workbenchShell-grid"], mobile);
   assert.ok(
     mobGrid["grid-template-columns"] === "1fr" ||
       mobGrid["grid-template-columns"] === "minmax(0, 1fr)",
-    `Mobile .workbench-grid must collapse to a single column, got: ${mobGrid["grid-template-columns"]}`,
+    `Mobile .workbenchShell-grid must collapse to a single column, got: ${mobGrid["grid-template-columns"]}`,
   );
 
   // 3. Top bar, transport bar, panel headers, and source toolbar wrap cleanly on 375px phone
-  for (const sel of [".top-bar", ".transport-bar", ".panel-header", ".source-toolbar"]) {
+  for (const sel of [".topBar", ".transportBar", ".panel-header", ".source-toolbar"]) {
     const style = computeStyleForExactSelectors(rules, [sel], mobile);
     assert.equal(
       style["flex-wrap"],
@@ -89,10 +93,10 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   // 5. Track list and .ASM source viewer have bounded mobile heights (preventing 40,000px scroll)
-  const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
+  const mobTrackList = computeStyleForExactSelectors(rules, [".tunesPanel"], mobile);
   assert.ok(
     mobTrackList["max-height"] && mobTrackList["max-height"] !== "none",
-    "Mobile .track-list must set a bounded max-height",
+    "Mobile .tunesPanel must set a bounded max-height",
   );
 
   const mobSourceViewer = computeStyleForExactSelectors(rules, [".source-viewer"], mobile);
@@ -104,7 +108,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   // 6. Touch targets (>= 34px) and iOS Safari 16px anti-zoom on inputs/selects
   const mobTransportBtn = computeStyleForExactSelectors(
     rules,
-    ["button", ".transport-bar button"],
+    [".button", ".transportBar-button"],
     mobile,
   );
   assert.ok(
@@ -130,25 +134,29 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   // 7. Mobile hardware controls: slider spans full width, docs & story buttons form a 2-up row
   const mobSliderGroup = computeStyleForExactSelectors(
     rules,
-    [".hw-group", ".hw-group-full", ".hw-group-digi"],
+    [".hardwareControls-group", ".hardwareControls-group--full", ".hardwareControls-group--digi"],
     mobile,
   );
   assert.equal(
     mobSliderGroup["grid-column"],
     "1 / -1",
-    "Mobile .hw-group-digi must span all columns (1 / -1) so the slider fills the entire width",
+    "Mobile .hardwareControls-group--digi must span all columns (1 / -1) so the slider fills the entire width",
   );
 
-  const mobHwToggle = computeStyleForExactSelectors(rules, [".hw-toggle"], mobile);
+  const mobHwToggle = computeStyleForExactSelectors(rules, [".hardwareControls-toggle"], mobile);
   assert.ok(
     parseInt(mobHwToggle["min-height"] || "0", 10) >= 36,
     "Mobile hardware toggles must be >= 36px tall",
   );
 
-  const mobActionBtn = computeStyleForExactSelectors(rules, [".hw-action-btn"], mobile);
+  const mobActionBtn = computeStyleForExactSelectors(
+    rules,
+    [".hardwareControls-actionButton"],
+    mobile,
+  );
   const mobStatsBtn = computeStyleForExactSelectors(
     rules,
-    [".hw-action-btn", ".hw-action-btn-full"],
+    [".hardwareControls-actionButton", ".hardwareControls-actionButton--full"],
     mobile,
   );
   assert.equal(mobActionBtn.width, "100%", "Mobile top-bar action buttons must be width: 100%");
@@ -351,30 +359,30 @@ test("laptop 1024x768 and 1100x700 breakpoints enable vertical scrolling, preven
     "Laptop html/body must allow vertical page scrolling",
   );
 
-  const gridStyle = computeStyleForExactSelectors(rules, [".workbench-grid"], laptop);
+  const gridStyle = computeStyleForExactSelectors(rules, [".workbenchShell-grid"], laptop);
   assert.match(gridStyle["grid-template-columns"], /310px/);
 
-  const panelCenter = computeStyleForExactSelectors(rules, [".panel-center"], laptop);
+  const panelCenter = computeStyleForExactSelectors(rules, [".panel--center"], laptop);
   assert.ok(
     parseInt(panelCenter["min-height"] || "0", 10) >= 500,
-    "Laptop .panel-center must have min-height >= 500px to prevent C64 monitor squashing",
+    "Laptop .panel--center must have min-height >= 500px to prevent C64 monitor squashing",
   );
 
-  const panelLeft = computeStyleForExactSelectors(rules, [".panel-left"], laptop);
+  const panelLeft = computeStyleForExactSelectors(rules, [".panel--left"], laptop);
   assert.ok(
     parseInt(panelLeft["min-height"] || "0", 10) >= 500,
-    "Laptop .panel-left must have min-height >= 500px to keep Panel 2 tunes visible",
+    "Laptop .panel--left must have min-height >= 500px to keep Panel 2 tunes visible",
   );
 
-  const panelRight = computeStyleForExactSelectors(rules, [".panel-right"], laptop);
+  const panelRight = computeStyleForExactSelectors(rules, [".panel--right"], laptop);
   assert.equal(
     panelRight["grid-column"],
     "1 / -1",
-    "Laptop .panel-right must span all columns (1 / -1)",
+    "Laptop .panel--right must span all columns (1 / -1)",
   );
   assert.ok(
     parseInt(panelRight["min-height"] || "0", 10) >= 400,
-    "Laptop .panel-right must have min-height >= 400px",
+    "Laptop .panel--right must have min-height >= 400px",
   );
 });
 
@@ -526,7 +534,7 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   );
 
   for (const tab of ["monitor", "tunes"]) {
-    const hiddenLocator = `.workbench-grid[data-mobile-view="${tab}"] .sid-hex-strip`;
+    const hiddenLocator = `.workbenchShell-grid[data-mobile-view="${tab}"] .sid-hex-strip`;
     const stripHidden = computeStyleForExactSelectors(rules, [hiddenLocator], mobile);
     assert.equal(
       stripHidden.display,
@@ -722,74 +730,74 @@ test("left panel stretches to match center panel on 2-column layouts, prioritise
     { width: 980, height: 1600 },
     { width: 1440, height: 900 },
   ]) {
-    const panelLeft = computeStyleForExactSelectors(rules, [".panel-left"], viewport);
+    const panelLeft = computeStyleForExactSelectors(rules, [".panel--left"], viewport);
     assert.ok(
       !panelLeft.height || panelLeft.height === "auto",
-      `${viewport.width}x${viewport.height} .panel-left must stretch with row height, not use fixed height (${panelLeft.height})`,
+      `${viewport.width}x${viewport.height} .panel--left must stretch with row height, not use fixed height (${panelLeft.height})`,
     );
 
-    const gameList = computeStyleForExactSelectors(rules, [".game-list"], viewport);
+    const gameList = computeStyleForExactSelectors(rules, [".sourceFiles"], viewport);
     assert.equal(
       gameList.flex,
       "0 1 auto",
-      `${viewport.width}x${viewport.height} .game-list must use flex: 0 1 auto to fit all source files first`,
+      `${viewport.width}x${viewport.height} .sourceFiles must use flex: 0 1 auto to fit all source files first`,
     );
     assert.equal(
       gameList["max-height"],
       "none",
-      `${viewport.width}x${viewport.height} .game-list must uncap max-height`,
+      `${viewport.width}x${viewport.height} .sourceFiles must uncap max-height`,
     );
     assert.equal(
       gameList["min-height"],
       "0",
-      `${viewport.width}x${viewport.height} .game-list must set min-height: 0 so it can shrink on very short viewports`,
+      `${viewport.width}x${viewport.height} .sourceFiles must set min-height: 0 so it can shrink on very short viewports`,
     );
 
-    const trackList = computeStyleForExactSelectors(rules, [".track-list"], viewport);
+    const trackList = computeStyleForExactSelectors(rules, [".tunesPanel"], viewport);
     assert.equal(
       trackList.flex,
       "1 1 0",
-      `${viewport.width}x${viewport.height} .track-list must use flex: 1 1 0 to fill remaining space`,
+      `${viewport.width}x${viewport.height} .tunesPanel must use flex: 1 1 0 to fill remaining space`,
     );
     assert.equal(
       trackList["max-height"],
       "none",
-      `${viewport.width}x${viewport.height} .track-list must uncap max-height`,
+      `${viewport.width}x${viewport.height} .tunesPanel must uncap max-height`,
     );
     assert.ok(
       Number.parseInt(trackList["min-height"] || "0", 10) > 0,
-      `${viewport.width}x${viewport.height} .track-list must keep a non-zero min-height floor on short viewports`,
+      `${viewport.width}x${viewport.height} .tunesPanel must keep a non-zero min-height floor on short viewports`,
     );
 
-    const metaCard = computeStyleForExactSelectors(rules, [".game-meta-card"], viewport);
+    const metaCard = computeStyleForExactSelectors(rules, [".gameMetaCard"], viewport);
     assert.equal(metaCard["font-size"], "11px");
     assert.equal(metaCard["line-height"], "1.4");
     assert.equal(metaCard.padding, "7px 9px");
     assert.ok(
       Number.parseInt(metaCard["max-height"] || "0", 10) >= 160,
-      `${viewport.width}x${viewport.height} .game-meta-card max-height must stay >= 160px`,
+      `${viewport.width}x${viewport.height} .gameMetaCard max-height must stay >= 160px`,
     );
   }
 
   const mobile = { width: 375, height: 812 };
-  const mobGameList = computeStyleForExactSelectors(rules, [".game-list"], mobile);
+  const mobGameList = computeStyleForExactSelectors(rules, [".sourceFiles"], mobile);
   assert.equal(mobGameList.flex, "0 0 auto");
   assert.equal(mobGameList["max-height"], "none");
 
-  const mobTrackList = computeStyleForExactSelectors(rules, [".track-list"], mobile);
+  const mobTrackList = computeStyleForExactSelectors(rules, [".tunesPanel"], mobile);
   assert.equal(mobTrackList.flex, "1 1 auto");
   assert.ok(
     Number.parseInt(mobTrackList["min-height"] || "0", 10) >= 120,
-    "Mobile .track-list must keep a >= 120px min-height",
+    "Mobile .tunesPanel must keep a >= 120px min-height",
   );
   assert.ok(
     mobTrackList["max-height"] && mobTrackList["max-height"] !== "none",
-    "Mobile .track-list in All panels must keep a bounded max-height",
+    "Mobile .tunesPanel in All panels must keep a bounded max-height",
   );
 
   const mobTunesTabTrackList = computeStyleForExactSelectors(
     rules,
-    [".track-list", '.workbench-grid[data-mobile-view="tunes"] .track-list'],
+    [".tunesPanel", '.workbenchShell-grid[data-mobile-view="tunes"] .tunesPanel'],
     mobile,
   );
   assert.equal(mobTunesTabTrackList["max-height"], "none");
@@ -798,14 +806,14 @@ test("left panel stretches to match center panel on 2-column layouts, prioritise
 test("SID register strip uses tight vertical padding and never stretches in tall 2-column viewports", () => {
   const rules = loadLinkedRules();
 
-  const tabletGrid = computeStyleForExactSelectors(rules, [".workbench-grid"], {
+  const tabletGrid = computeStyleForExactSelectors(rules, [".workbenchShell-grid"], {
     width: 980,
     height: 1600,
   });
   assert.equal(
     tabletGrid["grid-template-rows"],
     "auto auto auto",
-    "2-column .workbench-grid must size all three rows to auto so the register strip never stretches",
+    "2-column .workbenchShell-grid must size all three rows to auto so the register strip never stretches",
   );
 
   for (const viewport of [
@@ -1163,8 +1171,11 @@ test("Boot Sequence module extracts with co-located media queries and expected c
     "var(--z-boot)",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, ['body[data-boot-state="booting"] .app-shell'], desktop)
-      .visibility,
+    computeStyleForExactSelectors(
+      rules,
+      ['body[data-boot-state="booting"] .workbenchShell'],
+      desktop,
+    ).visibility,
     "hidden",
   );
   assert.equal(
@@ -1209,21 +1220,25 @@ test("workbench shell, top bar, and hardware controls modules extract with co-lo
   const mobile = { width: 375, height: 812 };
 
   assert.equal(
-    computeStyleForExactSelectors(rules, [".hw-toggle-value-latency"], desktop)["min-width"],
+    computeStyleForExactSelectors(rules, [".hardwareControls-toggleValue--latency"], desktop)[
+      "min-width"
+    ],
     "76px",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".hw-group-full"], mobile)["grid-column"],
+    computeStyleForExactSelectors(rules, [".hardwareControls-group--full"], mobile)["grid-column"],
     "1 / -1",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".hw-action-btn-full"], mobile)["grid-column"],
+    computeStyleForExactSelectors(rules, [".hardwareControls-actionButton--full"], mobile)[
+      "grid-column"
+    ],
     "1 / -1",
   );
 
   const reducedMotionRule = rules.find(
     (rule) =>
-      rule.selector === ".brand-logo.sparkle-active .c64-logo-svg path" &&
+      rule.selector === ".topBar-logo-isSparkling .topBar-logoSvg path" &&
       rule.mediaQuery === "(prefers-reduced-motion: reduce)",
   );
   assert.ok(reducedMotionRule, "Sparkle reduced-motion rule must remain defined");

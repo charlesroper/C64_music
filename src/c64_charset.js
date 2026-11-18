@@ -228,7 +228,7 @@ export function generateC64TextSvg(text = "GALWAY 2664", options = {}) {
     padX = 1,
     padY = 1,
     title = "Galway 2664",
-    className = "c64-logo-svg",
+    className = "topBar-logoSvg",
   } = options;
 
   let currentX = padX;

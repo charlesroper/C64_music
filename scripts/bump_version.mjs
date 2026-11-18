@@ -40,8 +40,8 @@ export function updateHtmlVersion(html, nextVersion) {
       `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v${nextVersion}</title>`,
     )
     .replace(
-      /<span class="brand-version" id="app-version">v[^<]*<\/span>/,
-      `<span class="brand-version" id="app-version">v${nextVersion}</span>`,
+      /<span class="topBar-version" id="app-version">v[^<]*<\/span>/,
+      `<span class="topBar-version" id="app-version">v${nextVersion}</span>`,
     )
     .replace(/<!--[\s\S]*?-->|<link\b[^>]*>/gi, (match) => {
       if (match.startsWith("<!--")) return match;

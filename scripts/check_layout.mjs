@@ -76,9 +76,9 @@ async function checkVoiceFooterLock(page, viewport) {
 
 async function checkLeftPanel(page, viewport) {
   const metrics = await page.evaluate(() => {
-    const panelLeft = document.querySelector(".panel-left");
-    const panelCenter = document.querySelector(".panel-center");
-    const panelRight = document.querySelector(".panel-right");
+    const panelLeft = document.querySelector(".panel--left");
+    const panelCenter = document.querySelector(".panel--center");
+    const panelRight = document.querySelector(".panel--right");
     const games = document.getElementById("game-list");
     const tracks = document.getElementById("track-list");
     return {
@@ -106,9 +106,9 @@ async function checkLeftPanel(page, viewport) {
   }
   if (viewport.maxPanelHeight) {
     for (const [name, height] of [
-      ["panel-left", metrics.panelLeftH],
-      ["panel-center", metrics.panelCenterH],
-      ["panel-right", metrics.panelRightH],
+      ["panel--left", metrics.panelLeftH],
+      ["panel--center", metrics.panelCenterH],
+      ["panel--right", metrics.panelRightH],
     ]) {
       assert.ok(
         height <= viewport.maxPanelHeight,
@@ -117,10 +117,10 @@ async function checkLeftPanel(page, viewport) {
     }
   }
   if (viewport.minMetaFit) {
-    const count = await page.locator(".game-item").count();
+    const count = await page.locator(".sourceFiles-item").count();
     let fitCount = 0;
     for (let i = 0; i < count; i += 1) {
-      await page.locator(".game-item").nth(i).click();
+      await page.locator(".sourceFiles-item").nth(i).click();
       const fits = await page.evaluate(() => {
         const card = document.getElementById("game-meta-card");
         return card.scrollHeight <= card.clientHeight;
@@ -135,17 +135,17 @@ async function checkLeftPanel(page, viewport) {
   if (viewport.checkMobileTabs) {
     assert.ok(
       metrics.tracksClientH <= 340,
-      `All-panels mobile .track-list should stay bounded (${metrics.tracksClientH}px)`,
+      `All-panels mobile .tunesPanel should stay bounded (${metrics.tracksClientH}px)`,
     );
-    await page.locator('.mobile-tab-btn[data-mobile-tab="tunes"]').click();
-    await page.locator(".game-item").nth(2).click();
+    await page.locator('.mobileTabs-button[data-mobile-tab="tunes"]').click();
+    await page.locator(".sourceFiles-item").nth(2).click();
     const tunesTab = await page.evaluate(() => {
       const tracks = document.getElementById("track-list");
       return { clientH: tracks.clientHeight, scrollH: tracks.scrollHeight };
     });
     assert.ok(
       tunesTab.scrollH <= tunesTab.clientH,
-      `Mobile Tunes tab .track-list must not nest-scroll (${tunesTab.scrollH} > ${tunesTab.clientH})`,
+      `Mobile Tunes tab .tunesPanel must not nest-scroll (${tunesTab.scrollH} > ${tunesTab.clientH})`,
     );
   }
 }
