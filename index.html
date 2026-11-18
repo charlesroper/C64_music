@@ -757,7 +757,7 @@
                 ><span class="c64Caps">5. Ocean source:</span
                 ><span id="source-file-name"></span></span
               >
-              <span class="source-stats" id="source-stats">0 lines</span>
+              <span class="sourceStats" id="source-stats">0 lines</span>
             </div>
             <div class="panel-headerGroup">
               <label
@@ -787,10 +787,10 @@
           </div>
 
           <!-- Symbol Jump & Search Toolbar -->
-          <div class="source-toolbar">
+          <div class="sourceToolbar">
             <select
               id="select-symbol-jump"
-              class="symbol-select"
+              class="sourceToolbar-select"
               title="Jump to symbol / routine / data table"
               aria-label="Jump to symbol or label"
             >
@@ -799,66 +799,75 @@
             <input
               type="search"
               id="input-source-search"
-              class="source-search"
+              class="sourceToolbar-search"
               placeholder="Find label, opcode, comment..."
               aria-label="Search source"
             >
             <!-- biome-ignore lint/a11y/useSemanticElements: this is a radio-style control group styled as a legend strip; fieldset semantics would change the existing layout and test contract -->
-            <div class="pc-legend" id="pc-legend" role="group" aria-label="Select voice to follow">
+            <div
+              class="voiceLegend"
+              id="pc-legend"
+              role="group"
+              aria-label="Select voice to follow"
+            >
               <button
                 type="button"
-                class="legend-chip selected"
+                class="voiceLegend-chip voiceLegend-chip--v0 voiceLegend-chip-isSelected"
                 data-voice="0"
                 aria-pressed="false"
                 title="Follow voice 1 (PC0)"
               >
-                <i class="dot-v0" aria-hidden="true"></i>V1
+                <i class="voiceLegend-dot voiceLegend-dot--v0" aria-hidden="true"></i>V1
               </button>
               <button
                 type="button"
-                class="legend-chip"
+                class="voiceLegend-chip voiceLegend-chip--v1"
                 data-voice="1"
                 aria-pressed="false"
                 title="Follow voice 2 (PC1)"
               >
-                <i class="dot-v1" aria-hidden="true"></i>V2
+                <i class="voiceLegend-dot voiceLegend-dot--v1" aria-hidden="true"></i>V2
               </button>
               <button
                 type="button"
-                class="legend-chip"
+                class="voiceLegend-chip voiceLegend-chip--v2"
                 data-voice="2"
                 aria-pressed="false"
                 title="Follow voice 3 (PC2)"
               >
-                <i class="dot-v2" aria-hidden="true"></i>V3
+                <i class="voiceLegend-dot voiceLegend-dot--v2" aria-hidden="true"></i>V3
               </button>
               <button
                 type="button"
-                class="legend-chip disabled"
+                class="voiceLegend-chip voiceLegend-chip--seq voiceLegend-chip-isDisabled"
                 data-voice="seq"
                 aria-pressed="false"
                 disabled
                 title="No drum sequencer in this song"
               >
-                <i class="dot-seq" aria-hidden="true"></i>DRM
+                <i
+                  class="voiceLegend-dot voiceLegend-dot--seq voiceLegend-dot-isDisabled"
+                  aria-hidden="true"
+                ></i
+                >DRM
               </button>
             </div>
           </div>
 
           <!-- Assembly failure recovery guidance -->
-          <div class="asm-recovery hidden" id="asm-compile-recovery"></div>
+          <div class="sourceRecovery hidden" id="asm-compile-recovery"></div>
 
           <!-- Read-Only Live Execution Code Viewer -->
-          <div class="source-viewer" id="source-viewer"></div>
+          <div class="sourceViewer" id="source-viewer"></div>
 
           <!-- Editable Textarea (shown when Edit .ASM is toggled) -->
-          <textarea id="source-editor" class="source-editor hidden" spellcheck="false"></textarea>
+          <textarea id="source-editor" class="sourceEditor hidden" spellcheck="false"></textarea>
         </section>
 
         <!-- Live SID Hardware Registers Strip ($D400-$D418) -->
-        <div class="sid-hex-strip">
-          <span class="sid-hex-label c64Caps">SID registers ($D400-$D418):</span>
-          <div class="sid-hex-cells" id="sid-hex-cells"></div>
+        <div class="sidStrip">
+          <span class="sidStrip-label c64Caps">SID registers ($D400-$D418):</span>
+          <div class="sidStrip-cells" id="sid-hex-cells"></div>
         </div>
       </main>
     </div>

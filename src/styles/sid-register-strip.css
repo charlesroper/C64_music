@@ -1,12 +1,12 @@
 /* ============================================================================
    SID Register Strip: Hex Readouts for SID Registers
    Styles the SID Register Strip ($D400-$D418) inside @layer modules, with
-   pixel-locked cell geometry and co-located responsive rules.
+   pixel-locked cell geometry, single-class selectors, and co-located media rules.
    ============================================================================ */
 
 @layer modules {
-  /* CAUTION: Keep align-self: start and 3px 6px padding on .sid-hex-strip. Tall viewports otherwise stretch the register strip. */
-  .sid-hex-strip {
+  /* CAUTION: Keep align-self: start and 3px 6px padding on .sidStrip. Tall viewports otherwise stretch the register strip. */
+  .sidStrip {
     grid-column: 1 / -1;
     align-self: start;
     display: flex;
@@ -21,12 +21,12 @@
     flex-shrink: 0;
   }
 
-  .sid-hex-label {
+  .sidStrip-label {
     color: var(--text-muted);
     white-space: nowrap;
   }
 
-  .sid-hex-cells {
+  .sidStrip-cells {
     display: grid;
     flex: 1 1 auto;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -35,7 +35,7 @@
     min-width: 0;
   }
 
-  .sid-hex-group {
+  .sidStrip-group {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -51,7 +51,43 @@
       background-color 0.15s;
   }
 
-  .sid-group-tag {
+  .sidStrip-group--v0 {
+    --sidStrip-accent: var(--accent-cyan);
+    --sidStrip-tagBg: rgba(56, 226, 255, 0.12);
+    --sidStrip-activeBg: rgba(56, 226, 255, 0.08);
+    --sidStrip-activeGlow: 0 0 8px rgba(56, 226, 255, 0.35);
+    --sidStrip-cellActiveBorder: #a8f5ff;
+    --sidStrip-cellActiveShadow: 0 1px 3px rgba(56, 226, 255, 0.4);
+  }
+
+  .sidStrip-group--v1 {
+    --sidStrip-accent: var(--accent-magenta);
+    --sidStrip-tagBg: rgba(255, 86, 177, 0.12);
+    --sidStrip-activeBg: rgba(255, 86, 177, 0.08);
+    --sidStrip-activeGlow: 0 0 8px rgba(255, 86, 177, 0.35);
+    --sidStrip-cellActiveBorder: #ffa1d4;
+    --sidStrip-cellActiveShadow: 0 1px 3px rgba(255, 86, 177, 0.4);
+  }
+
+  .sidStrip-group--v2 {
+    --sidStrip-accent: var(--accent-yellow);
+    --sidStrip-tagBg: rgba(255, 170, 0, 0.15);
+    --sidStrip-activeBg: rgba(255, 170, 0, 0.08);
+    --sidStrip-activeGlow: 0 0 8px rgba(255, 170, 0, 0.35);
+    --sidStrip-cellActiveBorder: #ffd480;
+    --sidStrip-cellActiveShadow: 0 1px 3px rgba(255, 170, 0, 0.4);
+  }
+
+  .sidStrip-group--flt {
+    --sidStrip-accent: var(--accent-green);
+    --sidStrip-tagBg: rgba(69, 240, 139, 0.12);
+    --sidStrip-activeBg: rgba(69, 240, 139, 0.08);
+    --sidStrip-activeGlow: 0 0 8px rgba(69, 240, 139, 0.35);
+    --sidStrip-cellActiveBorder: #8affaa;
+    --sidStrip-cellActiveShadow: 0 1px 3px rgba(69, 240, 139, 0.4);
+  }
+
+  .sidStrip-groupTag {
     flex-shrink: 0;
     white-space: nowrap;
     font-size: 8.5px;
@@ -60,30 +96,22 @@
     padding: 1px 3px;
     border-radius: var(--radius-xs);
     user-select: none;
+    color: var(--sidStrip-accent);
+    background: var(--sidStrip-tagBg);
   }
 
-  .sid-hex-group.v0 .sid-group-tag {
-    color: var(--accent-cyan);
-    background: rgba(56, 226, 255, 0.12);
+  /* Highlight active register groups when voices or filter sound. */
+  .sidStrip-group-isActive {
+    border-color: var(--sidStrip-accent);
+    box-shadow: var(--sidStrip-activeGlow);
+    background: var(--sidStrip-activeBg);
+    --sidStrip-cellBorder: var(--sidStrip-cellActiveBorder);
+    --sidStrip-cellColor: var(--text-bright);
+    --sidStrip-cellShadow: var(--sidStrip-cellActiveShadow);
   }
 
-  .sid-hex-group.v1 .sid-group-tag {
-    color: var(--accent-magenta);
-    background: rgba(255, 86, 177, 0.12);
-  }
-
-  .sid-hex-group.v2 .sid-group-tag {
-    color: var(--accent-yellow);
-    background: rgba(255, 170, 0, 0.15);
-  }
-
-  .sid-hex-group.flt .sid-group-tag {
-    color: var(--accent-green);
-    background: rgba(69, 240, 139, 0.12);
-  }
-
-  /* CAUTION: Keep exact column tracks and min-width: 17px on .sid-cell. Live hex updates otherwise wrap or shift strip columns. */
-  .sid-group-cells {
+  /* CAUTION: Keep exact column tracks and min-width: 17px on .sidStrip-cell. Live hex updates otherwise wrap or shift strip columns. */
+  .sidStrip-groupCells {
     display: grid;
     flex: 1 1 auto;
     grid-auto-flow: column;
@@ -93,11 +121,13 @@
     min-width: 0;
   }
 
-  .sid-cell {
+  .sidStrip-cell {
     padding: 1px 3px;
     border-radius: var(--radius-xs);
     background: #141b29;
-    color: var(--text-main);
+    color: var(--sidStrip-cellColor, var(--text-main));
+    border-bottom: 2px solid var(--sidStrip-cellBorder, var(--sidStrip-cellIdleBorder));
+    box-shadow: var(--sidStrip-cellShadow, none);
     min-width: 17px;
     text-align: center;
     font-variant-numeric: tabular-nums;
@@ -107,79 +137,30 @@
       box-shadow 0.1s;
   }
 
-  .sid-cell.v0 {
-    border-bottom: 2px solid var(--accent-cyan);
+  .sidStrip-cell--v0 {
+    --sidStrip-cellIdleBorder: var(--accent-cyan);
   }
 
-  .sid-cell.v1 {
-    border-bottom: 2px solid var(--accent-magenta);
+  .sidStrip-cell--v1 {
+    --sidStrip-cellIdleBorder: var(--accent-magenta);
   }
 
-  .sid-cell.v2 {
-    border-bottom: 2px solid var(--accent-yellow);
+  .sidStrip-cell--v2 {
+    --sidStrip-cellIdleBorder: var(--accent-yellow);
   }
 
-  .sid-cell.flt {
-    border-bottom: 2px solid var(--accent-green);
-  }
-
-  /* Highlight active register groups when voices or filter sound. */
-  .sid-hex-group.v0.active {
-    border-color: var(--accent-cyan);
-    box-shadow: 0 0 8px rgba(56, 226, 255, 0.35);
-    background: rgba(56, 226, 255, 0.08);
-  }
-
-  .sid-hex-group.v0.active .sid-cell.v0 {
-    border-bottom-color: #a8f5ff;
-    color: var(--text-bright);
-    box-shadow: 0 1px 3px rgba(56, 226, 255, 0.4);
-  }
-
-  .sid-hex-group.v1.active {
-    border-color: var(--accent-magenta);
-    box-shadow: 0 0 8px rgba(255, 86, 177, 0.35);
-    background: rgba(255, 86, 177, 0.08);
-  }
-
-  .sid-hex-group.v1.active .sid-cell.v1 {
-    border-bottom-color: #ffa1d4;
-    color: var(--text-bright);
-    box-shadow: 0 1px 3px rgba(255, 86, 177, 0.4);
-  }
-
-  .sid-hex-group.v2.active {
-    border-color: var(--accent-yellow);
-    box-shadow: 0 0 8px rgba(255, 170, 0, 0.35);
-    background: rgba(255, 170, 0, 0.08);
-  }
-
-  .sid-hex-group.v2.active .sid-cell.v2 {
-    border-bottom-color: #ffd480;
-    color: var(--text-bright);
-    box-shadow: 0 1px 3px rgba(255, 170, 0, 0.4);
-  }
-
-  .sid-hex-group.flt.active {
-    border-color: var(--accent-green);
-    box-shadow: 0 0 8px rgba(69, 240, 139, 0.35);
-    background: rgba(69, 240, 139, 0.08);
-  }
-
-  .sid-hex-group.flt.active .sid-cell.flt {
-    border-bottom-color: #8affaa;
-    color: var(--text-bright);
-    box-shadow: 0 1px 3px rgba(69, 240, 139, 0.4);
+  .sidStrip-cell--flt {
+    --sidStrip-cellIdleBorder: var(--accent-green);
   }
 
   @media (max-width: 1100px) {
-    .sid-hex-cells {
+    .sidStrip-cells {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 820px) {
-    .sid-hex-strip {
+    .sidStrip {
       order: 4;
       flex-direction: column;
       align-items: stretch;
@@ -190,23 +171,23 @@
       box-sizing: border-box;
     }
 
-    .workbenchShell-grid[data-mobile-view="monitor"] .sid-hex-strip,
-    .workbenchShell-grid[data-mobile-view="tunes"] .sid-hex-strip {
+    .workbenchShell-grid[data-mobile-view="monitor"] .sidStrip,
+    .workbenchShell-grid[data-mobile-view="tunes"] .sidStrip {
       display: none;
     }
 
-    .sid-hex-label {
+    .sidStrip-label {
       font-size: var(--text-2xs);
     }
 
-    .sid-hex-cells {
+    .sidStrip-cells {
       display: grid;
       width: 100%;
       gap: var(--space-1);
       box-sizing: border-box;
     }
 
-    .sid-hex-group {
+    .sidStrip-group {
       width: 100%;
       display: flex;
       align-items: center;
@@ -216,7 +197,7 @@
       gap: 6px;
     }
 
-    .sid-group-tag {
+    .sidStrip-groupTag {
       font-size: 9.5px;
       font-weight: 700;
       min-width: 28px;
@@ -224,7 +205,7 @@
       flex-shrink: 0;
     }
 
-    .sid-group-cells {
+    .sidStrip-groupCells {
       display: flex;
       flex: 1;
       justify-content: space-between;
@@ -232,7 +213,7 @@
       min-width: 0;
     }
 
-    .sid-cell {
+    .sidStrip-cell {
       flex: 1 1 0;
       min-width: 0;
       max-width: 32px;
@@ -243,7 +224,7 @@
   }
 
   @media (max-width: 560px) {
-    .sid-hex-cells {
+    .sidStrip-cells {
       grid-template-columns: 1fr;
     }
   }

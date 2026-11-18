@@ -313,21 +313,21 @@ function buildValues(diagnostics) {
 function createDiagnosticsLayout(doc) {
   const element = doc.createElement("section");
   element.id = "audio-diagnostics";
-  element.classList.add("audio-diagnostics");
+  element.classList.add("statsPanel");
 
   const header = doc.createElement("div");
-  header.classList.add("diag-header");
+  header.classList.add("statsPanel-header");
 
   const title = doc.createElement("h2");
-  title.classList.add("diag-title", "c64Caps");
+  title.classList.add("statsPanel-title", "c64Caps");
   title.textContent = "Stats for nerds";
   header.appendChild(title);
 
   const helpButton = doc.createElement("button");
-  helpButton.classList.add("diag-help-toggle", "iconButton");
+  helpButton.classList.add("statsPanel-helpToggle", "iconButton");
   helpButton.type = "button";
   helpButton.innerHTML =
-    '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
+    '<svg class="icon statsPanel-helpIcon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
   helpButton.setAttribute("aria-label", "Explain stats");
   helpButton.setAttribute("aria-expanded", "false");
   header.appendChild(helpButton);
@@ -335,19 +335,23 @@ function createDiagnosticsLayout(doc) {
   element.appendChild(header);
 
   const body = doc.createElement("div");
-  body.classList.add("diag-body");
+  body.classList.add("statsPanel-body");
   element.appendChild(body);
 
   const intro = doc.createElement("p");
-  intro.classList.add("diag-help-intro");
+  intro.classList.add("statsPanel-helpIntro");
   intro.textContent = HELP_INTRO;
   body.appendChild(intro);
 
   const legend = doc.createElement("div");
-  legend.classList.add("diag-health-legend");
+  legend.classList.add("statsPanel-healthLegend");
   for (const [health, label] of HEALTH_LABELS) {
     const item = doc.createElement("span");
-    item.classList.add("diag-health-legend-item");
+    item.classList.add(
+      "statsPanel-healthLegendItem",
+      "statsPanel-health",
+      `statsPanel-health--${health}`,
+    );
     item.dataset.health = health;
     item.textContent = label;
     legend.appendChild(item);
@@ -357,10 +361,10 @@ function createDiagnosticsLayout(doc) {
   const valueNodes = new Map();
   for (const group of GROUPS) {
     const groupEl = doc.createElement("div");
-    groupEl.classList.add("diag-group", `diag-group--${group.id}`);
+    groupEl.classList.add("statsPanel-group", `statsPanel-group--${group.id}`);
 
     const groupTitle = doc.createElement("div");
-    groupTitle.classList.add("diag-group-title");
+    groupTitle.classList.add("statsPanel-groupTitle");
     const groupTitleText = doc.createElement("span");
     groupTitleText.classList.add("c64Caps");
     groupTitleText.textContent = group.title;
@@ -373,20 +377,22 @@ function createDiagnosticsLayout(doc) {
     groupEl.appendChild(groupTitle);
 
     const groupDescription = doc.createElement("p");
-    groupDescription.classList.add("diag-group-description");
+    groupDescription.classList.add("statsPanel-groupDescription");
     groupDescription.textContent = group.description;
     groupEl.appendChild(groupDescription);
 
     for (const [key, label, help, link] of group.items) {
       const item = doc.createElement("span");
-      item.classList.add("diag-item");
+      item.classList.add("statsPanel-item");
+      if (group.id === "events") item.classList.add("statsPanel-item--events");
 
       const labelEl = doc.createElement("span");
-      labelEl.classList.add("diag-label");
+      labelEl.classList.add("statsPanel-label");
       labelEl.textContent = label;
 
       const valueEl = doc.createElement("span");
-      valueEl.classList.add("diag-value");
+      valueEl.classList.add("statsPanel-value");
+      if (group.id === "events") valueEl.classList.add("statsPanel-value--events");
       valueEl.dataset.metric = `${group.id}:${key}`;
       valueEl.textContent = "-";
 
@@ -394,11 +400,11 @@ function createDiagnosticsLayout(doc) {
       item.appendChild(valueEl);
       if (help) {
         const helpEl = doc.createElement("span");
-        helpEl.classList.add("diag-help");
+        helpEl.classList.add("statsPanel-help");
         helpEl.textContent = link ? `${help} ` : help;
         if (link) {
           const linkEl = doc.createElement("a");
-          linkEl.classList.add("diag-help-link");
+          linkEl.classList.add("statsPanel-helpLink");
           linkEl.setAttribute("href", link.href);
           linkEl.setAttribute("target", "_blank");
           linkEl.setAttribute("rel", "noopener noreferrer");
@@ -414,7 +420,7 @@ function createDiagnosticsLayout(doc) {
     body.appendChild(groupEl);
   }
 
-  return { element, valueNodes, helpButton };
+  return { element, header, body, valueNodes, helpButton };
 }
 
 export function createAudioDiagnosticsOverlay({
@@ -428,7 +434,7 @@ export function createAudioDiagnosticsOverlay({
   let visible = params.get("audioDebug") === "1";
   let helpOpen = false;
 
-  const { element, valueNodes, helpButton } = createDiagnosticsLayout(doc);
+  const { element, header, body, valueNodes, helpButton } = createDiagnosticsLayout(doc);
   element.classList.toggle("hidden", !visible);
   doc.body.appendChild(element);
 
@@ -436,11 +442,14 @@ export function createAudioDiagnosticsOverlay({
     const next = Boolean(open);
     if (helpOpen === next) return;
     helpOpen = next;
-    element.classList.toggle("is-help", helpOpen);
+    element.classList.toggle("statsPanel-isHelp", helpOpen);
+    header.classList.toggle("statsPanel-header-isHelp", helpOpen);
+    body.classList.toggle("statsPanel-body-isHelp", helpOpen);
+    helpButton.classList.toggle("statsPanel-helpToggle-isExpanded", helpOpen);
     if (helpOpen) element.scrollTop = 0;
     helpButton.innerHTML = helpOpen
-      ? '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-close"></use></svg>'
-      : '<svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
+      ? '<svg class="icon statsPanel-helpIcon" aria-hidden="true" focusable="false"><use href="#icon-close"></use></svg>'
+      : '<svg class="icon statsPanel-helpIcon" aria-hidden="true" focusable="false"><use href="#icon-help"></use></svg>';
     helpButton.setAttribute("aria-label", helpOpen ? "Close stats explanation" : "Explain stats");
     helpButton.setAttribute("aria-expanded", String(helpOpen));
   }
@@ -448,6 +457,28 @@ export function createAudioDiagnosticsOverlay({
   helpButton.addEventListener("click", () => setHelp(!helpOpen));
 
   let timer = null;
+
+  function syncHealthState(node, nextHealth) {
+    if (nextHealth) {
+      if (node.dataset.health === nextHealth) return;
+      node.dataset.health = nextHealth;
+      node.classList.remove(
+        "statsPanel-health--normal",
+        "statsPanel-health--pressure",
+        "statsPanel-health--bad",
+      );
+      node.classList.add("statsPanel-health", `statsPanel-health--${nextHealth}`);
+      return;
+    }
+    if (node.dataset.health === undefined) return;
+    delete node.dataset.health;
+    node.classList.remove(
+      "statsPanel-health",
+      "statsPanel-health--normal",
+      "statsPanel-health--pressure",
+      "statsPanel-health--bad",
+    );
+  }
 
   function refresh() {
     const diagnostics = player.getAudioDiagnostics() || {};
@@ -458,12 +489,7 @@ export function createAudioDiagnosticsOverlay({
     for (const [key, node] of valueNodes) {
       const next = values[key] ?? "-";
       if (node.textContent !== next) node.textContent = next;
-      const state = health[key];
-      if (state) {
-        if (node.dataset.health !== state) node.dataset.health = state;
-      } else if (node.dataset.health !== undefined) {
-        delete node.dataset.health;
-      }
+      syncHealthState(node, health[key]);
     }
   }
 

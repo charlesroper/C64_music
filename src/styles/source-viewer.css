@@ -1,17 +1,17 @@
 /* ============================================================================
    Source Viewer: Toolbar, Voice Legend, Source Lines, and Editor
-   Styles the Source Viewer panel inside @layer modules, with co-located
-   responsive rules for tablet and phone viewports.
+   Styles the Source Viewer module inside @layer modules, with single-class
+   selectors and co-located responsive rules.
    ============================================================================ */
 
 @layer modules {
-  .source-stats {
+  .sourceStats {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--text-muted);
   }
 
-  .source-toolbar {
+  .sourceToolbar {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -21,8 +21,8 @@
     flex-shrink: 0;
   }
 
-  .symbol-select,
-  .source-search {
+  .sourceToolbar-select,
+  .sourceToolbar-search {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     background: #090c12;
@@ -33,20 +33,20 @@
     outline: none;
   }
 
-  .symbol-select {
+  .sourceToolbar-select {
     width: 175px;
   }
 
-  .source-search {
+  .sourceToolbar-search {
     flex: 1;
   }
 
-  .symbol-select:focus,
-  .source-search:focus {
+  .sourceToolbar-select:focus,
+  .sourceToolbar-search:focus {
     border-color: var(--accent-cyan);
   }
 
-  .pc-legend {
+  .voiceLegend {
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -55,7 +55,7 @@
     color: var(--text-muted);
   }
 
-  .legend-chip {
+  .voiceLegend-chip {
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
@@ -77,122 +77,112 @@
     transition: all 0.15s ease;
   }
 
-  .legend-chip * {
-    pointer-events: none;
+  .voiceLegend-chip--v0 {
+    --voiceLegend-followBorder: var(--accent-cyan);
+    --voiceLegend-followBg: rgba(56, 226, 255, 0.15);
+    --voiceLegend-followShadow: 0 0 6px rgba(56, 226, 255, 0.3);
   }
 
-  .legend-chip:hover:not(.disabled):not(.active-followed) {
+  .voiceLegend-chip--v1 {
+    --voiceLegend-followBorder: var(--accent-magenta);
+    --voiceLegend-followBg: rgba(255, 86, 177, 0.15);
+    --voiceLegend-followShadow: 0 0 6px rgba(255, 86, 177, 0.3);
+  }
+
+  .voiceLegend-chip--v2 {
+    --voiceLegend-followBorder: var(--accent-yellow);
+    --voiceLegend-followBg: rgba(255, 170, 0, 0.24);
+    --voiceLegend-followShadow:
+      0 0 8px rgba(255, 170, 0, 0.45), inset 0 0 4px rgba(255, 170, 0, 0.15);
+  }
+
+  .voiceLegend-chip--seq {
+    --voiceLegend-followBorder: var(--accent-green);
+    --voiceLegend-followBg: rgba(69, 240, 139, 0.15);
+    --voiceLegend-followShadow: 0 0 6px rgba(69, 240, 139, 0.3);
+  }
+
+  .voiceLegend-chip:hover {
     background: #141b29;
     color: var(--text-main);
     border-color: var(--border-subtle);
   }
 
-  .legend-chip.selected {
+  .voiceLegend-chip-isSelected {
     border-color: var(--border-bright);
     color: var(--text-bright);
     background: var(--bg-active);
   }
 
-  .legend-chip.selected:hover:not(.disabled):not(.active-followed) {
+  .voiceLegend-chip-isSelected:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-bright);
     color: var(--text-bright);
   }
 
-  .legend-chip[data-voice="0"].active-followed {
-    border-color: var(--accent-cyan);
+  .voiceLegend-chip-isFollowed,
+  .voiceLegend-chip-isFollowed:hover {
+    border-color: var(--voiceLegend-followBorder);
     color: var(--text-bright);
-    background: rgba(56, 226, 255, 0.15);
-    box-shadow: 0 0 6px rgba(56, 226, 255, 0.3);
+    background: var(--voiceLegend-followBg);
+    box-shadow: var(--voiceLegend-followShadow);
   }
 
-  .legend-chip[data-voice="1"].active-followed {
-    border-color: var(--accent-magenta);
-    color: var(--text-bright);
-    background: rgba(255, 86, 177, 0.15);
-    box-shadow: 0 0 6px rgba(255, 86, 177, 0.3);
-  }
-
-  .legend-chip[data-voice="2"].active-followed {
-    border-color: var(--accent-yellow);
-    color: var(--text-bright);
-    background: rgba(255, 170, 0, 0.24);
-    box-shadow:
-      0 0 8px rgba(255, 170, 0, 0.45),
-      inset 0 0 4px rgba(255, 170, 0, 0.15);
-  }
-
-  .legend-chip[data-voice="seq"].active-followed {
-    border-color: var(--accent-green);
-    color: var(--text-bright);
-    background: rgba(69, 240, 139, 0.15);
-    box-shadow: 0 0 6px rgba(69, 240, 139, 0.3);
-  }
-
-  .legend-chip.disabled {
+  .voiceLegend-chip-isDisabled,
+  .voiceLegend-chip-isDisabled:hover {
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
     border-color: transparent;
     background: transparent;
+    box-shadow: none;
   }
 
-  .legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .dot-v0,
-  .dot-v1,
-  .dot-v2,
-  .dot-seq {
+  .voiceLegend-dot {
     display: inline-block;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+    pointer-events: none;
+    background: var(--voiceLegend-dotBg);
+    box-shadow: var(--voiceLegend-dotShadow);
   }
 
-  .dot-v0 {
-    background: var(--accent-cyan);
-    box-shadow: 0 0 5px var(--accent-cyan);
+  .voiceLegend-dot--v0 {
+    --voiceLegend-dotBg: var(--accent-cyan);
+    --voiceLegend-dotShadow: 0 0 5px var(--accent-cyan);
   }
 
-  .dot-v1 {
-    background: var(--accent-magenta);
-    box-shadow: 0 0 5px var(--accent-magenta);
+  .voiceLegend-dot--v1 {
+    --voiceLegend-dotBg: var(--accent-magenta);
+    --voiceLegend-dotShadow: 0 0 5px var(--accent-magenta);
   }
 
-  .dot-v2 {
-    background: var(--accent-yellow);
-    box-shadow:
-      0 0 7px var(--accent-yellow),
-      0 0 2px var(--text-bright);
+  .voiceLegend-dot--v2 {
+    --voiceLegend-dotBg: var(--accent-yellow);
+    --voiceLegend-dotShadow: 0 0 7px var(--accent-yellow), 0 0 2px var(--text-bright);
+    --voiceLegend-dotFollowBg: #ffc400;
+    --voiceLegend-dotFollowShadow: 0 0 9px var(--accent-yellow), 0 0 3px var(--text-bright);
   }
 
-  .dot-seq {
-    background: var(--accent-green);
-    box-shadow: 0 0 5px var(--accent-green);
+  .voiceLegend-dot--seq {
+    --voiceLegend-dotBg: var(--accent-green);
+    --voiceLegend-dotShadow: 0 0 5px var(--accent-green);
   }
 
-  .legend-chip.disabled .dot-v0,
-  .legend-chip.disabled .dot-v1,
-  .legend-chip.disabled .dot-v2,
-  .legend-chip.disabled .dot-seq {
+  .voiceLegend-dot-isFollowed {
+    background: var(--voiceLegend-dotFollowBg, var(--voiceLegend-dotBg));
+    box-shadow: var(--voiceLegend-dotFollowShadow, var(--voiceLegend-dotShadow));
+  }
+
+  .voiceLegend-dot-isDisabled {
     background: var(--text-dim);
     box-shadow: none;
   }
 
-  .legend-chip[data-voice="2"].active-followed .dot-v2 {
-    background: #ffc400;
-    box-shadow:
-      0 0 9px var(--accent-yellow),
-      0 0 3px var(--text-bright);
-  }
-
-  /* CAUTION: Keep position: relative on .source-viewer and min-width: 100% on .asm-line. Auto-scroll math and highlight bars break otherwise. */
-  .source-viewer {
+  /* CAUTION: Keep position: relative on .sourceViewer and min-width: 100% on .sourceViewer-line. Auto-scroll math and highlight bars break otherwise. */
+  .sourceViewer {
     flex: 1;
     position: relative;
     overflow-y: auto;
@@ -205,7 +195,11 @@
     user-select: text;
   }
 
-  .asm-line {
+  .sourceViewer-line {
+    --sourceViewer-lineNumColor: #4b5873;
+    --sourceViewer-lineNumWeight: 400;
+    --sourceViewer-lineAddrColor: #65799e;
+    --sourceViewer-lineAddrWeight: 400;
     display: flex;
     align-items: baseline;
     padding: 0 var(--space-2);
@@ -215,142 +209,112 @@
     box-sizing: border-box;
   }
 
-  .asm-line:hover {
+  .sourceViewer-line:hover {
     background: #131926;
   }
 
-  .ln-num {
+  .sourceViewer-lineNum {
     width: 42px;
-    color: #4b5873;
+    color: var(--sourceViewer-lineNumColor);
+    font-weight: var(--sourceViewer-lineNumWeight);
     text-align: right;
     padding-right: var(--space-2);
     flex-shrink: 0;
     user-select: none;
   }
 
-  .ln-addr {
+  .sourceViewer-lineAddr {
     width: 46px;
-    color: #65799e;
+    color: var(--sourceViewer-lineAddrColor);
+    font-weight: var(--sourceViewer-lineAddrWeight);
     padding-right: var(--space-2);
     flex-shrink: 0;
     user-select: none;
   }
 
-  .asm-line.pc-v0 {
+  .sourceViewer-line-isVoice0,
+  .sourceViewer-line-isVoice0:hover {
     background: rgba(56, 226, 255, 0.22);
     border-left: 3px solid var(--accent-cyan);
+    --sourceViewer-lineNumColor: var(--accent-cyan);
+    --sourceViewer-lineNumWeight: 600;
+    --sourceViewer-lineAddrColor: #a8f5ff;
+    --sourceViewer-followBg: rgba(56, 226, 255, 0.35);
+    --sourceViewer-followShadow:
+      inset 0 0 10px rgba(56, 226, 255, 0.35), 0 0 8px rgba(56, 226, 255, 0.2);
   }
 
-  .asm-line.pc-v0 .ln-num {
-    color: var(--accent-cyan);
-    font-weight: 600;
-  }
-
-  .asm-line.pc-v0 .ln-addr {
-    color: #a8f5ff;
-  }
-
-  .asm-line.pc-v1 {
+  .sourceViewer-line-isVoice1,
+  .sourceViewer-line-isVoice1:hover {
     background: rgba(255, 86, 177, 0.22);
     border-left: 3px solid var(--accent-magenta);
+    --sourceViewer-lineNumColor: var(--accent-magenta);
+    --sourceViewer-lineNumWeight: 600;
+    --sourceViewer-lineAddrColor: #ffa1d4;
+    --sourceViewer-followBg: rgba(255, 86, 177, 0.35);
+    --sourceViewer-followShadow:
+      inset 0 0 10px rgba(255, 86, 177, 0.35), 0 0 8px rgba(255, 86, 177, 0.2);
   }
 
-  .asm-line.pc-v1 .ln-num {
-    color: var(--accent-magenta);
-    font-weight: 600;
-  }
-
-  .asm-line.pc-v1 .ln-addr {
-    color: #ffa1d4;
-  }
-
-  .asm-line.pc-v2 {
+  .sourceViewer-line-isVoice2,
+  .sourceViewer-line-isVoice2:hover {
     background: rgba(255, 170, 0, 0.22);
     border-left: 3px solid var(--accent-yellow);
+    --sourceViewer-lineNumColor: var(--accent-yellow);
+    --sourceViewer-lineNumWeight: 600;
+    --sourceViewer-lineAddrColor: #ffd480;
+    --sourceViewer-followBg: rgba(255, 170, 0, 0.35);
+    --sourceViewer-followShadow:
+      inset 0 0 10px rgba(255, 170, 0, 0.35), 0 0 8px rgba(255, 170, 0, 0.2);
   }
 
-  .asm-line.pc-v2 .ln-num {
-    color: var(--accent-yellow);
-    font-weight: 600;
-  }
-
-  .asm-line.pc-v2 .ln-addr {
-    color: #ffd480;
-  }
-
-  .asm-line.pc-seq {
+  .sourceViewer-line-isVoiceSeq,
+  .sourceViewer-line-isVoiceSeq:hover {
     background: rgba(69, 240, 139, 0.24);
     border-left: 3px solid var(--accent-green);
+    --sourceViewer-lineNumColor: var(--accent-green);
+    --sourceViewer-lineNumWeight: 600;
+    --sourceViewer-lineAddrColor: #8affaa;
+    --sourceViewer-followBg: rgba(69, 240, 139, 0.35);
+    --sourceViewer-followShadow:
+      inset 0 0 10px rgba(69, 240, 139, 0.35), 0 0 8px rgba(69, 240, 139, 0.2);
   }
 
-  .asm-line.pc-seq .ln-num {
-    color: var(--accent-green);
-    font-weight: 600;
-  }
-
-  .asm-line.pc-seq .ln-addr {
-    color: #8affaa;
-  }
-
-  /* The followed line outranks search matches and voice colours through the
-     viewer scope, so it needs no !important. */
-  .source-viewer .asm-line.pc-followed {
-    background: rgba(56, 226, 255, 0.35);
-    border-left: 4px solid var(--text-bright);
-    box-shadow:
-      inset 0 0 10px rgba(56, 226, 255, 0.35),
-      0 0 8px rgba(56, 226, 255, 0.2);
-  }
-
-  .source-viewer .asm-line.pc-followed.pc-v1 {
-    background: rgba(255, 86, 177, 0.35);
-    box-shadow:
-      inset 0 0 10px rgba(255, 86, 177, 0.35),
-      0 0 8px rgba(255, 86, 177, 0.2);
-  }
-
-  .source-viewer .asm-line.pc-followed.pc-v2 {
-    background: rgba(255, 170, 0, 0.35);
-    box-shadow:
-      inset 0 0 10px rgba(255, 170, 0, 0.35),
-      0 0 8px rgba(255, 170, 0, 0.2);
-  }
-
-  .source-viewer .asm-line.pc-followed.pc-seq {
-    background: rgba(69, 240, 139, 0.35);
-    box-shadow:
-      inset 0 0 10px rgba(69, 240, 139, 0.35),
-      0 0 8px rgba(69, 240, 139, 0.2);
-  }
-
-  .source-viewer .asm-line.pc-followed .ln-num,
-  .source-viewer .asm-line.pc-followed .ln-addr {
-    color: var(--text-bright);
-    font-weight: 700;
-  }
-
-  .asm-line.search-match {
+  .sourceViewer-line-isSearchMatch,
+  .sourceViewer-line-isSearchMatch:hover {
     background: rgba(77, 136, 255, 0.25);
   }
 
-  .ln-code {
+  /* Place .sourceViewer-line-isFollowed last so it wins over voice and search states without !important. */
+  .sourceViewer-line-isFollowed,
+  .sourceViewer-line-isFollowed:hover {
+    background: var(--sourceViewer-followBg);
+    border-left: 4px solid var(--text-bright);
+    box-shadow: var(--sourceViewer-followShadow);
+    --sourceViewer-lineNumColor: var(--text-bright);
+    --sourceViewer-lineNumWeight: 700;
+    --sourceViewer-lineAddrColor: var(--text-bright);
+    --sourceViewer-lineAddrWeight: 700;
+  }
+
+  .sourceViewer-lineCode {
     color: #dde6f7;
   }
 
-  .asm-comment {
+  .sourceViewer-comment {
     color: #6b8268;
   }
 
-  .asm-label {
+  .sourceViewer-label {
     color: var(--accent-cyan);
     font-weight: 600;
   }
 
-  .asm-directive {
+  .sourceViewer-directive {
     color: var(--accent-yellow);
   }
 
-  .asm-recovery {
+  .sourceRecovery {
     padding: 6px var(--space-3);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
@@ -361,7 +325,7 @@
     flex-shrink: 0;
   }
 
-  .source-editor {
+  .sourceEditor {
     flex: 1;
     width: 100%;
     background: #080b11;
@@ -377,12 +341,12 @@
   }
 
   @media (max-width: 820px) {
-    .source-toolbar {
+    .sourceToolbar {
       flex-wrap: wrap;
       gap: 6px;
     }
 
-    .symbol-select {
+    .sourceToolbar-select {
       flex: 1 1 160px;
       width: auto;
       min-width: 0;
@@ -390,26 +354,26 @@
       font-size: 16px;
     }
 
-    .source-search {
+    .sourceToolbar-search {
       flex: 1 1 160px;
       min-width: 0;
       min-height: 36px;
       font-size: 16px;
     }
 
-    .source-viewer {
+    .sourceViewer {
       flex: none;
       height: 340px;
       max-height: 58dvh;
       -webkit-overflow-scrolling: touch;
     }
 
-    .workbenchShell-grid[data-mobile-view="asm"] .source-viewer {
+    .workbenchShell-grid[data-mobile-view="asm"] .sourceViewer {
       height: 64dvh;
       max-height: 64dvh;
     }
 
-    .source-editor {
+    .sourceEditor {
       flex: none;
       height: 340px;
       max-height: 58dvh;

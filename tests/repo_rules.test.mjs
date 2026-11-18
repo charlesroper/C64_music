@@ -849,26 +849,28 @@ test("extracted CSS modules stay under 450 lines with @layer, zero !important, z
 
 test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar", () => {
   const stylesDir = path.join(ROOT, "src/styles");
-  // Remove pending #106 modules here once #106 completes (tracked in #107).
-  const pendingIssue106 = new Set([
-    "source-viewer.css",
-    "sid-register-strip.css",
-    "stats-for-nerds.css",
-  ]);
   const classTokenPattern =
     /^[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?$/;
   const singleClassSelectorPattern =
-    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::hover)?$/;
-  const singleClassModules = new Set(["c64-monitor.css", "oscilloscopes-panel.css"]);
+    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::(?:hover|focus|focus-visible)|::(?:before|after))?$/;
+  const singleClassModules = new Set([
+    "c64-monitor.css",
+    "oscilloscopes-panel.css",
+    "stats-for-nerds.css",
+    "sid-register-strip.css",
+    "source-viewer.css",
+  ]);
+  const mobileTabBypass =
+    /^\.workbenchShell-grid\[data-mobile-view="[a-z]+"\] \.[a-z][a-zA-Z0-9-]*$/;
 
   for (const file of fs
     .readdirSync(stylesDir)
-    .filter((f) => f.endsWith(".css") && !pendingIssue106.has(f))
+    .filter((f) => f.endsWith(".css"))
     .sort()) {
     const css = fs.readFileSync(path.join(stylesDir, file), "utf8");
     for (const rule of parseStylesheet(css)) {
       for (const part of rule.selector.split(",").map((s) => s.trim())) {
-        if (singleClassModules.has(file)) {
+        if (singleClassModules.has(file) && !mobileTabBypass.test(part)) {
           assert.match(
             part,
             singleClassSelectorPattern,

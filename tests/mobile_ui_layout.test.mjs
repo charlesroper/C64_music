@@ -68,7 +68,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   // 3. Top bar, transport bar, panel headers, and source toolbar wrap cleanly on 375px phone
-  for (const sel of [".topBar", ".transportBar", ".panel-header", ".source-toolbar"]) {
+  for (const sel of [".topBar", ".transportBar", ".panel-header", ".sourceToolbar"]) {
     const style = computeStyleForExactSelectors(rules, [sel], mobile);
     assert.equal(
       style["flex-wrap"],
@@ -99,10 +99,10 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     "Mobile .tunesPanel must set a bounded max-height",
   );
 
-  const mobSourceViewer = computeStyleForExactSelectors(rules, [".source-viewer"], mobile);
+  const mobSourceViewer = computeStyleForExactSelectors(rules, [".sourceViewer"], mobile);
   assert.ok(
     mobSourceViewer.height || mobSourceViewer["max-height"],
-    "Mobile .source-viewer must constrain height so 2,300 .asm lines do not stretch the page",
+    "Mobile .sourceViewer must constrain height so 2,300 .asm lines do not stretch the page",
   );
 
   // 6. Touch targets (>= 34px) and iOS Safari 16px anti-zoom on inputs/selects
@@ -126,7 +126,7 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
     `Mobile C64 keypad buttons must be >= 34px tall, got ${mobKeyBtn["min-height"]}`,
   );
 
-  for (const inputSel of [".symbol-select", ".source-search", ".source-editor"]) {
+  for (const inputSel of [".sourceToolbar-select", ".sourceToolbar-search", ".sourceEditor"]) {
     const st = computeStyleForExactSelectors(rules, [inputSel], mobile);
     assert.equal(
       st["font-size"],
@@ -175,30 +175,41 @@ test("mobile 375x812 CSS cascade enables vertical scrolling, single-column layou
   );
 
   // 8. Voice 3 button toggle and dot have bright glowing orange/yellow (not dim brown)
-  const dotV2Style = computeStyleForExactSelectors(rules, [".dot-v2"], mobile);
-  assert.match(dotV2Style.background, /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["box-shadow"], /var\(--accent-yellow\)/);
-  assert.match(dotV2Style["box-shadow"], /(?:#ffffff|var\(--text-bright\))/);
+  const dotV2BaseStyle = computeStyleForExactSelectors(rules, [".voiceLegend-dot"], mobile);
+  assert.equal(dotV2BaseStyle.background, "var(--voiceLegend-dotBg)");
+  assert.equal(dotV2BaseStyle["box-shadow"], "var(--voiceLegend-dotShadow)");
+  const dotV2Style = computeStyleForExactSelectors(rules, [".voiceLegend-dot--v2"], mobile);
+  assert.match(dotV2Style["--voicelegend-dotbg"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["--voicelegend-dotshadow"], /var\(--accent-yellow\)/);
+  assert.match(dotV2Style["--voicelegend-dotshadow"], /(?:#ffffff|var\(--text-bright\))/);
 
-  const v3SelectedStyle = computeStyleForExactSelectors(rules, [".legend-chip.selected"], mobile);
+  const v3SelectedStyle = computeStyleForExactSelectors(
+    rules,
+    [".voiceLegend-chip", ".voiceLegend-chip-isSelected"],
+    mobile,
+  );
   assert.match(v3SelectedStyle["border-color"], /var\(--border-bright\)/);
   assert.doesNotMatch(v3SelectedStyle["border-color"], /var\(--accent-yellow\)/);
 
   const disabledDotStyle = computeStyleForExactSelectors(
     rules,
-    [".legend-chip.disabled .dot-v2"],
+    [".voiceLegend-dot", ".voiceLegend-dot--v2", ".voiceLegend-dot-isDisabled"],
     mobile,
   );
   assert.equal(disabledDotStyle["box-shadow"], "none");
   assert.match(disabledDotStyle.background, /var\(--text-dim\)/);
 
+  const v3ModStyle = computeStyleForExactSelectors(rules, [".voiceLegend-chip--v2"], mobile);
+  assert.match(v3ModStyle["--voicelegend-followborder"], /var\(--accent-yellow\)/);
+  assert.match(v3ModStyle["--voicelegend-followbg"], /rgba\(255,\s*170,\s*0/);
+
   const v3FollowStyle = computeStyleForExactSelectors(
     rules,
-    ['.legend-chip[data-voice="2"].active-followed'],
+    [".voiceLegend-chip", ".voiceLegend-chip--v2", ".voiceLegend-chip-isFollowed"],
     mobile,
   );
-  assert.match(v3FollowStyle["border-color"], /var\(--accent-yellow\)/);
-  assert.match(v3FollowStyle.background, /rgba\(255,\s*170,\s*0/);
+  assert.equal(v3FollowStyle["border-color"], "var(--voiceLegend-followBorder)");
+  assert.equal(v3FollowStyle.background, "var(--voiceLegend-followBg)");
 });
 
 test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, exposes mobile view tabs, and switches to ASM tab on PC jump", async () => {
@@ -215,7 +226,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
   });
   const { elementsById, scrolledElements } = harness;
   const tabButtons = Array.from(globalThis.document.querySelectorAll("[data-mobile-tab]"));
-  const legendChips = Array.from(globalThis.document.querySelectorAll(".legend-chip"));
+  const legendChips = Array.from(globalThis.document.querySelectorAll(".voiceLegend-chip"));
 
   let view = null;
   try {
@@ -259,26 +270,26 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     v1Chip.click();
     assert.equal(chkFollow.checked, true, "Clicking a voice chip must activate Follow voice");
     assert.equal(
-      v1Chip.classList.contains("active-followed"),
+      v1Chip.classList.contains("voiceLegend-chip-isFollowed"),
       true,
-      "Voice 2 chip must be active-followed",
+      "Voice 2 chip must carry voiceLegend-chip-isFollowed",
     );
 
-    // 5. Following a voice adds high-visibility .pc-followed highlight to active source line
+    // 5. Following a voice adds high-visibility .sourceViewer-line-isFollowed highlight to active source line
     view.renderTelemetry(player.getTelemetry());
     const v1LineNo = Number(elementsById.get("v1-pc").dataset.line || "0");
     assert.ok(v1LineNo > 0, "Expected Voice 2 line number on v1-pc");
     const followedEl = elementsById.get(`asm-L${v1LineNo}`);
-    assert.ok(followedEl, "Expected an active .asm-line element");
+    assert.ok(followedEl, "Expected an active .sourceViewer-line element");
     assert.equal(
-      followedEl.classList.contains("pc-followed"),
+      followedEl.classList.contains("sourceViewer-line-isFollowed"),
       true,
-      "Followed line must carry .pc-followed",
+      "Followed line must carry .sourceViewer-line-isFollowed",
     );
     assert.equal(
-      followedEl.classList.contains("pc-v1"),
+      followedEl.classList.contains("sourceViewer-line-isVoice1"),
       true,
-      ".pc-followed must match selected Voice 2",
+      ".sourceViewer-line-isFollowed must match selected Voice 2",
     );
 
     // 6. DRM chip switches to arkadrum.asm and tapping V1/V2/V3 switches back to arkanoid.asm
@@ -293,7 +304,7 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(drmChip, "Expected DRM chip");
     assert.ok(v3Chip, "Expected Voice 3 chip");
     assert.equal(
-      drmChip.classList.contains("disabled"),
+      drmChip.classList.contains("voiceLegend-chip-isDisabled"),
       false,
       "DRM chip must be enabled for arkadrum.asm",
     );
@@ -301,37 +312,37 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     // Click DRM chip -> follow DRM in arkadrum.asm
     drmChip.click();
     assert.equal(
-      drmChip.classList.contains("active-followed"),
+      drmChip.classList.contains("voiceLegend-chip-isFollowed"),
       true,
-      "DRM chip must be active-followed",
+      "DRM chip must carry voiceLegend-chip-isFollowed",
     );
     assert.equal(
-      v3Chip.classList.contains("active-followed"),
+      v3Chip.classList.contains("voiceLegend-chip-isFollowed"),
       false,
-      "Voice 3 chip must not be active-followed",
+      "Voice 3 chip must not carry voiceLegend-chip-isFollowed",
     );
     assert.equal(elementsById.get("source-file-name").textContent, "arkadrum.asm");
 
     // Click Voice 3 chip -> switch back to arkanoid.asm and follow V3
     v3Chip.click();
     assert.equal(
-      v3Chip.classList.contains("active-followed"),
+      v3Chip.classList.contains("voiceLegend-chip-isFollowed"),
       true,
-      "Voice 3 chip must be active-followed",
+      "Voice 3 chip must carry voiceLegend-chip-isFollowed",
     );
     assert.equal(
-      drmChip.classList.contains("active-followed"),
+      drmChip.classList.contains("voiceLegend-chip-isFollowed"),
       false,
-      "DRM chip must not be active-followed",
+      "DRM chip must not carry voiceLegend-chip-isFollowed",
     );
     assert.equal(elementsById.get("source-file-name").textContent, "arkanoid.asm");
 
     // Click DRM chip again -> switch back to arkadrum.asm
     drmChip.click();
     assert.equal(
-      drmChip.classList.contains("active-followed"),
+      drmChip.classList.contains("voiceLegend-chip-isFollowed"),
       true,
-      "DRM chip must be active-followed again",
+      "DRM chip must carry voiceLegend-chip-isFollowed again",
     );
     assert.equal(elementsById.get("source-file-name").textContent, "arkadrum.asm");
 
@@ -346,6 +357,11 @@ test("booting SPA on a 375px mobile viewport auto-hides crowded HUD tags, expose
     assert.ok(elementsById.get("sid-group-v1"), "Must render #sid-group-v1");
     assert.ok(elementsById.get("sid-group-v2"), "Must render #sid-group-v2");
     assert.ok(elementsById.get("sid-group-flt"), "Must render #sid-group-flt");
+    assert.equal(
+      elementsById.get("sid-group-v0").classList.contains("sidStrip-group-isActive"),
+      true,
+      "Active voice SID group must carry .sidStrip-group-isActive",
+    );
   } finally {
     if (view) view.destroy();
     harness.restoreGlobals();
@@ -444,25 +460,35 @@ test("HUD row guide and Follow voice initial states match markup defaults and st
   );
 
   // Interactive voice legend chips must be present with V1 selected (follow off) and DRM disabled by default
-  const legendStart = html.indexOf('<div class="pc-legend"');
-  const legendEnd = html.indexOf("</div>", legendStart);
+  const legendOpen = html.match(/<div\b[^>]*class="voiceLegend"[^>]*>/);
+  const legendStart = legendOpen ? legendOpen.index : -1;
+  const legendEnd = legendStart >= 0 ? html.indexOf("</div>", legendStart) : -1;
   const legendSlice =
     legendStart >= 0 && legendEnd > legendStart ? html.slice(legendStart, legendEnd) : "";
-  assert.match(
-    legendSlice,
-    /class="legend-chip selected"[^>]*data-voice="0"/,
-    "Voice 1 legend chip must start selected without active-followed by default",
+  const chipClasses = (voice) => {
+    const tag = legendSlice.match(new RegExp(`<button\\b[^>]*data-voice="${voice}"[^>]*>`))?.[0];
+    assert.ok(tag, `Voice legend chip [data-voice="${voice}"] must be present`);
+    const cls = tag.match(/\bclass="([^"]*)"/)?.[1] ?? "";
+    return new Set(cls.split(/\s+/).filter(Boolean));
+  };
+  const v0Classes = chipClasses("0");
+  assert.ok(v0Classes.has("voiceLegend-chip") && v0Classes.has("voiceLegend-chip--v0"));
+  assert.ok(
+    v0Classes.has("voiceLegend-chip-isSelected") && !v0Classes.has("voiceLegend-chip-isFollowed"),
+    "Voice 1 legend chip must start selected without voiceLegend-chip-isFollowed by default",
   );
   assert.doesNotMatch(
     legendSlice,
-    /class="legend-chip[^"]*active-followed/,
-    "No voice legend chip may start active-followed in static markup",
+    /\bvoiceLegend-chip-isFollowed\b/,
+    "No voice legend chip may start voiceLegend-chip-isFollowed in static markup",
   );
-  assert.match(legendSlice, /data-voice="1"/, "Voice 2 legend chip must be present");
-  assert.match(legendSlice, /data-voice="2"/, "Voice 3 legend chip must be present");
-  assert.match(
-    legendSlice,
-    /class="legend-chip disabled"[^>]*data-voice="seq"/,
+  assert.ok(chipClasses("1").has("voiceLegend-chip"), "Voice 2 legend chip must be present");
+  assert.ok(chipClasses("2").has("voiceLegend-chip"), "Voice 3 legend chip must be present");
+  const seqClasses = chipClasses("seq");
+  assert.ok(
+    seqClasses.has("voiceLegend-chip") &&
+      seqClasses.has("voiceLegend-chip--seq") &&
+      seqClasses.has("voiceLegend-chip-isDisabled"),
     "Drum sequencer legend chip must start disabled in static markup",
   );
 });
@@ -473,34 +499,34 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   const mobile = { width: 375, height: 812 };
 
   // Desktop styles: full-width strip, four balanced register groups
-  const stripDesktop = computeStyleForExactSelectors(rules, [".sid-hex-strip"], desktop);
+  const stripDesktop = computeStyleForExactSelectors(rules, [".sidStrip"], desktop);
   assert.equal(
     stripDesktop["grid-column"],
     "1 / -1",
-    ".sid-hex-strip must span the full workbench width on wide screens",
+    ".sidStrip must span the full workbench width on wide screens",
   );
-  const cellsDesktop = computeStyleForExactSelectors(rules, [".sid-hex-cells"], desktop);
-  assert.equal(cellsDesktop.display, "grid", ".sid-hex-cells must be a grid on desktop");
+  const cellsDesktop = computeStyleForExactSelectors(rules, [".sidStrip-cells"], desktop);
+  assert.equal(cellsDesktop.display, "grid", ".sidStrip-cells must be a grid on desktop");
   assert.equal(
     cellsDesktop["grid-template-columns"],
     "repeat(4, minmax(0, 1fr))",
-    ".sid-hex-cells must place four balanced groups on wide screens",
+    ".sidStrip-cells must place four balanced groups on wide screens",
   );
   assert.equal(
     cellsDesktop.flex,
     "1 1 auto",
-    ".sid-hex-cells must consume the remaining strip width",
+    ".sidStrip-cells must consume the remaining strip width",
   );
 
-  const groupDesktop = computeStyleForExactSelectors(rules, [".sid-hex-group"], desktop);
+  const groupDesktop = computeStyleForExactSelectors(rules, [".sidStrip-group"], desktop);
   assert.equal(
     groupDesktop["justify-content"],
     "space-between",
-    ".sid-hex-group must spread its label and registers across the row",
+    ".sidStrip-group must spread its label and registers across the row",
   );
 
-  const groupCells = computeStyleForExactSelectors(rules, [".sid-group-cells"], desktop);
-  assert.equal(groupCells.display, "grid", ".sid-group-cells must be a grid");
+  const groupCells = computeStyleForExactSelectors(rules, [".sidStrip-groupCells"], desktop);
+  assert.equal(groupCells.display, "grid", ".sidStrip-groupCells must be a grid");
   assert.equal(groupCells["grid-auto-flow"], "column", "Register cells must run left to right");
   assert.equal(
     groupCells["grid-auto-columns"],
@@ -510,35 +536,35 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
   assert.equal(groupCells.flex, "1 1 auto", "Register cells must fill the group's spare width");
 
   const tablet = { width: 1000, height: 812 };
-  const cellsTablet = computeStyleForExactSelectors(rules, [".sid-hex-cells"], tablet);
+  const cellsTablet = computeStyleForExactSelectors(rules, [".sidStrip-cells"], tablet);
   assert.equal(
     cellsTablet["grid-template-columns"],
     "repeat(2, minmax(0, 1fr))",
-    ".sid-hex-cells must use two balanced groups per row when four would crowd",
+    ".sidStrip-cells must use two balanced groups per row when four would crowd",
   );
 
   // Mobile styles: column strip with stacked voice groups and no horizontal overflow
-  const stripMobile = computeStyleForExactSelectors(rules, [".sid-hex-strip"], mobile);
+  const stripMobile = computeStyleForExactSelectors(rules, [".sidStrip"], mobile);
   assert.equal(
     stripMobile["flex-direction"],
     "column",
-    ".sid-hex-strip must switch to column on mobile",
+    ".sidStrip must switch to column on mobile",
   );
   assert.equal(
     stripMobile["overflow-x"],
     "hidden",
-    ".sid-hex-strip must eliminate horizontal scroll on mobile",
+    ".sidStrip must eliminate horizontal scroll on mobile",
   );
 
-  const cellsMobile = computeStyleForExactSelectors(rules, [".sid-hex-cells"], mobile);
+  const cellsMobile = computeStyleForExactSelectors(rules, [".sidStrip-cells"], mobile);
   assert.equal(
     cellsMobile["grid-template-columns"],
     "1fr",
-    ".sid-hex-cells must stack one full-width group per row on mobile",
+    ".sidStrip-cells must stack one full-width group per row on mobile",
   );
 
   for (const tab of ["monitor", "tunes"]) {
-    const hiddenLocator = `.workbenchShell-grid[data-mobile-view="${tab}"] .sid-hex-strip`;
+    const hiddenLocator = `.workbenchShell-grid[data-mobile-view="${tab}"] .sidStrip`;
     const stripHidden = computeStyleForExactSelectors(rules, [hiddenLocator], mobile);
     assert.equal(
       stripHidden.display,
@@ -547,27 +573,31 @@ test("SID hardware register strip ($D400-$D418) groups voices into labeled secti
     );
   }
 
-  const groupMobile = computeStyleForExactSelectors(rules, [".sid-hex-group"], mobile);
+  const groupMobile = computeStyleForExactSelectors(rules, [".sidStrip-group"], mobile);
   assert.equal(
     groupMobile.width,
     "100%",
-    ".sid-hex-group must stack as full-width rows on mobile viewports",
+    ".sidStrip-group must stack as full-width rows on mobile viewports",
   );
 
-  const viewerDesktop = computeStyleForExactSelectors(rules, [".source-viewer"], desktop);
+  const viewerDesktop = computeStyleForExactSelectors(rules, [".sourceViewer"], desktop);
   assert.equal(
     viewerDesktop.position,
     "relative",
-    ".source-viewer must be position: relative for accurate element centering",
+    ".sourceViewer must be position: relative for accurate element centering",
   );
 
-  const lineDesktop = computeStyleForExactSelectors(rules, [".asm-line"], desktop);
+  const lineDesktop = computeStyleForExactSelectors(rules, [".sourceViewer-line"], desktop);
   assert.equal(
     lineDesktop["min-width"],
     "100%",
-    ".asm-line must be min-width: 100% to fill scrollable code viewer",
+    ".sourceViewer-line must be min-width: 100% to fill scrollable code viewer",
   );
-  assert.equal(lineDesktop["box-sizing"], "border-box", ".asm-line must use border-box sizing");
+  assert.equal(
+    lineDesktop["box-sizing"],
+    "border-box",
+    ".sourceViewer-line must use border-box sizing",
+  );
 });
 
 test("Section 4 telemetry items have tabular-nums and fixed ch widths so highlighted numbers sit still without jitter", () => {
@@ -837,16 +867,16 @@ test("SID register strip uses tight vertical padding and never stretches in tall
     { width: 980, height: 1600 },
     { width: 375, height: 812 },
   ]) {
-    const strip = computeStyleForExactSelectors(rules, [".sid-hex-strip"], viewport);
+    const strip = computeStyleForExactSelectors(rules, [".sidStrip"], viewport);
     assert.equal(
       strip["align-self"],
       "start",
-      `${viewport.width}x${viewport.height} .sid-hex-strip must use align-self: start`,
+      `${viewport.width}x${viewport.height} .sidStrip must use align-self: start`,
     );
     assert.equal(
       strip.padding,
       "3px 6px",
-      `${viewport.width}x${viewport.height} .sid-hex-strip must use tight 3px 6px padding`,
+      `${viewport.width}x${viewport.height} .sidStrip must use tight 3px 6px padding`,
     );
   }
 });
@@ -1420,23 +1450,25 @@ test("Source Viewer, SID Register Strip, and Stats for Nerds modules extract in 
   const rules = parseStylesheet(cssText);
   const desktop = { width: 1440, height: 900 };
   assert.equal(
-    computeStyleForExactSelectors(rules, [".audio-diagnostics"], desktop)["z-index"],
+    computeStyleForExactSelectors(rules, [".statsPanel"], desktop)["z-index"],
     "var(--z-popover)",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".audio-diagnostics.is-help .diag-header"], desktop)[
-      "z-index"
-    ],
+    computeStyleForExactSelectors(
+      rules,
+      [".statsPanel-header", ".statsPanel-header-isHelp"],
+      desktop,
+    )["z-index"],
     "var(--z-sticky)",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".sid-hex-cells"], { width: 1024, height: 768 })[
+    computeStyleForExactSelectors(rules, [".sidStrip-cells"], { width: 1024, height: 768 })[
       "grid-template-columns"
     ],
     "repeat(2, minmax(0, 1fr))",
   );
   assert.equal(
-    computeStyleForExactSelectors(rules, [".sid-hex-cells"], { width: 390, height: 844 })[
+    computeStyleForExactSelectors(rules, [".sidStrip-cells"], { width: 390, height: 844 })[
       "grid-template-columns"
     ],
     "1fr",

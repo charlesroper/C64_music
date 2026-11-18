@@ -1,27 +1,35 @@
 /* ============================================================================
    Stats for Nerds: Health Badges, Metrics, and Help Mode
    Styles the Stats for Nerds panel, health badges, and help mode inside
-   @layer modules, with co-located narrow-screen rules.
+   @layer modules, with single-class selectors and narrow-screen rules.
    ============================================================================ */
 
 @layer modules {
-  .diag-help-link {
+  .statsPanel-helpLink {
     color: var(--accent-cyan);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
-  .diag-help-link:focus-visible {
+  .statsPanel-helpLink:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
   }
 
   /* Opt-in Stats for Nerds panel (?audioDebug=1). */
-  /* CAUTION: Keep pointer-events: none on compact .audio-diagnostics and pointer-events: auto on .is-help. Compact metrics otherwise block workbench clicks. */
-  .audio-diagnostics {
-    --diag-health-normal: var(--accent-green);
-    --diag-health-pressure: var(--accent-yellow);
-    --diag-health-bad: var(--accent-red);
+  /* CAUTION: Keep pointer-events: none on compact .statsPanel and pointer-events: auto on .statsPanel-isHelp. Compact metrics otherwise block workbench clicks. */
+  .statsPanel {
+    --statsPanel-healthNormal: var(--accent-green);
+    --statsPanel-healthPressure: var(--accent-yellow);
+    --statsPanel-healthBad: var(--accent-red);
+    --statsPanel-legendDisplay: none;
+    --statsPanel-helpDisplay: none;
+    --statsPanel-itemDisplay: inline-flex;
+    --statsPanel-itemBasis: auto;
+    --statsPanel-itemCols: none;
+    --statsPanel-itemGap: var(--space-1);
+    --statsPanel-itemWrap: nowrap;
+    --statsPanel-eventsDisplay: flex;
     position: fixed;
     left: var(--space-2);
     bottom: var(--space-2);
@@ -40,27 +48,70 @@
     gap: 5px;
   }
 
-  .diag-title {
+  .statsPanel-isHelp {
+    --statsPanel-legendDisplay: flex;
+    --statsPanel-helpDisplay: block;
+    --statsPanel-itemDisplay: grid;
+    --statsPanel-itemBasis: 100%;
+    --statsPanel-itemCols: auto 1fr;
+    --statsPanel-itemGap: 0 6px;
+    --statsPanel-itemWrap: normal;
+    --statsPanel-eventsDisplay: grid;
+    top: var(--space-2);
+    bottom: var(--space-2);
+    left: 50%;
+    width: min(560px, calc(100vw - var(--space-4)));
+    max-width: none;
+    padding: 0;
+    gap: 0;
+    transform: translateX(-50%);
+    overflow-y: auto;
+    background: linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 57px,
+      rgba(0, 0, 0, 0.94) 57px
+    );
+    pointer-events: auto;
+  }
+
+  .statsPanel-title {
     color: var(--accent-cyan);
     font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 1px;
   }
 
-  .diag-header {
+  .statsPanel-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
   }
 
-  .diag-body {
+  .statsPanel-header-isHelp {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    padding: 10px var(--space-3);
+    border-bottom: 1px solid rgba(56, 226, 255, 0.16);
+    background: rgba(4, 8, 12, 0.56);
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    backdrop-filter: blur(18px) saturate(1.1);
+  }
+
+  .statsPanel-body {
     display: flex;
     flex-direction: column;
     gap: 5px;
   }
 
-  .diag-help-toggle {
+  .statsPanel-body-isHelp {
+    padding: 10px var(--space-3) var(--space-3);
+    gap: 7px;
+  }
+
+  .statsPanel-helpToggle {
     position: relative;
     flex: 0 0 auto;
     width: 36px;
@@ -82,103 +133,141 @@
   }
 
   /* Expand the touch hit area beyond the 36px visual border. */
-  .diag-help-toggle::after {
+  .statsPanel-helpToggle::after {
     content: "";
     position: absolute;
     inset: -4px;
     border-radius: 50%;
   }
 
-  .diag-help-toggle:hover:not([aria-expanded="true"]) {
+  .statsPanel-helpToggle:hover {
     border-color: rgba(56, 226, 255, 0.55);
     background: rgba(56, 226, 255, 0.08);
   }
 
-  .diag-help-toggle[aria-expanded="true"] {
+  .statsPanel-helpToggle-isExpanded,
+  .statsPanel-helpToggle-isExpanded:hover {
     border-color: var(--accent-cyan);
     background: rgba(56, 226, 255, 0.16);
   }
 
-  .diag-help-toggle .icon {
-    width: 16px;
-    height: 16px;
-  }
-
-  .diag-help-toggle:focus-visible {
+  .statsPanel-helpToggle:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
   }
 
-  .diag-group {
-    --diag-accent: var(--accent-cyan);
+  .statsPanel-helpIcon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .statsPanel-group {
+    --statsPanel-accent: var(--accent-cyan);
     display: flex;
     flex-wrap: wrap;
     gap: 1px 10px;
     padding-left: 6px;
-    border-left: 2px solid var(--diag-accent);
+    border-left: 2px solid var(--statsPanel-accent);
   }
 
-  .diag-group--latency {
-    --diag-accent: var(--accent-blue);
+  .statsPanel-group--latency {
+    --statsPanel-accent: var(--accent-blue);
   }
 
-  .diag-group--process {
-    --diag-accent: var(--accent-green);
+  .statsPanel-group--process {
+    --statsPanel-accent: var(--accent-green);
   }
 
-  .diag-group--deadlines {
-    --diag-accent: var(--accent-yellow);
+  .statsPanel-group--deadlines {
+    --statsPanel-accent: var(--accent-yellow);
   }
 
-  .diag-group--telemetry {
-    --diag-accent: var(--accent-magenta);
+  .statsPanel-group--telemetry {
+    --statsPanel-accent: var(--accent-magenta);
   }
 
-  .diag-group--events {
-    --diag-accent: var(--text-muted);
+  .statsPanel-group--events {
+    --statsPanel-accent: var(--text-muted);
   }
 
-  .diag-group-title {
+  .statsPanel-groupTitle {
     flex-basis: 100%;
-    color: var(--diag-accent);
+    color: var(--statsPanel-accent);
     font-size: var(--text-2xs);
     letter-spacing: 0.5px;
   }
 
-  .diag-item {
-    display: inline-flex;
-    gap: var(--space-1);
-    white-space: nowrap;
+  .statsPanel-item {
+    display: var(--statsPanel-itemDisplay);
+    flex-basis: var(--statsPanel-itemBasis);
+    grid-template-columns: var(--statsPanel-itemCols);
+    gap: var(--statsPanel-itemGap);
+    white-space: var(--statsPanel-itemWrap);
   }
 
-  .diag-label {
+  .statsPanel-item--events {
+    flex-basis: 100%;
+    display: var(--statsPanel-eventsDisplay);
+    white-space: normal;
+  }
+
+  .statsPanel-label {
     color: var(--text-muted);
+    grid-row: 1;
   }
 
-  .diag-value {
+  .statsPanel-value {
     color: var(--text-main);
     font-variant-numeric: tabular-nums;
+    grid-row: 1;
   }
 
-  [data-health="normal"] {
-    --diag-health-color: var(--diag-health-normal);
+  .statsPanel-value::before {
+    margin-right: var(--space-1);
   }
 
-  [data-health="pressure"] {
-    --diag-health-color: var(--diag-health-pressure);
+  .statsPanel-value--events {
+    overflow-wrap: anywhere;
   }
 
-  [data-health="bad"] {
-    --diag-health-color: var(--diag-health-bad);
+  .statsPanel-helpIntro,
+  .statsPanel-groupDescription,
+  .statsPanel-help {
+    display: var(--statsPanel-helpDisplay);
   }
 
-  .diag-value[data-health],
-  .diag-health-legend-item[data-health] {
-    color: var(--diag-health-color);
+  .statsPanel-helpIntro,
+  .statsPanel-groupDescription {
+    color: var(--text-muted);
+    font-size: var(--text-2xs);
+    line-height: var(--leading-normal);
   }
 
-  .diag-value[data-health]::before,
-  .diag-health-legend-item[data-health]::before {
+  .statsPanel-helpIntro {
+    border-left: 2px solid var(--border-bright);
+    padding-left: 6px;
+  }
+
+  .statsPanel-healthLegend {
+    display: var(--statsPanel-legendDisplay);
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    padding-left: 6px;
+  }
+
+  .statsPanel-healthLegendItem {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--text-2xs);
+  }
+
+  .statsPanel-health {
+    color: var(--statsPanel-healthColor);
+  }
+
+  .statsPanel-health::before {
     content: "";
     display: inline-block;
     width: 5px;
@@ -188,135 +277,39 @@
     vertical-align: middle;
   }
 
-  .diag-value[data-health]::before {
-    margin-right: var(--space-1);
+  .statsPanel-health--normal {
+    --statsPanel-healthColor: var(--statsPanel-healthNormal);
   }
 
-  .diag-group--events .diag-item {
-    flex-basis: 100%;
-    display: flex;
-    white-space: normal;
+  .statsPanel-health--pressure {
+    --statsPanel-healthColor: var(--statsPanel-healthPressure);
   }
 
-  .diag-group--events .diag-value {
-    overflow-wrap: anywhere;
+  .statsPanel-health--bad {
+    --statsPanel-healthColor: var(--statsPanel-healthBad);
   }
 
-  .diag-help-intro,
-  .diag-group-description,
-  .diag-help {
-    display: none;
-  }
-
-  .diag-help-intro,
-  .diag-group-description {
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-    line-height: var(--leading-normal);
-  }
-
-  .diag-help-intro {
-    border-left: 2px solid var(--border-bright);
-    padding-left: 6px;
-  }
-
-  .diag-health-legend {
-    display: none;
-    flex-wrap: wrap;
-    gap: 4px 10px;
-    padding-left: 6px;
-  }
-
-  .audio-diagnostics.is-help .diag-health-legend {
-    display: flex;
-  }
-
-  .diag-health-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    color: var(--text-muted);
-    font-size: var(--text-2xs);
-  }
-
-  .diag-group-description {
+  .statsPanel-groupDescription {
     flex-basis: 100%;
     margin: 1px 0 2px;
   }
 
-  .diag-help {
+  .statsPanel-help {
     color: var(--text-muted);
     font-size: var(--text-2xs);
     line-height: 1.35;
     margin-bottom: var(--space-1);
-  }
-
-  .audio-diagnostics.is-help {
-    top: var(--space-2);
-    bottom: var(--space-2);
-    left: 50%;
-    width: min(560px, calc(100vw - var(--space-4)));
-    max-width: none;
-    padding: 0;
-    gap: 0;
-    transform: translateX(-50%);
-    overflow-y: auto;
-    background: linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 57px,
-      rgba(0, 0, 0, 0.94) 57px
-    );
-    pointer-events: auto;
-  }
-
-  .audio-diagnostics.is-help .diag-header {
-    position: sticky;
-    top: 0;
-    z-index: var(--z-sticky);
-    padding: 10px var(--space-3);
-    border-bottom: 1px solid rgba(56, 226, 255, 0.16);
-    background: rgba(4, 8, 12, 0.56);
-    -webkit-backdrop-filter: blur(18px) saturate(1.1);
-    backdrop-filter: blur(18px) saturate(1.1);
-  }
-
-  .audio-diagnostics.is-help .diag-body {
-    padding: 10px var(--space-3) var(--space-3);
-    gap: 7px;
-  }
-
-  .audio-diagnostics.is-help .diag-help-intro,
-  .audio-diagnostics.is-help .diag-group-description,
-  .audio-diagnostics.is-help .diag-help {
-    display: block;
-  }
-
-  .audio-diagnostics.is-help .diag-item {
-    flex-basis: 100%;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0 6px;
-    white-space: normal;
-  }
-
-  .audio-diagnostics.is-help .diag-label,
-  .audio-diagnostics.is-help .diag-value {
-    grid-row: 1;
-  }
-
-  .audio-diagnostics.is-help .diag-help {
     grid-column: 1 / -1;
     grid-row: 2;
   }
 
   @media (max-width: 420px) {
-    .audio-diagnostics {
+    .statsPanel {
       font-size: var(--text-2xs);
       gap: var(--space-1);
     }
 
-    .diag-group {
+    .statsPanel-group {
       gap: 1px var(--space-2);
     }
   }

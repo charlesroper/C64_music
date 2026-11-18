@@ -27,15 +27,15 @@ export function formatAsmLineHtml(rawLine) {
 
   let formattedCode = escapeHtml(codePart);
   if (codePart.length > 0 && !/\s/.test(codePart[0])) {
-    formattedCode = formattedCode.replace(/^(\S+)/, '<span class="asm-label">$1</span>');
+    formattedCode = formattedCode.replace(/^(\S+)/, '<span class="sourceViewer-label">$1</span>');
   }
   formattedCode = formattedCode.replace(
     /\b(ORG|EQU|DFB|DFW|DFL|DFH|DFS|DFM|ENT|INC)\b/g,
-    '<span class="asm-directive">$1</span>',
+    '<span class="sourceViewer-directive">$1</span>',
   );
 
   const formattedComment = commentPart
-    ? `<span class="asm-comment">${escapeHtml(commentPart)}</span>`
+    ? `<span class="sourceViewer-comment">${escapeHtml(commentPart)}</span>`
     : "";
 
   return formattedCode + formattedComment;
@@ -683,21 +683,21 @@ export function createWorkbenchView({
 
     for (const g of groups) {
       const grpEl = doc.createElement("div");
-      grpEl.className = `sid-hex-group ${g.cls}`;
+      grpEl.className = `sidStrip-group sidStrip-group--${g.cls}`;
       grpEl.id = `sid-group-${g.id}`;
       grpEl.title = g.title;
 
       const tag = doc.createElement("span");
-      tag.className = "sid-group-tag";
+      tag.className = "sidStrip-groupTag";
       tag.textContent = g.label;
       grpEl.appendChild(tag);
 
       const cellsWrap = doc.createElement("div");
-      cellsWrap.className = "sid-group-cells";
+      cellsWrap.className = "sidStrip-groupCells";
 
       for (let i = g.start; i < g.start + g.count; i++) {
         const span = doc.createElement("span");
-        span.className = `sid-cell ${g.cls}`;
+        span.className = `sidStrip-cell sidStrip-cell--${g.cls}`;
         span.id = `sid-reg-${i}`;
         const hex = i.toString(16).toUpperCase().padStart(2, "0");
         span.title = `$D4${hex}: ${regNames[i]}`;
@@ -722,7 +722,7 @@ export function createWorkbenchView({
 
   function syncLegendChips() {
     const session = state.currentSession || state.player?.getSession();
-    const chips = doc.querySelectorAll ? Array.from(doc.querySelectorAll(".legend-chip")) : [];
+    const chips = doc.querySelectorAll ? Array.from(doc.querySelectorAll(".voiceLegend-chip")) : [];
     if (chips.length === 0) return;
 
     if (!isLegendVoiceEnabled(session, state.followVoice)) {
@@ -745,9 +745,14 @@ export function createWorkbenchView({
       const selected = enabled && state.followVoice === voice;
       const following = selected && state.followPc;
 
-      chip.classList.toggle("disabled", !enabled);
-      chip.classList.toggle("selected", selected);
-      chip.classList.toggle("active-followed", following);
+      chip.classList.toggle("voiceLegend-chip-isDisabled", !enabled);
+      chip.classList.toggle("voiceLegend-chip-isSelected", selected);
+      chip.classList.toggle("voiceLegend-chip-isFollowed", following);
+      const dot = chip.querySelector?.(".voiceLegend-dot") || chip.children?.[0];
+      if (dot?.classList) {
+        dot.classList.toggle("voiceLegend-dot-isDisabled", !enabled);
+        dot.classList.toggle("voiceLegend-dot-isFollowed", following);
+      }
       chip.disabled = !enabled;
       if (chip.setAttribute) {
         chip.setAttribute("aria-pressed", following ? "true" : "false");
@@ -767,6 +772,10 @@ export function createWorkbenchView({
     if (chkFollow) {
       chkFollow.checked = state.followPc;
     }
+  }
+
+  function voiceLineClass(voice) {
+    return voice === "seq" ? "sourceViewer-line-isVoiceSeq" : `sourceViewer-line-isVoice${voice}`;
   }
 
   function applyFollowChange(nextVoice, nextFollow) {
@@ -796,7 +805,7 @@ export function createWorkbenchView({
     }
 
     if (state.followPc && state.player?.getState().isPlaying && state.prevHighlightedLines) {
-      const targetCls = nextVoice === "seq" ? "pc-seq" : `pc-v${nextVoice}`;
+      const targetCls = voiceLineClass(nextVoice);
       const targetLine = state.prevHighlightedLines.find((al) => al.cls === targetCls);
       if (targetLine) {
         state.lastFollowedLine = targetLine.lineNo;
@@ -952,11 +961,11 @@ export function createWorkbenchView({
               ? `$${addr.toString(16).toUpperCase().padStart(4, "0")}`
               : "";
 
-          const rowHtml = `<span class="ln-num">${lineNo}</span><span class="ln-addr">${addrHex}</span><span class="ln-code">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
-          html += `<div class="asm-line" id="asm-L${lineNo}">${rowHtml}</div>`;
+          const rowHtml = `<span class="sourceViewer-lineNum">${lineNo}</span><span class="sourceViewer-lineAddr">${addrHex}</span><span class="sourceViewer-lineCode">${formatAsmLineHtml(asm.rawLines[i])}</span>`;
+          html += `<div class="sourceViewer-line" id="asm-L${lineNo}">${rowHtml}</div>`;
 
           const row = doc.createElement("div");
-          row.className = "asm-line";
+          row.className = "sourceViewer-line";
           row.id = `asm-L${lineNo}`;
           row.innerHTML = rowHtml;
           rows.push(row);
@@ -1075,7 +1084,7 @@ export function createWorkbenchView({
         const isVoiceActive = env > 0 || (ctrl & 0x01) !== 0;
         if (vDom.grp && lastVoiceActive[v] !== isVoiceActive) {
           lastVoiceActive[v] = isVoiceActive;
-          vDom.grp.classList.toggle("active", isVoiceActive);
+          vDom.grp.classList.toggle("sidStrip-group-isActive", isVoiceActive);
         }
 
         const symSource =
@@ -1094,7 +1103,7 @@ export function createWorkbenchView({
               if (vDom.pc && vDom.pc.dataset.line !== String(lineNo)) {
                 vDom.pc.dataset.line = lineNo;
               }
-              activeLines.push({ lineNo, cls: `pc-v${v}` });
+              activeLines.push({ lineNo, cls: `sourceViewer-line-isVoice${v}` });
             }
           }
         }
@@ -1147,7 +1156,7 @@ export function createWorkbenchView({
       const isFltActive = vol > 0 && rout > 0;
       if (d.fltGrp && lastFilterActive !== isFltActive) {
         lastFilterActive = isFltActive;
-        d.fltGrp.classList.toggle("active", isFltActive);
+        d.fltGrp.classList.toggle("sidStrip-group-isActive", isFltActive);
       }
 
       if (isMonitorVisible && scopeData) {
@@ -1174,7 +1183,7 @@ export function createWorkbenchView({
           if (d.seqPc && d.seqPc.dataset.line !== String(lineNo)) {
             d.seqPc.dataset.line = lineNo;
           }
-          activeLines.push({ lineNo, cls: "pc-seq" });
+          activeLines.push({ lineNo, cls: "sourceViewer-line-isVoiceSeq" });
         }
       }
     } else if (d.seqPc && lastTelemetryText.seqPc !== "DRUM: ----") {
@@ -1187,11 +1196,7 @@ export function createWorkbenchView({
 
   function updateLiveSourceHighlights(activeLines) {
     const followedCls =
-      state.followPc && activeLines.length > 0
-        ? state.followVoice === "seq"
-          ? "pc-seq"
-          : `pc-v${state.followVoice}`
-        : null;
+      state.followPc && activeLines.length > 0 ? voiceLineClass(state.followVoice) : null;
 
     const prevLines = state.prevHighlightedLines || [];
     const linesUnchanged =
@@ -1207,7 +1212,7 @@ export function createWorkbenchView({
         const el = getEl(`asm-L${prev.lineNo}`);
         if (el) {
           el.classList.remove(prev.cls);
-          el.classList.remove("pc-followed");
+          el.classList.remove("sourceViewer-line-isFollowed");
         }
       }
       for (const curr of activeLines) {
@@ -1215,7 +1220,7 @@ export function createWorkbenchView({
         if (el) {
           el.classList.add(curr.cls);
           if (followedCls && curr.cls === followedCls) {
-            el.classList.add("pc-followed");
+            el.classList.add("sourceViewer-line-isFollowed");
           }
         }
       }
@@ -1224,7 +1229,7 @@ export function createWorkbenchView({
     }
 
     if (state.followPc && activeLines.length > 0 && state.player?.getState().isPlaying) {
-      const targetCls = state.followVoice === "seq" ? "pc-seq" : `pc-v${state.followVoice}`;
+      const targetCls = voiceLineClass(state.followVoice);
       const targetLine = activeLines.find((al) => al.cls === targetCls);
       if (targetLine && targetLine.lineNo !== state.lastFollowedLine) {
         state.lastFollowedLine = targetLine.lineNo;
@@ -1569,7 +1574,7 @@ export function createWorkbenchView({
       }
     });
 
-    const chips = doc.querySelectorAll ? doc.querySelectorAll(".legend-chip") : [];
+    const chips = doc.querySelectorAll ? doc.querySelectorAll(".voiceLegend-chip") : [];
     chips.forEach((chip) => {
       addListener(chip, "click", (e) => {
         if (e?.preventDefault) e.preventDefault();
@@ -1579,7 +1584,7 @@ export function createWorkbenchView({
         const session = state.currentSession || state.player?.getSession();
         if (
           chip.disabled ||
-          chip.classList.contains("disabled") ||
+          chip.classList.contains("voiceLegend-chip-isDisabled") ||
           !isLegendVoiceEnabled(session, voice)
         ) {
           return;
@@ -1644,15 +1649,15 @@ export function createWorkbenchView({
         const asm = state.player.getAssembled(currentFile);
         if (!asm?.sourceIndex) return;
         const searchMatches = doc.querySelectorAll
-          ? doc.querySelectorAll(".asm-line.search-match")
+          ? doc.querySelectorAll(".sourceViewer-line-isSearchMatch")
           : [];
         searchMatches.forEach((el) => {
-          el.classList.remove("search-match");
+          el.classList.remove("sourceViewer-line-isSearchMatch");
         });
         const matchedLines = asm.sourceIndex.findLines(q);
         for (const lineNo of matchedLines) {
           const el = getEl(`asm-L${lineNo}`);
-          if (el) el.classList.add("search-match");
+          if (el) el.classList.add("sourceViewer-line-isSearchMatch");
         }
         if (matchedLines.length > 0) {
           scrollToSourceLine(matchedLines[0], { doc, getEl });

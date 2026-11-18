@@ -77,9 +77,9 @@ test("unified browser harness enforces strict element IDs and shares environment
     assert.equal(dynamicDiv.className, "beta");
 
     // 4. Query selectors match classes, attributes and compounds
-    const chips = globalThis.document.querySelectorAll(".legend-chip");
+    const chips = globalThis.document.querySelectorAll(".voiceLegend-chip");
     assert.ok(chips.length >= 4, "Expected legend chips");
-    const v1Chip = globalThis.document.querySelector('.legend-chip[data-voice="1"]');
+    const v1Chip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="1"]');
     assert.ok(v1Chip, "Expected Voice 2 legend chip");
   } finally {
     harness.restoreGlobals();
@@ -733,7 +733,7 @@ test("chrome labels use sentence case in source and uppercase through CSS", () =
     );
   }
   assert.ok(
-    html.includes('<span class="sid-hex-label c64Caps">SID registers ($D400-$D418):</span>'),
+    html.includes('<span class="sidStrip-label c64Caps">SID registers ($D400-$D418):</span>'),
     "The SID strip label must wrap only its static text",
   );
   assert.match(
@@ -911,8 +911,8 @@ test("Stats latency help links to the audio delay guide", () => {
   });
   try {
     const value = globalThis.document.querySelector('[data-metric="latency:mode"]');
-    const help = value.closest(".diag-item").children[2];
-    const link = globalThis.document.querySelector(".diag-help a");
+    const help = value.closest(".statsPanel-item").children[2];
+    const link = globalThis.document.querySelector(".statsPanel-help a");
 
     assert.ok(link, "The latency mode help must include a link");
     assert.equal(link.tagName, "A", "The help link must be an anchor");
@@ -938,7 +938,7 @@ test("Stats latency help describes the audio trade-off and default", () => {
   });
   try {
     const value = globalThis.document.querySelector('[data-metric="latency:mode"]');
-    const helpText = value.closest(".diag-item").children[2].textContent;
+    const helpText = value.closest(".statsPanel-item").children[2].textContent;
 
     assert.match(helpText, /Interactive responds sooner/);
     assert.match(helpText, /crackle/);
@@ -949,7 +949,7 @@ test("Stats latency help describes the audio trade-off and default", () => {
     assert.doesNotMatch(helpText, /Interactive is the default/);
 
     const latencyDescription = globalThis.document.querySelector(
-      ".diag-group--latency .diag-group-description",
+      ".statsPanel-group--latency .statsPanel-groupDescription",
     ).textContent;
     assert.equal(
       latencyDescription,
@@ -958,11 +958,11 @@ test("Stats latency help describes the audio trade-off and default", () => {
 
     const outHelp = globalThis.document
       .querySelector('[data-metric="latency:out"]')
-      .closest(".diag-item").children[2].textContent;
+      .closest(".statsPanel-item").children[2].textContent;
     assert.match(outHelp, /Very low values can cause clicks\./);
     assert.doesNotMatch(outHelp, /Low values can pop/);
 
-    const intro = globalThis.document.querySelector(".diag-help-intro").textContent;
+    const intro = globalThis.document.querySelector(".statsPanel-helpIntro").textContent;
     assert.equal(
       intro,
       "A window is about one second, and window values reset each second. Session peaks last until you reload the page, so check peak when a spike has passed.",
@@ -984,7 +984,7 @@ test("Stats help defines the engine, deadlines and percentiles in plain language
 
   try {
     const item = (metric) =>
-      globalThis.document.querySelector(`[data-metric="${metric}"]`).closest(".diag-item");
+      globalThis.document.querySelector(`[data-metric="${metric}"]`).closest(".statsPanel-item");
     const helpText = (metric) => item(metric).children[2].textContent;
 
     assert.equal(item("context:backend").children[0].textContent, "engine");
@@ -1011,11 +1011,12 @@ test("Stats help defines the engine, deadlines and percentiles in plain language
     );
 
     assert.equal(
-      globalThis.document.querySelector(".diag-group--events .diag-group-description").textContent,
+      globalThis.document.querySelector(".statsPanel-group--events .statsPanel-groupDescription")
+        .textContent,
       "Recent audio-context state changes.",
     );
     assert.equal(
-      globalThis.document.querySelectorAll(".diag-group--events .diag-help").length,
+      globalThis.document.querySelectorAll(".statsPanel-group--events .statsPanel-help").length,
       0,
       "The Events item help must not repeat the group description",
     );
@@ -1078,32 +1079,32 @@ test("Stats groups metrics and keeps each label with its value", () => {
   });
 
   try {
-    const groups = globalThis.document.querySelectorAll(".diag-group");
+    const groups = globalThis.document.querySelectorAll(".statsPanel-group");
     assert.equal(groups.length, 6, "Stats must render six metric groups");
     for (const id of ["context", "latency", "process", "deadlines", "telemetry", "events"]) {
       assert.ok(
-        globalThis.document.querySelector(`.diag-group--${id}`),
+        globalThis.document.querySelector(`.statsPanel-group--${id}`),
         `Stats must render the ${id} group`,
       );
     }
     assert.equal(
-      globalThis.document.querySelector(".diag-title").textContent,
+      globalThis.document.querySelector(".statsPanel-title").textContent,
       "Stats for nerds",
       "The Stats title must use sentence case in source",
     );
     assert.ok(
-      globalThis.document.querySelector(".diag-title").classList.contains("c64Caps"),
+      globalThis.document.querySelector(".statsPanel-title").classList.contains("c64Caps"),
       "The Stats title must gain uppercase through CSS",
     );
     assert.deepEqual(
-      Array.from(globalThis.document.querySelectorAll(".diag-group-title")).map(
+      Array.from(globalThis.document.querySelectorAll(".statsPanel-groupTitle")).map(
         (el) => el.children[0]?.textContent,
       ),
       ["Context", "Latency", "Process", "Deadlines", "Telemetry", "Events"],
       "Every Stats group title must use sentence case in source",
     );
     const processTitle = globalThis.document.querySelector(
-      ".diag-group--process .diag-group-title",
+      ".statsPanel-group--process .statsPanel-groupTitle",
     );
     assert.equal(processTitle.children[1].textContent, " (ms)");
     assert.ok(!processTitle.children[1].classList.contains("c64Caps"));
@@ -1112,15 +1113,17 @@ test("Stats groups metrics and keeps each label with its value", () => {
       "Only the Process word must gain uppercase through CSS",
     );
     assert.equal(
-      globalThis.document.querySelectorAll(".diag-group-description").length,
+      globalThis.document.querySelectorAll(".statsPanel-groupDescription").length,
       6,
       "Every group must have a help description",
     );
-    for (const description of globalThis.document.querySelectorAll(".diag-group-description")) {
+    for (const description of globalThis.document.querySelectorAll(
+      ".statsPanel-groupDescription",
+    )) {
       assert.ok(description.textContent.length > 0, "Every group description must have text");
     }
     assert.match(
-      globalThis.document.querySelector(".diag-help-intro").textContent,
+      globalThis.document.querySelector(".statsPanel-helpIntro").textContent,
       /window is about one second/i,
     );
 
@@ -1139,10 +1142,10 @@ test("Stats groups metrics and keeps each label with its value", () => {
     assert.equal(value("telemetry:dropsPeak"), "4");
     assert.equal(value("telemetry:volume"), "1.00");
 
-    for (const item of globalThis.document.querySelectorAll(".diag-item")) {
-      assert.equal(item.children[0].className, "diag-label");
-      assert.equal(item.children[1].className, "diag-value");
-      if (item.parentElement.classList.contains("diag-group--events")) {
+    for (const item of globalThis.document.querySelectorAll(".statsPanel-item")) {
+      assert.equal(item.children[0].className, "statsPanel-label");
+      assert.ok(item.children[1].classList.contains("statsPanel-value"));
+      if (item.parentElement.classList.contains("statsPanel-group--events")) {
         assert.equal(
           item.children.length,
           2,
@@ -1151,11 +1154,11 @@ test("Stats groups metrics and keeps each label with its value", () => {
         continue;
       }
       assert.equal(item.children.length, 3, "Each metric must have label, value and help");
-      assert.equal(item.children[2].className, "diag-help");
+      assert.equal(item.children[2].className, "statsPanel-help");
       assert.ok(item.children[2].textContent.length > 0, "Every metric needs a help description");
     }
     assert.equal(
-      globalThis.document.querySelectorAll(".diag-help").length,
+      globalThis.document.querySelectorAll(".statsPanel-help").length,
       37,
       "All metrics except Events must have help text",
     );
@@ -1206,12 +1209,19 @@ test("Stats colour-codes values by health", () => {
   try {
     const health = (metric) =>
       globalThis.document.querySelector(`[data-metric="${metric}"]`)?.dataset.health;
+    const healthClass = (metric, state) =>
+      globalThis.document
+        .querySelector(`[data-metric="${metric}"]`)
+        ?.classList.contains(`statsPanel-health--${state}`);
 
     assert.equal(health("context:backend"), "normal");
+    assert.equal(healthClass("context:backend", "normal"), true);
     assert.equal(health("context:ctx"), "normal");
     assert.equal(health("latency:out"), "bad", "12.8ms output buffer is bad");
+    assert.equal(healthClass("latency:out", "bad"), true);
     assert.equal(health("process:p50"), "normal");
     assert.equal(health("process:p95"), "pressure", "1.02ms is under pressure");
+    assert.equal(healthClass("process:p95", "pressure"), true);
     assert.equal(health("process:p99"), "pressure", "1.60ms is under pressure");
     assert.equal(health("process:max"), "pressure", "3ms is under pressure");
     assert.equal(health("process:peak"), "bad", "37ms peak is bad");
@@ -1244,9 +1254,9 @@ test("Stats help mode includes a health legend", () => {
   });
 
   try {
-    const legend = globalThis.document.querySelector(".diag-health-legend");
+    const legend = globalThis.document.querySelector(".statsPanel-healthLegend");
     assert.ok(legend, "Stats must include a health legend");
-    const items = globalThis.document.querySelectorAll(".diag-health-legend-item");
+    const items = globalThis.document.querySelectorAll(".statsPanel-healthLegendItem");
     assert.equal(items.length, 3, "Legend must list three health states");
     assert.deepEqual(
       items.map((item) => item.textContent),
@@ -1254,6 +1264,14 @@ test("Stats help mode includes a health legend", () => {
     );
     assert.deepEqual(
       items.map((item) => item.dataset.health),
+      ["normal", "pressure", "bad"],
+    );
+    assert.deepEqual(
+      items.map((item) =>
+        ["normal", "pressure", "bad"].find((s) =>
+          item.classList.contains(`statsPanel-health--${s}`),
+        ),
+      ),
       ["normal", "pressure", "bad"],
     );
   } finally {
@@ -1271,39 +1289,43 @@ test("Stats help mode expands descriptions and closes back to compact", () => {
   });
 
   try {
-    const button = globalThis.document.querySelector(".diag-help-toggle");
+    const button = globalThis.document.querySelector(".statsPanel-helpToggle");
     assert.ok(button, "Stats must have a help toggle");
     assert.match(button.innerHTML, /#icon-help/);
     assert.equal(button.getAttribute("aria-label"), "Explain stats");
     assert.equal(button.getAttribute("aria-expanded"), "false");
-    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.equal(button.classList.contains("statsPanel-helpToggle-isExpanded"), false);
+    assert.ok(!overlay.element.classList.contains("statsPanel-isHelp"));
 
     button.click();
-    assert.ok(overlay.element.classList.contains("is-help"));
+    assert.ok(overlay.element.classList.contains("statsPanel-isHelp"));
+    assert.equal(button.classList.contains("statsPanel-helpToggle-isExpanded"), true);
     assert.equal(button.getAttribute("aria-label"), "Close stats explanation");
     assert.equal(button.getAttribute("aria-expanded"), "true");
     assert.match(button.innerHTML, /#icon-close/);
 
     overlay.element.scrollTop = 480;
     button.click();
-    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.ok(!overlay.element.classList.contains("statsPanel-isHelp"));
+    assert.equal(button.classList.contains("statsPanel-helpToggle-isExpanded"), false);
     assert.equal(button.getAttribute("aria-expanded"), "false");
 
     button.click();
     assert.equal(overlay.element.scrollTop, 0, "Reopening help must return to the introduction");
-    assert.ok(overlay.element.classList.contains("is-help"));
+    assert.ok(overlay.element.classList.contains("statsPanel-isHelp"));
 
     overlay.hide();
-    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.ok(!overlay.element.classList.contains("statsPanel-isHelp"));
+    assert.equal(button.classList.contains("statsPanel-helpToggle-isExpanded"), false);
     assert.equal(button.getAttribute("aria-expanded"), "false");
     assert.ok(overlay.element.classList.contains("hidden"));
 
     overlay.show();
-    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.ok(!overlay.element.classList.contains("statsPanel-isHelp"));
     button.click();
-    assert.ok(overlay.element.classList.contains("is-help"));
+    assert.ok(overlay.element.classList.contains("statsPanel-isHelp"));
     button.click();
-    assert.ok(!overlay.element.classList.contains("is-help"));
+    assert.ok(!overlay.element.classList.contains("statsPanel-isHelp"));
     assert.match(button.innerHTML, /#icon-help/);
   } finally {
     overlay.stop();
@@ -2035,11 +2057,14 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
   view.selectGameAndTrack("wizball.asm", "wiz-title", false);
 
   try {
-    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    const drmChip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="seq"]');
     assert.ok(drmChip, "DRM chip should exist");
 
     // On boot (wizball.asm): hasDrums is false, DRM chip disabled
-    assert.ok(drmChip.classList.contains("disabled"), "Wizball should disable DRM chip");
+    assert.ok(
+      drmChip.classList.contains("voiceLegend-chip-isDisabled"),
+      "Wizball should disable DRM chip",
+    );
 
     // 1. Select gameover.asm
     const gameList = harness.elementsById.get("game-list");
@@ -2048,7 +2073,10 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
     gameOverItem.click();
 
     // First track is go-title-full: withDrums is true, DRM chip must be ENABLED
-    assert.ok(!drmChip.classList.contains("disabled"), "go-title-full should enable DRM chip");
+    assert.ok(
+      !drmChip.classList.contains("voiceLegend-chip-isDisabled"),
+      "go-title-full should enable DRM chip",
+    );
 
     // Switch to a gameover SFX track without drums (e.g. go-sfx-laser)
     const trackList = harness.elementsById.get("track-list");
@@ -2057,13 +2085,19 @@ test("DRM chip is track-aware, drum PC reads through seqPC symbol, and uncheckin
     sfxTrack.click();
 
     // DRM chip must be DISABLED for SFX track
-    assert.ok(drmChip.classList.contains("disabled"), "Game Over SFX track must disable DRM chip");
+    assert.ok(
+      drmChip.classList.contains("voiceLegend-chip-isDisabled"),
+      "Game Over SFX track must disable DRM chip",
+    );
 
     // Switch back to go-title-full
     const fullTrack = trackList.children.find((c) => c.innerHTML?.includes("Title Screen (Full"));
     assert.ok(fullTrack, "Title Screen (Full) in track-list");
     fullTrack.click();
-    assert.ok(!drmChip.classList.contains("disabled"), "go-title-full re-enables DRM chip");
+    assert.ok(
+      !drmChip.classList.contains("voiceLegend-chip-isDisabled"),
+      "go-title-full re-enables DRM chip",
+    );
 
     // 2. Uncheck follow, switch songs, follow stays off
     const chkFollow = harness.elementsById.get("chk-follow-pc");
@@ -2102,106 +2136,114 @@ test("Source Viewer voice chips support 4 states, toggle follow on re-tap, sync 
     view.selectGameAndTrack("wizball.asm", "wiz-title", false);
     view.renderTelemetry(player.getTelemetry());
 
-    const v0Chip = globalThis.document.querySelector('.legend-chip[data-voice="0"]');
-    const v1Chip = globalThis.document.querySelector('.legend-chip[data-voice="1"]');
-    const v2Chip = globalThis.document.querySelector('.legend-chip[data-voice="2"]');
-    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    const v0Chip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="0"]');
+    const v1Chip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="1"]');
+    const v2Chip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="2"]');
+    const drmChip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="seq"]');
     const chkFollow = harness.elementsById.get("chk-follow-pc");
 
     // 1. Boot state: V1 enabled+selected (follow off), V2/V3 enabled+unselected, DRM disabled
     assert.equal(chkFollow.checked, false);
-    assert.equal(v0Chip.classList.contains("disabled"), false);
-    assert.equal(v0Chip.classList.contains("selected"), true);
-    assert.equal(v0Chip.classList.contains("active-followed"), false);
-    assert.equal(v1Chip.classList.contains("selected"), false);
-    assert.equal(v1Chip.classList.contains("active-followed"), false);
-    assert.equal(v2Chip.classList.contains("selected"), false);
-    assert.equal(drmChip.classList.contains("disabled"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isDisabled"), false);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), false);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
+    assert.equal(v2Chip.classList.contains("voiceLegend-chip-isSelected"), false);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isDisabled"), true);
     assert.equal(drmChip.disabled, true);
 
     // Clicking disabled DRM chip does nothing
     drmChip.click();
-    assert.equal(v0Chip.classList.contains("selected"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isSelected"), true);
     assert.equal(chkFollow.checked, false);
 
     // 2. Clicking unselected enabled chip V2 selects it and turns follow ON
     v1Chip.click();
     assert.equal(chkFollow.checked, true);
-    assert.equal(v0Chip.classList.contains("selected"), false);
-    assert.equal(v0Chip.classList.contains("active-followed"), false);
-    assert.equal(v1Chip.classList.contains("selected"), true);
-    assert.equal(v1Chip.classList.contains("active-followed"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isSelected"), false);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), true);
 
     view.renderTelemetry(player.getTelemetry());
     const v1LineNo = Number(harness.elementsById.get("v1-pc").dataset.line || "0");
     assert.ok(v1LineNo > 0);
     assert.equal(
-      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      harness.elementsById
+        .get(`asm-L${v1LineNo}`)
+        .classList.contains("sourceViewer-line-isFollowed"),
       true,
     );
 
     // 3. Tapping already-selected following chip V2 turns follow OFF while keeping V2 selected
     v1Chip.click();
     assert.equal(chkFollow.checked, false);
-    assert.equal(v1Chip.classList.contains("selected"), true);
-    assert.equal(v1Chip.classList.contains("active-followed"), false);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
     assert.equal(
-      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      harness.elementsById
+        .get(`asm-L${v1LineNo}`)
+        .classList.contains("sourceViewer-line-isFollowed"),
       false,
     );
 
     // 4. Tapping selected non-following chip V2 turns follow back ON
     v1Chip.click();
     assert.equal(chkFollow.checked, true);
-    assert.equal(v1Chip.classList.contains("selected"), true);
-    assert.equal(v1Chip.classList.contains("active-followed"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), true);
     assert.equal(
-      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      harness.elementsById
+        .get(`asm-L${v1LineNo}`)
+        .classList.contains("sourceViewer-line-isFollowed"),
       true,
     );
 
     // 5. Follow voice checkbox syncs bidirectionally with selected chip
     chkFollow.checked = false;
     chkFollow.dispatchEvent("change");
-    assert.equal(v1Chip.classList.contains("selected"), true);
-    assert.equal(v1Chip.classList.contains("active-followed"), false);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
     assert.equal(
-      harness.elementsById.get(`asm-L${v1LineNo}`).classList.contains("pc-followed"),
+      harness.elementsById
+        .get(`asm-L${v1LineNo}`)
+        .classList.contains("sourceViewer-line-isFollowed"),
       false,
     );
 
     chkFollow.checked = true;
     chkFollow.dispatchEvent("change");
-    assert.equal(v1Chip.classList.contains("selected"), true);
-    assert.equal(v1Chip.classList.contains("active-followed"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isFollowed"), true);
 
     // 6. Track Load where selected DRM becomes disabled falls back to V1 preserving follow state
     view.selectGameAndTrack("arkadrum.asm", "ark-title", false);
-    assert.equal(drmChip.classList.contains("disabled"), false);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isDisabled"), false);
     drmChip.click();
-    assert.equal(drmChip.classList.contains("selected"), true);
-    assert.equal(drmChip.classList.contains("active-followed"), true);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isFollowed"), true);
     assert.equal(chkFollow.checked, true);
 
     // Switch to Wizball (no drums) while follow is ON -> falls back to V1 with follow ON
     view.selectGameAndTrack("wizball.asm", "wiz-title", false);
-    assert.equal(drmChip.classList.contains("disabled"), true);
-    assert.equal(v0Chip.classList.contains("selected"), true);
-    assert.equal(v0Chip.classList.contains("active-followed"), true);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isDisabled"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isFollowed"), true);
     assert.equal(chkFollow.checked, true);
 
     // Switch to arkadrum, select DRM then toggle follow OFF, then switch to Wizball -> V1 selected with follow OFF
     view.selectGameAndTrack("arkadrum.asm", "ark-title", false);
     drmChip.click();
     drmChip.click();
-    assert.equal(drmChip.classList.contains("selected"), true);
-    assert.equal(drmChip.classList.contains("active-followed"), false);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isFollowed"), false);
     assert.equal(chkFollow.checked, false);
 
     view.selectGameAndTrack("wizball.asm", "wiz-title", false);
-    assert.equal(drmChip.classList.contains("disabled"), true);
-    assert.equal(v0Chip.classList.contains("selected"), true);
-    assert.equal(v0Chip.classList.contains("active-followed"), false);
+    assert.equal(drmChip.classList.contains("voiceLegend-chip-isDisabled"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isSelected"), true);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isFollowed"), false);
     assert.equal(chkFollow.checked, false);
 
     // 7. Missing PC symbol disables that voice chip
@@ -2210,9 +2252,9 @@ test("Source Viewer voice chips support 4 states, toggle follow on re-tap, sync 
       pcSymbols: ["PC0", "", "PC2"],
     };
     view.renderSession(customSession);
-    assert.equal(v1Chip.classList.contains("disabled"), true);
+    assert.equal(v1Chip.classList.contains("voiceLegend-chip-isDisabled"), true);
     assert.equal(v1Chip.disabled, true);
-    assert.equal(v0Chip.classList.contains("disabled"), false);
+    assert.equal(v0Chip.classList.contains("voiceLegend-chip-isDisabled"), false);
   } finally {
     view.destroy();
     harness.restoreGlobals();
@@ -2265,13 +2307,13 @@ test("source viewer address gutter hides sentinel values and shows $0000 for add
     const row6 = viewer.children[5];
     const row7 = viewer.children[6];
 
-    assert.match(row1.innerHTML, /<span class="ln-addr"><\/span>/);
-    assert.match(row2.innerHTML, /<span class="ln-addr"><\/span>/);
-    assert.match(row3.innerHTML, /<span class="ln-addr"><\/span>/);
-    assert.match(row4.innerHTML, /<span class="ln-addr"><\/span>/);
-    assert.match(row5.innerHTML, /<span class="ln-addr">\$0000<\/span>/);
-    assert.match(row6.innerHTML, /<span class="ln-addr"><\/span>/);
-    assert.match(row7.innerHTML, /<span class="ln-addr">\$1000<\/span>/);
+    assert.match(row1.innerHTML, /<span class="sourceViewer-lineAddr"><\/span>/);
+    assert.match(row2.innerHTML, /<span class="sourceViewer-lineAddr"><\/span>/);
+    assert.match(row3.innerHTML, /<span class="sourceViewer-lineAddr"><\/span>/);
+    assert.match(row4.innerHTML, /<span class="sourceViewer-lineAddr"><\/span>/);
+    assert.match(row5.innerHTML, /<span class="sourceViewer-lineAddr">\$0000<\/span>/);
+    assert.match(row6.innerHTML, /<span class="sourceViewer-lineAddr"><\/span>/);
+    assert.match(row7.innerHTML, /<span class="sourceViewer-lineAddr">\$1000<\/span>/);
   } finally {
     view.destroy();
     harness.restoreGlobals();
@@ -2304,11 +2346,13 @@ test("symbol jump and source search use the on-screen file instead of activeGame
     searchInput.value = "TITLE0";
     searchInput.dispatchEvent("input");
 
-    const matches = viewer.children.filter((r) => r.classList?.contains("search-match"));
+    const matches = viewer.children.filter((r) =>
+      r.classList?.contains("sourceViewer-line-isSearchMatch"),
+    );
     assert.ok(matches.length > 0, "Searching TITLE0 must find matches in arkanoid.asm on screen");
 
     // 3. Switch to drum follow (seq), so on-screen file becomes arkadrum.asm
-    const drmChip = globalThis.document.querySelector('.legend-chip[data-voice="seq"]');
+    const drmChip = globalThis.document.querySelector('.voiceLegend-chip[data-voice="seq"]');
     assert.ok(drmChip, "DRM chip exists");
     drmChip.click();
     assert.ok(viewer.children.length < 500, "Viewer should display arkadrum.asm (<500 lines)");
@@ -2317,7 +2361,9 @@ test("symbol jump and source search use the on-screen file instead of activeGame
     searchInput.value = "TOMhiTABLE";
     searchInput.dispatchEvent("input");
 
-    const drmMatches = viewer.children.filter((r) => r.classList?.contains("search-match"));
+    const drmMatches = viewer.children.filter((r) =>
+      r.classList?.contains("sourceViewer-line-isSearchMatch"),
+    );
     assert.ok(
       drmMatches.length > 0,
       "Searching TOMhiTABLE must find matches in arkadrum.asm on screen",

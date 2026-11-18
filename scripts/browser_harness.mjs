@@ -49,7 +49,7 @@ export async function waitForWorkbenchReady(page) {
       document.getElementById("play-label")?.textContent !== "LOADING..." &&
       document.getElementById("game-meta-card")?.textContent.trim().length > 0 &&
       document.querySelectorAll(".tunesPanel-item").length > 0 &&
-      document.querySelectorAll(".asm-line").length > 0,
+      document.querySelectorAll(".sourceViewer-line").length > 0,
   );
 }
 
