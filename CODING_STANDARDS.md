@@ -68,7 +68,7 @@ Deployments are identified by Calendar Versioning (`YYYY.MM.DD` or `YYYY.MM.DD.M
 1. `package.json`: `"version": "YYYY.MM.DD"` or `"YYYY.MM.DD.MICRO"`
 2. `package-lock.json`: root package `"version": "YYYY.MM.DD"`
 3. `index.html`: document title (`(1985-87) vYYYY.MM.DD`)
-4. `index.html`: header badge (`<span class="topBar-version" id="app-version">vYYYY.MM.DD</span>`)
+4. `index.html`: header badge (`#app-version`, e.g. `<span class="topBar-version" id="app-version">vYYYY.MM.DD</span>`)
 5. `index.html`: every linked CSS stylesheet query string (`href="./src/styles/*.css?v=YYYY.MM.DD"`)
 6. `index.html`: script query string (`src="./src/main.js?v=YYYY.MM.DD"`)
 7. `src/version.js`: `export const APP_VERSION = "YYYY.MM.DD";`
@@ -138,6 +138,6 @@ Commit messages must adhere to Chris Beams' guidelines:
 Styles live as parallel zero-build modules under `src/styles/` governed by `docs/adr/0011-css-module-architecture.md`.
 
 **Rule 11.1 (Module Scope and Line Budget)**: Keep each module stylesheet single-responsibility and under 450 lines, with its responsive `@media` blocks co-located inside the owning file.
-**Rule 11.2 (Cascade and Selectors)**: Wrap module rules in `@layer modules`, reserve `@layer state` for visibility and reduced-motion overrides, and use zero `!important` declarations and zero `#id` style selectors. Preserve `id` attributes needed for DOM and ARIA wiring.
+**Rule 11.2 (Cascade and Selectors)**: Wrap module rules in `@layer modules`, reserve `@layer state` for visibility and reduced-motion overrides, and use zero `!important` declarations and zero `#id` style selectors. Preserve `id` attributes needed for DOM and ARIA wiring. Prefer single-class `.module-component` selectors over tag descendants on interactive controls and nestable containers; reserve tag descendant selectors (such as `strong` or `p`) for leaf prose blocks.
 **Rule 11.3 (Tokens and Pixel-Locked Exemptions)**: Prefer `:root` design tokens from `src/styles/foundation.css` for colours, typography, spacing, radii, and z-index tiers, while preserving pixel-locked Oscilloscopes Panel and SID Register Strip geometry checked by `npm run check:layout`.
 **Rule 11.4 (STE-80 CSS Comments)**: Write module headers and defensive comments in Simplified Technical English (active present tense, <= 25 words per descriptive sentence, noun clusters <= 3 words, zero `-ing` participles). Place `CAUTION: [Preventive action]. [Consequence].` notices directly above layout-sensitive rules.

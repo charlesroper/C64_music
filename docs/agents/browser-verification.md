@@ -132,4 +132,4 @@ Re-adding it to CI needs a pinned Chromium, `CHROME_PATH`, and font-independent 
 
 ## Resource limits
 
-The host has 3.4 GB of RAM. Run one browser at a time. Close each browser after its check. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.
+The host has 3.4 GB of RAM. Run one browser at a time, and run `npm test` and Chromium gates (`npm run check:layout`, `npm run check:help-popovers`) sequentially rather than concurrently to avoid CPU contention flakes. Close each browser after its check. Firefox and Chromium both survive normal UI and worklet probes, but memory pressure can kill a run during long audio experiments.

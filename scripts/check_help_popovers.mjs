@@ -120,7 +120,7 @@ async function openPanel(send, id) {
 
 async function closePanel(send, id, expectedBorder) {
   await evaluate(send, `document.getElementById("${id}-help-panel").hidePopover?.()`);
-  const deadline = Date.now() + 2000;
+  const deadline = Date.now() + 4000;
   while (Date.now() < deadline) {
     const settled = await evaluate(
       send,

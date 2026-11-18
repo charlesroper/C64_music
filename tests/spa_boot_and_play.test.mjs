@@ -68,6 +68,14 @@ test("unified browser harness enforces strict element IDs and shares environment
       "Dynamically assigned id must be registered in the harness",
     );
 
+    // 3b. Assigning className keeps classList and querySelector synchronized
+    dynamicDiv.className = "alpha beta";
+    assert.equal(dynamicDiv.classList.contains("alpha"), true);
+    assert.equal(dynamicDiv.classList.contains("beta"), true);
+    assert.equal(globalThis.document.querySelector(".beta"), dynamicDiv);
+    dynamicDiv.classList.remove("alpha");
+    assert.equal(dynamicDiv.className, "beta");
+
     // 4. Query selectors match classes, attributes and compounds
     const chips = globalThis.document.querySelectorAll(".legend-chip");
     assert.ok(chips.length >= 4, "Expected legend chips");

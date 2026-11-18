@@ -19,8 +19,9 @@ export function isVersionOnlyDiff(diffText) {
   const cssHref = String.raw`href=["']\.\/src\/(?:styles\.css|styles\/[^"'?]+\.css)\?v=${calver}["']`;
   const cssLink = `(?:<link\\s+(?:rel=["']stylesheet["']\\s+)?${cssHref}(?:\\s+rel=["']stylesheet["'])?\\s*>?|${cssHref})`;
   const scriptTag = String.raw`(?:<script\s+type=["']module["']\s+)?src=["']\.\/src\/main\.js\?v=${calver}["'](?:\s*><\/script>)?`;
+  const badgeTag = String.raw`<span class="[^"]+" id="app-version">v${calver}<\/span>`;
   const versionLine = new RegExp(
-    `^[+-]\\s*(?:"version":\\s*"${calver}",?|export const APP_VERSION = "${calver}";|<title>Galway 2664 \\/\\/ Ocean 6502-SID Workbench \\(1985-87\\) v${calver}<\\/title>|<span class="topBar-version" id="app-version">v${calver}<\\/span>|${cssLink}|${scriptTag})$`,
+    `^[+-]\\s*(?:"version":\\s*"${calver}",?|export const APP_VERSION = "${calver}";|<title>Galway 2664 \\/\\/ Ocean 6502-SID Workbench \\(1985-87\\) v${calver}<\\/title>|${badgeTag}|${cssLink}|${scriptTag})$`,
   );
   return changed.every((line) => versionLine.test(line));
 }

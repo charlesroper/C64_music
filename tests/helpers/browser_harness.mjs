@@ -92,7 +92,7 @@ export function createBrowserHarness({
     constructor(tag = "div", id = "") {
       this.tagName = tag.toUpperCase();
       this._id = id;
-      this.className = "";
+      this._className = "";
       this.textContent = "";
       this._innerHTML = "";
       this.value = "";
@@ -107,25 +107,28 @@ export function createBrowserHarness({
       this.width = 384;
       this.height = 272;
 
+      const syncClassName = () => {
+        this._className = Array.from(this.classList._set).join(" ");
+      };
       this.classList = {
         _set: new Set(),
         add: (...c) => {
           for (const x of c) {
-            this.classList._set.add(x);
+            if (x) this.classList._set.add(x);
           }
-          this.className = Array.from(this.classList._set).join(" ");
+          syncClassName();
         },
         remove: (...c) => {
           for (const x of c) {
             this.classList._set.delete(x);
           }
-          this.className = Array.from(this.classList._set).join(" ");
+          syncClassName();
         },
         toggle: (c, force) => {
           const should = force === undefined ? !this.classList._set.has(c) : Boolean(force);
           if (should) this.classList._set.add(c);
           else this.classList._set.delete(c);
-          this.className = Array.from(this.classList._set).join(" ");
+          syncClassName();
           return should;
         },
         contains: (c) => this.classList._set.has(c),
@@ -135,6 +138,19 @@ export function createBrowserHarness({
         elementsById.set(id, this);
       }
       allElements.push(this);
+    }
+
+    get className() {
+      return this._className;
+    }
+
+    set className(value) {
+      const text = String(value ?? "");
+      this.classList._set.clear();
+      for (const token of text.split(/\s+/).filter(Boolean)) {
+        this.classList._set.add(token);
+      }
+      this._className = Array.from(this.classList._set).join(" ");
     }
 
     get id() {
@@ -295,9 +311,6 @@ export function createBrowserHarness({
     const classMatch = attrs.match(/\bclass="([^"]+)"/);
     if (classMatch) {
       el.className = classMatch[1];
-      for (const c of classMatch[1].split(/\s+/).filter(Boolean)) {
-        el.classList.add(c);
-      }
     }
 
     for (const dataMatch of attrs.matchAll(/\bdata-([a-zA-Z0-9-]+)="([^"]*)"/g)) {

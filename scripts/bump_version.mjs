@@ -39,10 +39,7 @@ export function updateHtmlVersion(html, nextVersion) {
       /<title>Galway (?:64|2664) \/\/ Ocean 6502-SID Workbench \(1985-87\) v[^<]*<\/title>/,
       `<title>Galway 2664 // Ocean 6502-SID Workbench (1985-87) v${nextVersion}</title>`,
     )
-    .replace(
-      /<span class="topBar-version" id="app-version">v[^<]*<\/span>/,
-      `<span class="topBar-version" id="app-version">v${nextVersion}</span>`,
-    )
+    .replace(/(<span\b[^>]*\bid="app-version"[^>]*>)v[^<]*(<\/span>)/, `$1v${nextVersion}$2`)
     .replace(/<!--[\s\S]*?-->|<link\b[^>]*>/gi, (match) => {
       if (match.startsWith("<!--")) return match;
       if (!/\brel\s*=\s*(?:"[^"]*\bstylesheet\b[^"]*"|'[^']*\bstylesheet\b[^']*')/i.test(match)) {
