@@ -742,152 +742,300 @@ test("verifyDeploy polls Pages workflow, verifies live version, and pushes deplo
   }
 });
 
-test("extracted CSS modules stay under 450 lines with @layer, zero !important, zero ID selectors, and STE-80 comments", () => {
-  const stylesDir = path.join(ROOT, "src/styles");
-  const files = fs
-    .readdirSync(stylesDir)
-    .filter((f) => f.endsWith(".css"))
-    .sort();
-  assert.ok(files.length > 0, "src/styles/ must contain extracted CSS modules");
+const ALLOWED_TECHNICAL_ING = new Set([
+  "padding",
+  "spacing",
+  "sizing",
+  "rendering",
+  "timing",
+  "ring",
+  "string",
+]);
 
-  const allowedTechnicalIng = new Set([
-    "padding",
-    "spacing",
-    "sizing",
-    "rendering",
-    "timing",
-    "ring",
-    "string",
-  ]);
-  const retiredGlossaryTerms = collectRetiredGlossaryTerms();
+const ALLOWED_UTILITY_CLASSES = new Set(["hidden", "srOnly", "c64Caps"]);
+const MAINTAINABLE_CLASS_PATTERN =
+  /^[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?$/;
+const FORBIDDEN_CLASS_PATTERNS = [/^is(?:[A-Z]|-)/, /^(?:active|c64-caps|sr-only)$/];
+const SINGLE_CLASS_SELECTOR_PATTERN =
+  /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::(?:hover|active|focus|focus-visible)|::(?:before|after))?$/;
+const MOBILE_TAB_BYPASS_PATTERN =
+  /^\.workbenchShell-grid\[data-mobile-view="[a-z]+"\] \.[a-z][a-zA-Z0-9-]*$/;
+const LEAF_PROSE_SELECTOR_PATTERN =
+  /^\.(?:archNotes|narrativeProse|gameMetaCard) (?:h[1-6]|p|strong|em|blockquote|ul|ol|li|pre(?: code)?|code|hr)$/;
+const MODULE_STRUCTURAL_SELECTORS = new Map([
+  ["foundation.css", [/^(?:\*|:root|html|body)$/]],
+  ["buttons.css", [/^button(?::(?:hover|active))?$/]],
+  [
+    "boot-sequence.css",
+    [
+      /^(?:html\[data-boot-mode="immediate"\] )?(?:body\[data-boot-state="booting"\] \.workbenchShell|\.bootSequence)$/,
+    ],
+  ],
+  [
+    "hardware-controls.css",
+    [
+      /^\.hardwareControls-toggleInput:(?:checked|focus-visible) \+ \.hardwareControls-toggleSwitch(?:::after)?$/,
+    ],
+  ],
+  [
+    "top-bar.css",
+    [/^(?:\.topBar-logo-isSparkling )?\.topBar-logoSvg path(?::nth-of-type\(\d+\))?$/],
+  ],
+  ["workbench-shell.css", [/^::-webkit-scrollbar(?:-(?:track|thumb(?::hover)?))?$/]],
+]);
 
-  for (const file of files) {
-    const relPath = `src/styles/${file}`;
-    const text = fs.readFileSync(path.join(stylesDir, file), "utf8");
-    const lines = text.split(/\r?\n/);
-    assert.ok(lines.length < 450, `${relPath} must stay under 450 lines (got ${lines.length})`);
+function isValidMaintainableClass(token) {
+  return (
+    ALLOWED_UTILITY_CLASSES.has(token) ||
+    (MAINTAINABLE_CLASS_PATTERN.test(token) &&
+      !FORBIDDEN_CLASS_PATTERNS.some((pattern) => pattern.test(token)))
+  );
+}
 
-    const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
-    assert.match(withoutComments, /@layer\b/, `${relPath} must declare or wrap rules in @layer`);
-    assert.doesNotMatch(
-      withoutComments,
-      /!important/i,
-      `${relPath} must contain zero !important declarations`,
-    );
-    if (file !== "foundation.css") {
-      assert.doesNotMatch(
-        withoutComments,
-        /\bz-index\s*:\s*-?\d+/i,
-        `${relPath} must use --z-* tokens instead of raw integer z-index values`,
-      );
-    }
+function isAllowedModuleSelector(fileName, selectorPart) {
+  if (SINGLE_CLASS_SELECTOR_PATTERN.test(selectorPart)) return true;
+  if (MOBILE_TAB_BYPASS_PATTERN.test(selectorPart)) return true;
+  if (
+    (fileName === "modal.css" || fileName === "source-panel.css") &&
+    LEAF_PROSE_SELECTOR_PATTERN.test(selectorPart)
+  ) {
+    return true;
+  }
+  const extraPatterns = MODULE_STRUCTURAL_SELECTORS.get(fileName) ?? [];
+  return extraPatterns.some((pattern) => pattern.test(selectorPart));
+}
 
-    // Strip declaration values and strings so hex colours do not trigger ID selector checks.
-    const withoutValues = withoutComments
-      .replace(/"[^"]*"|'[^']*'/g, "")
-      .replace(/:[^;{}]+;/g, ";");
-    assert.doesNotMatch(
-      withoutValues,
-      /#[a-zA-Z_-][a-zA-Z0-9_-]*/,
-      `${relPath} must contain zero ID style selectors`,
-    );
+function findCssModuleViolations(
+  relPath,
+  text,
+  { retiredGlossaryTerms = collectRetiredGlossaryTerms() } = {},
+) {
+  const violations = [];
+  const lines = text.split(/\r?\n/);
+  if (lines.length >= 450) {
+    violations.push(`${relPath} must stay under 450 lines (got ${lines.length})`);
+  }
 
-    for (const match of text.matchAll(/\/\*[\s\S]*?\*\//g)) {
-      const rawLines = match[0]
-        .replace(/^\/\*|\*\/$/g, "")
-        .split(/\r?\n/)
-        .map((line) => line.replace(/={3,}/g, "").trim())
-        .filter(Boolean);
-      if (rawLines.length === 0) continue;
+  const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  if (!/@layer\b/.test(withoutComments)) {
+    violations.push(`${relPath} must declare or wrap rules in @layer`);
+  }
+  if (/!important\b/i.test(withoutComments)) {
+    violations.push(`${relPath} must contain zero !important declarations`);
+  }
+  if (
+    path.basename(relPath) !== "foundation.css" &&
+    /\bz-index\s*:\s*-?\d+/i.test(withoutComments)
+  ) {
+    violations.push(`${relPath} must use --z-* tokens instead of raw integer z-index values`);
+  }
 
-      const isBanner = match[0].includes("====");
-      const proseLines = isBanner && rawLines.length > 1 ? rawLines.slice(1) : rawLines;
-      const cleaned = proseLines.join(" ").replace(/\s+/g, " ").trim();
-      if (!cleaned) continue;
+  // Strip strings and declaration values so hex colours do not trigger ID selector checks.
+  const withoutValues = withoutComments
+    .replace(/"[^"]*"|'[^']*'/g, "")
+    .replace(/:[^;{}]+(?=[;}])/g, "");
+  const selectorHasId = parseStylesheet(text).some((rule) =>
+    /#[a-zA-Z_-][a-zA-Z0-9_-]*/.test(rule.selector.replace(/\[[^\]]*\]/g, "")),
+  );
+  if (selectorHasId || /#[a-zA-Z_-][a-zA-Z0-9_-]*/.test(withoutValues)) {
+    violations.push(`${relPath} must contain zero ID style selectors`);
+  }
 
-      const lowerCleaned = cleaned.toLowerCase();
-      for (const term of retiredGlossaryTerms) {
-        assert.ok(
-          !lowerCleaned.includes(term.toLowerCase()),
+  for (const match of text.matchAll(/\/\*[\s\S]*?\*\//g)) {
+    const rawLines = match[0]
+      .replace(/^\/\*|\*\/$/g, "")
+      .split(/\r?\n/)
+      .map((line) => line.replace(/={3,}/g, "").trim())
+      .filter(Boolean);
+    if (rawLines.length === 0) continue;
+
+    const isBanner = match[0].includes("====");
+    const proseLines = isBanner && rawLines.length > 1 ? rawLines.slice(1) : rawLines;
+    const cleaned = proseLines.join(" ").replace(/\s+/g, " ").trim();
+    if (!cleaned) continue;
+
+    const lowerCleaned = cleaned.toLowerCase();
+    for (const term of retiredGlossaryTerms) {
+      if (lowerCleaned.includes(term.toLowerCase())) {
+        violations.push(
           `${relPath} CSS comment must not use GLOSSARY _Avoid_ term "${term}": "${cleaned}"`,
         );
       }
+    }
 
-      const body = cleaned.includes("CAUTION:") ? cleaned.split("CAUTION:")[1].trim() : cleaned;
-      if (cleaned.includes("CAUTION:")) {
-        const sentences = body
-          .split(/\.(?:\s+|$)/)
-          .map((s) => s.trim())
-          .filter(Boolean);
-        assert.ok(
-          sentences.length >= 2,
+    const body = cleaned.includes("CAUTION:") ? cleaned.split("CAUTION:")[1].trim() : cleaned;
+    if (cleaned.includes("CAUTION:")) {
+      const sentences = body
+        .split(/\.(?:\s+|$)/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (sentences.length < 2) {
+        violations.push(
           `${relPath} CAUTION comment must state [Preventive action]. [Consequence].: "${cleaned}"`,
         );
       }
+    }
 
-      const proseOnly = body.replace(/`[^`]+`/g, "");
-      for (const word of proseOnly.match(/\b[a-z]+ing\b/gi) ?? []) {
-        assert.ok(
-          allowedTechnicalIng.has(word.toLowerCase()),
-          `${relPath} CSS comment uses non-STE-80 -ing word "${word}": "${cleaned}"`,
-        );
+    const proseOnly = body.replace(/`[^`]+`/g, "");
+    for (const word of proseOnly.match(/\b[a-z]+ing\b/gi) ?? []) {
+      if (!ALLOWED_TECHNICAL_ING.has(word.toLowerCase())) {
+        violations.push(`${relPath} CSS comment uses non-STE-80 -ing word "${word}": "${cleaned}"`);
       }
+    }
 
-      for (const sentence of body
-        .split(/\.(?:\s+|$)/)
-        .map((s) => s.trim())
-        .filter(Boolean)) {
-        const words = sentence.split(/\s+/).filter(Boolean);
-        assert.ok(
-          words.length <= 25,
+    for (const sentence of body
+      .split(/\.(?:\s+|$)/)
+      .map((s) => s.trim())
+      .filter(Boolean)) {
+      const words = sentence.split(/\s+/).filter(Boolean);
+      if (words.length > 25) {
+        violations.push(
           `${relPath} CSS comment sentence exceeds 25 words (${words.length}): "${sentence}"`,
         );
       }
     }
   }
+
+  return violations;
+}
+
+function findMaintainableCssViolations(relPath, text) {
+  const fileName = path.basename(relPath);
+  const violations = [];
+
+  for (const rule of parseStylesheet(text)) {
+    for (const part of rule.selector.split(",").map((s) => s.trim())) {
+      if (!isAllowedModuleSelector(fileName, part)) {
+        violations.push(
+          `${relPath} selector "${part}" must use single-class MaintainableCSS grammar`,
+        );
+      }
+      const withoutAttrStrings = part.replace(/\[[^\]]*\]/g, "");
+      for (const match of withoutAttrStrings.matchAll(/\.([a-zA-Z0-9_-]+)/g)) {
+        if (!isValidMaintainableClass(match[1])) {
+          violations.push(
+            `${relPath} class ".${match[1]}" must use MaintainableCSS lowerCamelCase grammar`,
+          );
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
+test("CSS architecture guardrails reject ID selectors, !important, oversized modules, and non-MaintainableCSS names", () => {
+  const validCss = [
+    "/* Header: valid module comment. */",
+    "@layer modules {",
+    "  .hidden { display: none; }",
+    "  .srOnly { position: absolute; }",
+    "  .c64Caps { text-transform: uppercase; }",
+    "  .panel-header { color: #abc }",
+    "  .panel-badge-isError { border-color: #ff4d63; }",
+    "  .panel--left { min-width: 0; }",
+    "}",
+  ].join("\n");
+  assert.deepEqual(findCssModuleViolations("src/styles/example.css", validCss), []);
+  assert.deepEqual(findMaintainableCssViolations("src/styles/example.css", validCss), []);
+
+  const idSelectorViolations = findCssModuleViolations(
+    "src/styles/example.css",
+    "@layer modules { #app-version { color: red; } }",
+  );
+  assert.ok(
+    idSelectorViolations.some((msg) => msg.includes("ID style selector")),
+    `Expected ID selector violation, got: ${idSelectorViolations.join("; ")}`,
+  );
+
+  const importantViolations = findCssModuleViolations(
+    "src/styles/example.css",
+    "@layer modules { .panel { display: none !important; } }",
+  );
+  assert.ok(
+    importantViolations.some((msg) => msg.includes("!important")),
+    `Expected !important violation, got: ${importantViolations.join("; ")}`,
+  );
+
+  const overLineBudget = `${Array.from({ length: 450 }, () => "/* line */").join("\n")}`;
+  const lineViolations = findCssModuleViolations(
+    "src/styles/example.css",
+    `@layer modules {\n${overLineBudget}`,
+  );
+  assert.ok(
+    lineViolations.some((msg) => msg.includes("under 450 lines")),
+    `Expected line budget violation, got: ${lineViolations.join("; ")}`,
+  );
+
+  for (const badSelector of [
+    ".btn-mini-action",
+    ".is-open",
+    ".isOpen",
+    ".active",
+    ".c64-caps",
+    ".sr-only",
+    ".PanelHeader",
+    ".panel_header",
+    ".panel .panel-title",
+    ".panel.panel--left",
+  ]) {
+    const violations = findMaintainableCssViolations(
+      "src/styles/example.css",
+      `@layer modules { ${badSelector} { color: red; } }`,
+    );
+    assert.ok(
+      violations.length > 0,
+      `Expected MaintainableCSS violation for selector "${badSelector}"`,
+    );
+  }
 });
 
-test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar", () => {
-  const stylesDir = path.join(ROOT, "src/styles");
-  const classTokenPattern =
-    /^[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?$/;
-  const singleClassSelectorPattern =
-    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::(?:hover|focus|focus-visible)|::(?:before|after))?$/;
-  const singleClassModules = new Set([
-    "c64-monitor.css",
-    "oscilloscopes-panel.css",
-    "stats-for-nerds.css",
-    "sid-register-strip.css",
-    "source-viewer.css",
-  ]);
-  const mobileTabBypass =
-    /^\.workbenchShell-grid\[data-mobile-view="[a-z]+"\] \.[a-z][a-zA-Z0-9-]*$/;
+test("linked CSS modules stay under 450 lines with @layer, zero !important, zero ID selectors, and STE-80 comments", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  assert.doesNotMatch(html, /<style\b/i, "index.html must not embed inline <style> blocks");
 
-  const allRules = [];
-  const hoverPropsByBase = new Map();
-  for (const file of fs
+  const links = extractStylesheetLinks(html);
+  assert.ok(links.length > 0, "index.html must link module stylesheets");
+
+  const stylesDir = path.join(ROOT, "src/styles");
+  const diskFiles = fs
     .readdirSync(stylesDir)
     .filter((f) => f.endsWith(".css"))
-    .sort()) {
-    const css = fs.readFileSync(path.join(stylesDir, file), "utf8");
+    .sort();
+  assert.ok(diskFiles.length > 0, "src/styles/ must contain extracted CSS modules");
+
+  const linkedRelPaths = links.map((link) => path.normalize(link.path));
+  assert.deepEqual(
+    [...linkedRelPaths].sort(),
+    diskFiles.map((file) => path.normalize(`src/styles/${file}`)),
+    "index.html linked stylesheets must match all CSS modules in src/styles/",
+  );
+
+  const retiredGlossaryTerms = collectRetiredGlossaryTerms();
+  const violations = [];
+  for (const relPath of linkedRelPaths) {
+    const text = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    violations.push(...findCssModuleViolations(relPath, text, { retiredGlossaryTerms }));
+  }
+  assert.deepEqual(violations, [], violations.join("\n"));
+});
+
+test("all CSS modules and HTML markup enforce MaintainableCSS lowerCamelCase class grammar", () => {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const links = extractStylesheetLinks(html);
+  const violations = [];
+  const allRules = [];
+  const hoverPropsByBase = new Map();
+
+  for (const link of links) {
+    const relPath = path.normalize(link.path);
+    const file = path.basename(relPath);
+    const css = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    violations.push(...findMaintainableCssViolations(relPath, css));
+
     for (const rule of parseStylesheet(css)) {
       allRules.push({ file, ...rule });
       for (const part of rule.selector.split(",").map((s) => s.trim())) {
-        if (singleClassModules.has(file) && !mobileTabBypass.test(part)) {
-          assert.match(
-            part,
-            singleClassSelectorPattern,
-            `src/styles/${file} selector "${part}" must use single-class MaintainableCSS grammar`,
-          );
-        }
-        const withoutAttrStrings = part.replace(/\[[^\]]*\]/g, "");
-        for (const match of withoutAttrStrings.matchAll(/\.([a-zA-Z0-9_-]+)/g)) {
-          assert.match(
-            match[1],
-            classTokenPattern,
-            `src/styles/${file} class ".${match[1]}" must use MaintainableCSS lowerCamelCase grammar`,
-          );
-        }
         const hoverMatch = part.match(/^(\.[a-z][a-zA-Z0-9-]*):hover$/);
         if (hoverMatch) {
           const props = hoverPropsByBase.get(hoverMatch[1]) || new Set();
@@ -897,6 +1045,18 @@ test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar"
       }
     }
   }
+
+  for (const match of html.matchAll(/\bclass="([^"]+)"/g)) {
+    for (const token of match[1].trim().split(/\s+/).filter(Boolean)) {
+      if (!isValidMaintainableClass(token)) {
+        violations.push(
+          `index.html class "${token}" must use MaintainableCSS lowerCamelCase grammar`,
+        );
+      }
+    }
+  }
+
+  assert.deepEqual(violations, [], violations.join("\n"));
 
   for (const rule of allRules) {
     for (const part of rule.selector.split(",").map((s) => s.trim())) {
