@@ -15,7 +15,7 @@ import {
 } from "../scripts/deploy.mjs";
 import { installHooks, isVersionOnlyDiff } from "../scripts/install_hooks.mjs";
 import { verifyDeploy } from "../scripts/verify_deploy.mjs";
-import { extractStylesheetLinks } from "./helpers/stylesheets.mjs";
+import { extractStylesheetLinks, parseStylesheet } from "./helpers/stylesheets.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -499,6 +499,11 @@ test("hook installer writes an executable pre-commit hook with the safe lint scr
     );
     assert.match(
       content,
+      /possibly-stale memor/,
+      "hook must hide fixed-threshold stale-memory spam while keeping failed attempts and open issues",
+    );
+    assert.match(
+      content,
       /isVersionOnlyDiff/,
       "hook must support fast repo_rules check on version-only release commits",
     );
@@ -837,6 +842,47 @@ test("extracted CSS modules stay under 450 lines with @layer, zero !important, z
           words.length <= 25,
           `${relPath} CSS comment sentence exceeds 25 words (${words.length}): "${sentence}"`,
         );
+      }
+    }
+  }
+});
+
+test("migrated CSS modules enforce MaintainableCSS lowerCamelCase class grammar", () => {
+  const stylesDir = path.join(ROOT, "src/styles");
+  // Remove pending #106 modules here once #106 completes (tracked in #107).
+  const pendingIssue106 = new Set([
+    "source-viewer.css",
+    "sid-register-strip.css",
+    "stats-for-nerds.css",
+  ]);
+  const classTokenPattern =
+    /^[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?$/;
+  const singleClassSelectorPattern =
+    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::hover)?$/;
+  const singleClassModules = new Set(["c64-monitor.css", "oscilloscopes-panel.css"]);
+
+  for (const file of fs
+    .readdirSync(stylesDir)
+    .filter((f) => f.endsWith(".css") && !pendingIssue106.has(f))
+    .sort()) {
+    const css = fs.readFileSync(path.join(stylesDir, file), "utf8");
+    for (const rule of parseStylesheet(css)) {
+      for (const part of rule.selector.split(",").map((s) => s.trim())) {
+        if (singleClassModules.has(file)) {
+          assert.match(
+            part,
+            singleClassSelectorPattern,
+            `src/styles/${file} selector "${part}" must use single-class MaintainableCSS grammar`,
+          );
+        }
+        const withoutAttrStrings = part.replace(/\[[^\]]*\]/g, "");
+        for (const match of withoutAttrStrings.matchAll(/\.([a-zA-Z0-9_-]+)/g)) {
+          assert.match(
+            match[1],
+            classTokenPattern,
+            `src/styles/${file} class ".${match[1]}" must use MaintainableCSS lowerCamelCase grammar`,
+          );
+        }
       }
     }
   }

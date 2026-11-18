@@ -38,3 +38,8 @@ Split the single 3,030-line stylesheet into modular, zero-build CSS files under 
 - Tests that previously read `src/styles.css` directly (`tests/mobile_ui_layout.test.mjs`, `tests/spa_boot_and_play.test.mjs`) must load all `<link rel="stylesheet">` files referenced by `index.html` in order.
 - Future contributors must not "simplify" the multi-`<link>` setup back into `@import` or add a bundler, nor replace pixel-locked telemetry dimensions with coarse spacing tokens without passing `npm run check:layout`.
 - The migration runs in two stages under one specification: structure, layers, tokens, and `#id` removal first (keeping existing tests green), followed by per-module `lowerCamelCase` renames across `index.html`, JS modules, tests, and browser checks. During intermediate CSS module edits, run `node --test tests/mobile_ui_layout.test.mjs tests/repo_rules.test.mjs` for fast feedback before the final full `npm test` and Chromium gates.
+- Per-module `lowerCamelCase` rename checklist:
+  1. Update target files together: `index.html`, `src/styles/*.css`, presentation JS (`src/workbench_view.js`, `src/audio_diagnostics.js`), `scripts/check_layout.mjs`, `tests/mobile_ui_layout.test.mjs`, and `tests/spa_boot_and_play.test.mjs`.
+  2. Pair shared `.button` with `.module-button` on buttons, and pair active state selectors with `:hover` (`.module-button-isState, .module-button-isState:hover`) so single-class state rules match `.button:hover` `(0,2,0)` specificity.
+  3. Avoid `GLOSSARY.md` `_Avoid_` terms in both class names and CSS comments (`tests/repo_rules.test.mjs` enforces comment compliance).
+  4. Run `npm run check:lint` before `npm test`, then run `npm run check:layout` and `npm run check:help-popovers` sequentially.

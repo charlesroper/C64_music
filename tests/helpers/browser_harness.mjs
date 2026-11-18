@@ -269,11 +269,7 @@ export function createBrowserHarness({
         if (matchesSelector(cur, sel)) return cur;
         cur = cur.parentElement;
       }
-      const fallback = new MockElement("div");
-      if (sel?.startsWith(".")) {
-        fallback.classList.add(sel.slice(1));
-      }
-      return fallback;
+      return null;
     }
 
     getContext(type = "2d") {

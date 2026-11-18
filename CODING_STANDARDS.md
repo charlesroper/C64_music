@@ -130,6 +130,7 @@ Commit messages must adhere to Chris Beams' guidelines:
 ## 10. Accessibility
 
 **Rule 10.1 (Control Names)**: Icon-only controls need an `aria-label`. Controls with visible text keep that text as the name, and decorative glyphs inside them use `aria-hidden="true"`.
+**Rule 10.2 (Toggle Button State)**: Press-toggle buttons (such as voice mute and solo controls) must synchronize `aria-pressed` (`"true"` / `"false"`) alongside their visual `-isState` class.
 
 ---
 

@@ -467,13 +467,16 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
     const mute = dataButton("mute", voice);
     assert.match(mute, new RegExp(`title="Mute voice ${number} \\(press ${number}\\)"`));
     assert.match(mute, new RegExp(`aria-label="Mute voice ${number}"`));
+    assert.match(mute, /aria-pressed="false"/);
     assert.match(mute, new RegExp(`aria-keyshortcuts="${number}"`));
     const solo = dataButton("solo", voice);
     assert.match(solo, new RegExp(`aria-label="Solo voice ${number}"`));
+    assert.match(solo, /aria-pressed="false"/);
   }
   const digiMute = dataButton("mute", 3);
   assert.match(digiMute, /title="Mute digi drums \(press 4\)"/);
   assert.match(digiMute, /aria-label="Mute digi drums"/);
+  assert.match(digiMute, /aria-pressed="false"/);
   assert.match(digiMute, /aria-keyshortcuts="4"/);
 
   const searchTag = fragment(
@@ -549,18 +552,24 @@ test("Workbench View uses action labels, sentence case and accessible names", ()
     const muteBtn = globalThis.document.querySelector('[data-mute="0"]');
     const voiceCard = muteBtn.closest(".voiceCard");
     assert.ok(voiceCard, "Mute button must sit inside .voiceCard");
+    assert.equal(muteBtn.getAttribute("aria-pressed"), "false");
     muteBtn.click();
     assert.equal(muteBtn.classList.contains("voiceCard-button-isMuted"), true);
+    assert.equal(muteBtn.getAttribute("aria-pressed"), "true");
     assert.equal(voiceCard.classList.contains("voiceCard-isMuted"), true);
     muteBtn.click();
     assert.equal(muteBtn.classList.contains("voiceCard-button-isMuted"), false);
+    assert.equal(muteBtn.getAttribute("aria-pressed"), "false");
     assert.equal(voiceCard.classList.contains("voiceCard-isMuted"), false);
 
     const soloBtn = globalThis.document.querySelector('[data-solo="0"]');
+    assert.equal(soloBtn.getAttribute("aria-pressed"), "false");
     soloBtn.click();
     assert.equal(soloBtn.classList.contains("voiceCard-button-isSolo"), true);
+    assert.equal(soloBtn.getAttribute("aria-pressed"), "true");
     soloBtn.click();
     assert.equal(soloBtn.classList.contains("voiceCard-button-isSolo"), false);
+    assert.equal(soloBtn.getAttribute("aria-pressed"), "false");
     const toggle = harness.elementsById.get("btn-toggle-edit");
     assert.equal(toggle.textContent, "Edit source");
     toggle.click();

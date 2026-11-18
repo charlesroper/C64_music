@@ -1518,10 +1518,12 @@ export function createWorkbenchView({
       addListener(btn, "click", () => {
         const ch = parseInt(btn.dataset.mute, 10);
         state.muteMask ^= 1 << ch;
-        btn.classList.toggle("voiceCard-button-isMuted", Boolean(state.muteMask & (1 << ch)));
+        const isMuted = Boolean(state.muteMask & (1 << ch));
+        btn.classList.toggle("voiceCard-button-isMuted", isMuted);
+        btn.setAttribute("aria-pressed", String(isMuted));
         const card = btn.closest ? btn.closest(".voiceCard") : null;
         if (card && ch < 3) {
-          card.classList.toggle("voiceCard-isMuted", Boolean(state.muteMask & (1 << ch)));
+          card.classList.toggle("voiceCard-isMuted", isMuted);
         }
         if (state.player) state.player.setHardwareOptions({ muteMask: state.muteMask });
       });
@@ -1533,10 +1535,9 @@ export function createWorkbenchView({
         const ch = parseInt(btn.dataset.solo, 10);
         state.soloVoice = state.soloVoice === ch ? -1 : ch;
         soloButtons.forEach((b) => {
-          b.classList.toggle(
-            "voiceCard-button-isSolo",
-            parseInt(b.dataset.solo, 10) === state.soloVoice,
-          );
+          const isSolo = parseInt(b.dataset.solo, 10) === state.soloVoice;
+          b.classList.toggle("voiceCard-button-isSolo", isSolo);
+          b.setAttribute("aria-pressed", String(isSolo));
         });
         if (state.player) state.player.setHardwareOptions({ soloVoice: state.soloVoice });
       });

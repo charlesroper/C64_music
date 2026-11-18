@@ -1371,23 +1371,6 @@ test("Source Panel, C64 Monitor, and Oscilloscopes Panel modules extract in orde
     "var(--accent-yellow)",
   );
 
-  const maintainableSelectorPattern =
-    /^\.[a-z][a-zA-Z0-9]*(?:-[a-z][a-zA-Z0-9]*)?(?:-is[A-Z][a-zA-Z0-9]*)?(?:--[a-z][a-zA-Z0-9]*)?(?::hover)?$/;
-  for (const [name, css] of [
-    ["c64-monitor.css", monitorCss],
-    ["oscilloscopes-panel.css", scopesCss],
-  ]) {
-    for (const rule of parseStylesheet(css)) {
-      for (const part of rule.selector.split(",").map((s) => s.trim())) {
-        assert.match(
-          part,
-          maintainableSelectorPattern,
-          `${name} selector "${part}" must use single-class MaintainableCSS lowerCamelCase grammar`,
-        );
-      }
-    }
-  }
-
   assertPreservedIds(html, [
     "c64-monitor-canvas",
     "tel-frame",

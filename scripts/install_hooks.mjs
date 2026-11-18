@@ -31,10 +31,9 @@ export const HOOK_CONTENT = `#!/bin/sh
 # Bypass once: git commit --no-verify
 
 if [ -d ".projectmem" ] && command -v pjm >/dev/null 2>&1; then
-    # Churn fires on every active file because the tool fixes the threshold at four
-    # changes in 30 days, so this hook hides churn lines and the empty summary that
-    # follows. Stale memories, failed attempts and open issues still print.
-    MEMORY_CHECK="$(pjm precheck --level warn 2>&1 | grep -vE 'HIGH CHURN|May indicate unresolved|warning\\(s\\)\\. Review before committing' || true)"
+    # Churn and stale-commit-count thresholds fire continuously on active files, so this hook
+    # hides churn and possibly-stale blocks while keeping failed attempts and unresolved issues.
+    MEMORY_CHECK="$(pjm precheck --level warn 2>&1 | grep -vE 'HIGH CHURN|May indicate unresolved|warning\\(s\\)\\. Review before committing' | awk '/possibly-stale memor(y|ies)/{skip=1; next} skip && /^           /{next} {skip=0; print}' || true)"
     if printf '%s\\n' "$MEMORY_CHECK" | grep -qE 'WARN|^  x '; then
         printf '%s\\n' "$MEMORY_CHECK"
     fi

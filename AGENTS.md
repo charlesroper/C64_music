@@ -12,7 +12,7 @@ Keep always-loaded guidance minimal. Engineering and review rules live in `CODIN
 - **Frozen historical sources:** Edit `src/` or `src/tracks_catalog.js` only; never modify Galway's seven original `.asm`/`.txt` files.
 - **Prose and narrative:** Read `docs/agents/prose-and-narrative.md` before editing `README.md`, `NARRATIVE.md`, UI copy, or catalogue descriptions. For story-changing events, append a `NARRATIVE.md` Section 8 entry without a hash, commit it, then add the short hash in a follow-up `Record ... commit` commit (`CODING_STANDARDS.md` Section 7).
 - **Bug fixes:** Start with a failing test or repeatable visual check before writing fix code (`CODING_STANDARDS.md` Rule 9.1).
-- **Pre-commit and commits:** Install local hooks with `npm run hooks:install` (`CODING_STANDARDS.md` Section 8); run `npm test` and `npm run check:lint` before committing.
+- **Pre-commit and commits:** Install local hooks with `npm run hooks:install` (`CODING_STANDARDS.md` Section 8); run `npm run check:lint` before `npm test` prior to committing.
 
 ## Agent skills and pointers
 
