@@ -108,6 +108,18 @@ test("deploy preflight aborts when fork remote is missing", () => {
 });
 
 test("deploy preflight executes preflight, lint, test, push, and reports pushed SHA", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-deploy-ok-"));
+  const narrativePath = path.join(tmpDir, "NARRATIVE.md");
+  fs.writeFileSync(
+    narrativePath,
+    [
+      "## 8. Development blog",
+      "",
+      "### 16 November 2026: example change",
+      "",
+      "Commit [58f4f4f](https://github.com/charlesroper/C64_music/commit/58f4f4f) carries the change.",
+    ].join("\n"),
+  );
   const executed = [];
   const fakeExec = (cmd) => {
     executed.push(cmd);
@@ -119,35 +131,43 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
     return "";
   };
   const logs = [];
-  const result = deploy({
-    exec: fakeExec,
-    remote: "fork",
-    branch: "main",
-    log: (msg) => logs.push(msg),
-  });
+  try {
+    const result = deploy({
+      exec: fakeExec,
+      remote: "fork",
+      branch: "main",
+      log: (msg) => logs.push(msg),
+      narrativePath,
+    });
 
-  assert.equal(result.commit, "58f4f4f");
-  assert.deepEqual(executed, [
-    "git status --porcelain",
-    "git remote get-url fork",
-    "npm run check:lint",
-    "npm test",
-    "npm run check:help-popovers",
-    "npm run check:layout",
-    "git push fork main",
-    "git rev-parse --short HEAD",
-  ]);
-  assert.ok(logs.some((l) => l.includes("Successfully pushed commit 58f4f4f to fork/main.")));
+    assert.equal(result.commit, "58f4f4f");
+    assert.deepEqual(executed, [
+      "git status --porcelain",
+      "git remote get-url fork",
+      "npm run check:lint",
+      "npm test",
+      "npm run check:help-popovers",
+      "npm run check:layout",
+      "git push fork main",
+      "git rev-parse --short HEAD",
+    ]);
+    assert.ok(logs.some((l) => l.includes("Successfully pushed commit 58f4f4f to fork/main.")));
 
-  const failingExec = (cmd) => {
-    if (cmd === "git status --porcelain") return "";
-    if (cmd === "git remote get-url fork") {
-      return "git@github.com:charlesroper/C64_music.git\n";
-    }
-    if (cmd === "git push fork main") throw new Error("Connection refused");
-    return "";
-  };
-  assert.throws(() => deploy({ exec: failingExec, log: () => {} }), /Connection refused/);
+    const failingExec = (cmd) => {
+      if (cmd === "git status --porcelain") return "";
+      if (cmd === "git remote get-url fork") {
+        return "git@github.com:charlesroper/C64_music.git\n";
+      }
+      if (cmd === "git push fork main") throw new Error("Connection refused");
+      return "";
+    };
+    assert.throws(
+      () => deploy({ exec: failingExec, log: () => {}, narrativePath }),
+      /Connection refused/,
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("deploy preflight aborts when latest NARRATIVE.md Section 8 entry lacks a commit link", () => {
@@ -258,7 +278,7 @@ test("NARRATIVE.md leaves no commit-hash placeholder", () => {
   assert.doesNotMatch(
     narrative,
     /\[HASH\]/,
-    "Replace [HASH] with the short commit hash in a follow-up Record commit",
+    "Replace [HASH] with the actual short commit hash before committing NARRATIVE.md",
   );
 });
 

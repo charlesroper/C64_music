@@ -15,7 +15,7 @@ Read this file when the user says "ship it", "deploy" or asks to publish.
 
 1. Run `npm run bump`. Completion: all seven version locations show the new CalVer.
 2. Commit the release. The `pre-commit` hook runs lint and tests, leaving the working tree clean. If a server restart leaves a stale `.git/index.lock` with no active `git` process running, remove `.git/index.lock` before staging.
-3. If the release added a `NARRATIVE.md` Section 8 entry without its commit hash, add the short hash link in a follow-up `Record ... commit` commit before deploying.
+3. Confirm the latest `NARRATIVE.md` Section 8 entry already links its commit SHA(s) (write Section 8 entries after committing the code they describe).
 4. Run `npm run deploy`. It verifies a clean tree, the `fork` remote and the latest Section 8 commit link, runs `npm run check:lint`, `npm test`, `npm run check:help-popovers` and `npm run check:layout`, then pushes `HEAD` to `fork/main`.
 5. Verify the live build from the Pages workflow run and push the `deploy-v<CalVer>` tag by running `npm run deploy:verify`, or manually:
    - Run `gh run list -R charlesroper/C64_music --limit 5` and find the `pages build and deployment` run for the release commit.
