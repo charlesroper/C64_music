@@ -5,6 +5,7 @@
 // An in-thread transport keeps Node tests and legacy browsers working.
 // ============================================================================
 
+import { createAudioLifecycle } from "./audio_lifecycle.js";
 import { createEngineCore } from "./engine_core.js";
 import { assembleOceanSource, createSourceIndex } from "./ocean_assembler.js";
 import { applyTelemetry, createTelemetrySnapshot } from "./telemetry_buffer.js";
@@ -44,73 +45,6 @@ function writeStoredAudioMode(win, mode) {
 
 export function resolveAudioMode({ override = null, window: win = null } = {}) {
   return normalizeAudioMode(override) ?? readStoredAudioMode(win) ?? AUDIO_MODE_DEFAULT;
-}
-
-// Early-gesture audio unlock. A tap before the engine finishes loading unlocks an
-// AudioContext straight away. The Player Engine adopts it when the Audio Mode
-// matches and the manager closes it when the listener has since changed mode.
-export function createAudioContextManager({
-  window: win = typeof window !== "undefined" ? window : null,
-  navigator: nav = typeof navigator !== "undefined" ? navigator : null,
-  latencyHint = AUDIO_MODE_DEFAULT,
-} = {}) {
-  const hint = resolveLatencyHint(latencyHint);
-  let preUnlocked = null;
-  let preUnlockedHint = null;
-
-  const getConstructor = () => win?.AudioContext || win?.webkitAudioContext || null;
-
-  function closeQuietly(ctx) {
-    try {
-      ctx.close?.()?.catch?.(() => {});
-    } catch (_) {
-      // A context that cannot close is already gone.
-    }
-  }
-
-  function unlock() {
-    if (nav?.audioSession) {
-      try {
-        nav.audioSession.type = "playback";
-      } catch (_) {
-        // Ignore on browsers where audioSession.type is read-only
-      }
-    }
-    if (!preUnlocked || preUnlocked.state === "closed") {
-      const AudioCtx = getConstructor();
-      if (!AudioCtx) return;
-      try {
-        preUnlocked = new AudioCtx({ sampleRate: 48000, latencyHint: hint });
-        preUnlockedHint = hint;
-      } catch (_) {
-        preUnlocked = new AudioCtx();
-        preUnlockedHint = null;
-      }
-    }
-    if (preUnlocked.state !== "running") preUnlocked.resume?.();
-  }
-
-  function createAudioContext(options) {
-    if (preUnlocked) {
-      const ctx = preUnlocked;
-      // A context built without options cannot honour any hint, so it matches every request.
-      const matches =
-        !options || preUnlockedHint === null || options.latencyHint === preUnlockedHint;
-      preUnlocked = null;
-      preUnlockedHint = null;
-      if (matches) return ctx;
-      closeQuietly(ctx);
-    }
-    const AudioCtx = getConstructor();
-    if (!AudioCtx) return null;
-    return options ? new AudioCtx(options) : new AudioCtx();
-  }
-
-  function getPreUnlockedContext() {
-    return preUnlocked;
-  }
-
-  return { unlock, createAudioContext, getPreUnlockedContext };
 }
 
 export {
@@ -293,6 +227,7 @@ export function createWorkbenchPlayer({
   wasm,
   wasmModule,
   rawSources,
+  audioLifecycle: injectedAudioLifecycle = null,
   createAudioContext: injectedAudioContext,
   navigatorObj,
   workletUrl,
@@ -390,12 +325,21 @@ export function createWorkbenchPlayer({
     workletError: null,
   };
 
-  // Callers that need an early-gesture unlock inject the manager's factory.
-  const createAudioContext =
-    injectedAudioContext ??
-    (win?.AudioContext || win?.webkitAudioContext
-      ? createAudioContextManager({ window: win, navigator: navigatorObj }).createAudioContext
+  // Callers with an active Audio Lifecycle inject it directly; isolated callers
+  // default-wrap any injected context factory or window constructor.
+  const audioLifecycle =
+    injectedAudioLifecycle ||
+    (injectedAudioContext || win?.AudioContext || win?.webkitAudioContext
+      ? createAudioLifecycle({
+          window: win,
+          navigator: navigatorObj,
+          latencyHint: state.latencyHint,
+          createContext: injectedAudioContext || null,
+        })
       : null);
+  if (injectedAudioLifecycle) {
+    injectedAudioLifecycle.setLatencyHint?.(state.latencyHint);
+  }
 
   const inThreadTransport = createInThreadTransport({
     wasm,
@@ -494,20 +438,18 @@ export function createWorkbenchPlayer({
   }
 
   function ensureAudio() {
-    if (navigatorObj?.audioSession) {
-      try {
-        navigatorObj.audioSession.type = "playback";
-      } catch (_) {
-        // Ignore on browsers where audioSession.type is read-only
-      }
+    if (!audioLifecycle) return;
+    if (state.audioCtx && state.audioCtx === audioLifecycle.getContext()) {
+      audioLifecycle.resume();
+      return;
     }
 
-    if (!state.audioCtx && createAudioContext) {
-      let ctx;
-      try {
-        ctx = createAudioContext({ sampleRate: 48000, latencyHint: state.latencyHint });
-      } catch (_) {
-        ctx = createAudioContext();
+    const ctx = audioLifecycle.ensureContext({ latencyHint: state.latencyHint });
+    if (!ctx) return;
+
+    if (ctx !== state.audioCtx) {
+      if (typeof state.audioCtx?.removeEventListener === "function") {
+        state.audioCtx.removeEventListener("statechange", handleContextState);
       }
       state.audioCtx = ctx;
       state.sampleRate = ctx.sampleRate || 48000;
@@ -522,37 +464,28 @@ export function createWorkbenchPlayer({
         state.audioBackend = "in-thread";
       }
     }
-
-    if (state.audioCtx && state.audioCtx.state !== "running") {
-      state.audioCtx.resume();
-    }
   }
 
-  function closeAudioContext() {
+  function teardownTransport() {
     const ctx = state.audioCtx;
     if (transport?.getDiagnostics) captureSessionPeaks(transport.getDiagnostics());
     if (transport && typeof transport.close === "function") transport.close();
+    if (typeof ctx?.removeEventListener === "function") {
+      ctx.removeEventListener("statechange", handleContextState);
+    }
     transport = inThreadTransport;
     state.audioCtx = null;
     state.audioBackend = null;
     state.workletReady = false;
     state.workletError = null;
     workletAttempted = false;
-
-    if (!ctx || typeof ctx.close !== "function") return Promise.resolve();
-    try {
-      const result = ctx.close();
-      return result && typeof result.then === "function"
-        ? result.catch(() => {})
-        : Promise.resolve();
-    } catch (_) {
-      return Promise.resolve();
-    }
   }
 
   async function restartAudio() {
     const wasPlaying = state.isPlaying;
-    await closeAudioContext();
+    teardownTransport();
+    const nextCtx = await audioLifecycle?.replaceContext({ latencyHint: state.latencyHint });
+    if (nextCtx?.sampleRate) state.sampleRate = nextCtx.sampleRate;
 
     inThreadTransport.send({ type: "init", sampleRate: state.sampleRate });
     if (lastLoadMessage) inThreadTransport.send(lastLoadMessage);
@@ -564,6 +497,7 @@ export function createWorkbenchPlayer({
   function setLatencyMode(mode) {
     const next = resolveLatencyHint(mode);
     writeStoredAudioMode(win, next);
+    audioLifecycle?.setLatencyHint?.(next);
     if (next === state.latencyHint) return Promise.resolve(next);
     state.latencyHint = next;
 

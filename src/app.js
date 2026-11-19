@@ -3,12 +3,9 @@
 // ============================================================================
 
 import { createAudioDiagnosticsOverlay } from "./audio_diagnostics.js";
+import { createAudioLifecycle } from "./audio_lifecycle.js";
 import { createBootSequence } from "./boot_sequence.js";
-import {
-  createAudioContextManager,
-  createWorkbenchPlayer,
-  resolveAudioMode,
-} from "./player_engine.js";
+import { createWorkbenchPlayer, resolveAudioMode } from "./player_engine.js";
 import { createTapeLoadingSound } from "./tape_loading_sound.js";
 import {
   cancelViewerSmoothScroll,
@@ -28,7 +25,8 @@ export async function bootWorkbench(options = {}) {
     window: win,
   });
   const navigatorObj = typeof navigator !== "undefined" ? navigator : null;
-  const audioManager = createAudioContextManager({
+  const audioLifecycle = createAudioLifecycle({
+    document: doc,
     window: win,
     navigator: navigatorObj,
     latencyHint,
@@ -48,8 +46,7 @@ export async function bootWorkbench(options = {}) {
   const tapeSound =
     options.tapeSound ||
     createTapeLoadingSound({
-      getContext: () =>
-        player?.getAudioContext?.() || audioManager.getPreUnlockedContext?.() || null,
+      getContext: () => audioLifecycle.getContext(),
       fetchFn,
     });
   if (!skipBoot && !reducedMotion) tapeSound.preload?.();
@@ -63,15 +60,6 @@ export async function bootWorkbench(options = {}) {
   const removeGestureListeners = (fn) => {
     for (const type of gestureEvents) doc.removeEventListener(type, fn, true);
   };
-  const unlockOnce = () => {
-    if (!player?.getAudioContext?.()) {
-      audioManager.unlock();
-      boot?.startTapeSound?.();
-    }
-    const ctx = player?.getAudioContext?.() || audioManager.getPreUnlockedContext?.();
-    if (ctx?.state === "running") removeGestureListeners(unlockOnce);
-  };
-  addGestureListeners(unlockOnce);
 
   function loadBootTargetPaused() {
     if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
@@ -145,6 +133,7 @@ export async function bootWorkbench(options = {}) {
       applyBootOutcome();
     },
   });
+  audioLifecycle.subscribe(() => boot?.startTapeSound?.());
   boot.start();
 
   const fileNames = [
@@ -156,13 +145,12 @@ export async function bootWorkbench(options = {}) {
     "rambload.asm",
   ];
 
-  // Mount view early so UI handlers (including early first-tap unlock) are active
+  // Mount view early so UI handlers are active before async asset fetching completes.
   view = createWorkbenchView({
     document: doc,
     elements: options.elements,
     player: null,
     latencyHint,
-    onFirstInteraction: audioManager.unlock,
   });
   view.setRenderingPaused(bootActive);
 
@@ -194,7 +182,7 @@ export async function bootWorkbench(options = {}) {
     latencyHint,
     window: win,
     rawSources,
-    createAudioContext: audioManager.createAudioContext,
+    audioLifecycle,
     navigatorObj,
   });
   const prewarm = player.prewarmAssemblies();
@@ -214,7 +202,6 @@ export async function bootWorkbench(options = {}) {
     player.prepareAudio();
     boot.startTapeSound();
     if (player.getAudioContext()?.state === "running") {
-      removeGestureListeners(unlockOnce);
       removeGestureListeners(prepareAudio);
     }
   };

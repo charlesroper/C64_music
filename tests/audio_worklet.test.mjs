@@ -3,13 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { createAudioLifecycle } from "../src/audio_lifecycle.js";
 import { createC64ProcessorClass } from "../src/audio_worklet.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
-import {
-  AUDIO_MODE_STORAGE_KEY,
-  createAudioContextManager,
-  createWorkbenchPlayer,
-} from "../src/player_engine.js";
+import * as playerEngine from "../src/player_engine.js";
+import { AUDIO_MODE_STORAGE_KEY, createWorkbenchPlayer } from "../src/player_engine.js";
 import { TELEMETRY_BUFFER_BYTES } from "../src/telemetry_buffer.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
@@ -408,7 +406,7 @@ test("setLatencyMode persists Stored Audio Mode and boot resolution never writes
   assert.equal(await noStorage.setLatencyMode("interactive"), "interactive");
 });
 
-test("audio context manager unlocks early, adopts a matching context and closes a stale one", () => {
+test("Audio Lifecycle owns single active context, sets audioSession.type, reuses matching context, and replaces stale hint", () => {
   const created = [];
   class FakeAudioContext {
     constructor(options) {
@@ -423,61 +421,340 @@ test("audio context manager unlocks early, adopts a matching context and closes 
     }
     close() {
       this.closed = true;
+      this.state = "closed";
       return Promise.resolve();
     }
   }
   const navigatorObj = { audioSession: { type: "ambient" } };
-  const manager = createAudioContextManager({
+  const lifecycle = createAudioLifecycle({
     window: { AudioContext: FakeAudioContext },
     navigator: navigatorObj,
     latencyHint: "playback",
   });
 
-  manager.unlock();
+  assert.equal(lifecycle.getContext(), null);
+  assert.equal(lifecycle.isRunning(), false);
+  assert.equal(lifecycle.getLatencyHint(), "playback");
+
+  const unlocked = lifecycle.unlock();
   assert.equal(navigatorObj.audioSession.type, "playback");
   assert.equal(created.length, 1);
   assert.deepEqual(created[0].options, { sampleRate: 48000, latencyHint: "playback" });
-  assert.equal(created[0].state, "running");
+  assert.equal(unlocked, created[0]);
+  assert.equal(lifecycle.getContext(), created[0]);
+  assert.equal(lifecycle.isRunning(), true);
 
-  manager.unlock();
-  assert.equal(created.length, 1, "A second unlock must reuse the pre-unlocked context");
+  const reused = lifecycle.unlock();
+  assert.equal(created.length, 1, "A second unlock must reuse the active context");
+  assert.equal(reused, created[0]);
 
-  const adopted = manager.createAudioContext({ sampleRate: 48000, latencyHint: "playback" });
-  assert.equal(adopted, created[0], "A matching pre-unlocked context must be adopted");
+  const adopted = lifecycle.ensureContext({ latencyHint: "playback" });
+  assert.equal(adopted, created[0], "ensureContext must reuse a matching context");
   assert.equal(created[0].closed, false);
 
-  manager.unlock();
+  const fresh = lifecycle.ensureContext({ latencyHint: "interactive" });
+  assert.equal(created[0].closed, true, "A stale context with a different hint must close");
   assert.equal(created.length, 2);
-  const fresh = manager.createAudioContext({ sampleRate: 48000, latencyHint: "interactive" });
-  assert.equal(created[1].closed, true, "A stale pre-unlocked context must close");
-  assert.notEqual(fresh, created[1]);
+  assert.equal(fresh, created[1]);
+  assert.equal(lifecycle.getContext(), fresh);
   assert.deepEqual(fresh.options, { sampleRate: 48000, latencyHint: "interactive" });
-
-  const direct = manager.createAudioContext({ sampleRate: 48000, latencyHint: "playback" });
-  assert.equal(created.length, 4, "Without a pre-unlocked context a new one is created");
-  assert.notEqual(direct, fresh);
 });
 
-test("audio context manager falls back when the context rejects its options", () => {
+test("Audio Lifecycle falls back when constructor options are rejected and adopts regardless of hint", () => {
   class PickyAudioContext {
     constructor(options) {
       if (options) throw new DOMException("Unsupported option", "NotSupportedError");
       this.state = "running";
     }
     close() {
+      this.state = "closed";
       return Promise.resolve();
     }
   }
-  const manager = createAudioContextManager({
+  const lifecycle = createAudioLifecycle({
     window: { AudioContext: PickyAudioContext },
     navigator: null,
     latencyHint: "interactive",
   });
 
-  manager.unlock();
-  const adopted = manager.createAudioContext({ sampleRate: 48000, latencyHint: "interactive" });
-  assert.ok(adopted instanceof PickyAudioContext);
-  assert.equal(adopted.state, "running");
+  const unlocked = lifecycle.unlock();
+  assert.ok(unlocked instanceof PickyAudioContext);
+  assert.equal(unlocked.state, "running");
+
+  const adopted = lifecycle.ensureContext({ latencyHint: "playback" });
+  assert.equal(
+    adopted,
+    unlocked,
+    "A context built without options must match any requested latencyHint",
+  );
+});
+
+test("Audio Lifecycle attaches one capture gesture set, auto-detaches when running, and detaches on destroy", () => {
+  const createFakeDoc = () => {
+    const active = new Map();
+    const calls = { add: [], remove: [] };
+    return {
+      calls,
+      active,
+      addEventListener(type, fn, capture) {
+        calls.add.push({ type, fn, capture });
+        if (!active.has(type)) active.set(type, []);
+        active.get(type).push({ fn, capture });
+      },
+      removeEventListener(type, fn, capture) {
+        calls.remove.push({ type, fn, capture });
+        const list = active.get(type) || [];
+        active.set(
+          type,
+          list.filter((entry) => entry.fn !== fn || entry.capture !== capture),
+        );
+      },
+      dispatchCapture(type) {
+        const snapshot = [...(active.get(type) || [])];
+        for (const entry of snapshot) {
+          if (entry.capture === true) entry.fn({ type });
+        }
+      },
+    };
+  };
+
+  let activation = false;
+  let createdCount = 0;
+  class GestureAudioContext {
+    constructor() {
+      createdCount++;
+      this.state = activation ? "running" : "suspended";
+    }
+    resume() {
+      if (activation) this.state = "running";
+      return Promise.resolve();
+    }
+  }
+
+  const doc = createFakeDoc();
+  const lifecycle = createAudioLifecycle({
+    document: doc,
+    window: { AudioContext: GestureAudioContext },
+  });
+
+  const expectedEvents = ["pointerdown", "pointerup", "touchend", "click", "keydown"];
+  assert.deepEqual(
+    doc.calls.add.map((c) => [c.type, c.capture]),
+    expectedEvents.map((type) => [type, true]),
+    "Must attach one capture-phase listener per gesture event",
+  );
+
+  doc.dispatchCapture("pointerdown");
+  assert.equal(createdCount, 1);
+  assert.equal(lifecycle.isRunning(), false);
+  for (const type of expectedEvents) {
+    assert.equal(doc.active.get(type).length, 1, `${type} must stay attached while suspended`);
+  }
+
+  activation = true;
+  doc.dispatchCapture("pointerup");
+  assert.equal(createdCount, 1, "Must resume existing context without constructing a second");
+  assert.equal(lifecycle.isRunning(), true);
+  for (const type of expectedEvents) {
+    assert.equal(doc.active.get(type).length, 0, `${type} must auto-detach once running`);
+  }
+
+  const doc2 = createFakeDoc();
+  let created2 = 0;
+  const lifecycle2 = createAudioLifecycle({
+    document: doc2,
+    createContext: () => {
+      created2++;
+      return { state: "running" };
+    },
+  });
+  lifecycle2.destroy();
+  for (const type of expectedEvents) {
+    assert.equal(doc2.active.get(type).length, 0, `${type} must detach on destroy()`);
+  }
+  assert.equal(lifecycle2.unlock(), null);
+  assert.equal(lifecycle2.ensureContext(), null);
+  assert.equal(created2, 0);
+});
+
+test("Audio Lifecycle notifies subscribers on availability and running transitions, supports unsubscribe, and replaces/closes contexts", async () => {
+  const contexts = [];
+  let resolveResume = null;
+  let resumeAsync = false;
+
+  class EventedAudioContext {
+    constructor(options) {
+      this.options = options;
+      this.state = "suspended";
+      this.closed = false;
+      this.listeners = new Map();
+      contexts.push(this);
+    }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+      this.listeners.get(type).add(fn);
+    }
+    removeEventListener(type, fn) {
+      this.listeners.get(type)?.delete(fn);
+    }
+    emitStateChange(nextState) {
+      this.state = nextState;
+      for (const fn of [...(this.listeners.get("statechange") || [])]) {
+        fn({ type: "statechange" });
+      }
+    }
+    resume() {
+      if (resumeAsync) {
+        return new Promise((resolve) => {
+          resolveResume = () => {
+            this.state = "running";
+            resolve();
+          };
+        });
+      }
+      this.state = "running";
+      return Promise.resolve();
+    }
+    close() {
+      this.closed = true;
+      this.state = "closed";
+      return Promise.resolve();
+    }
+  }
+
+  resumeAsync = true;
+  const lifecycle = createAudioLifecycle({
+    window: { AudioContext: EventedAudioContext },
+    latencyHint: "playback",
+  });
+
+  const eventsA = [];
+  const eventsB = [];
+  let unsubB = null;
+  const unsubA = lifecycle.subscribe((evt) => {
+    eventsA.push(evt);
+    if (evt.state === "running") unsubB();
+  });
+  unsubB = lifecycle.subscribe((evt) => {
+    eventsB.push(evt);
+  });
+
+  // 1. Suspended context becomes available -> notifies both subscribers once.
+  lifecycle.unlock();
+  assert.equal(eventsA.length, 1);
+  assert.equal(eventsA[0].context, contexts[0]);
+  assert.equal(eventsA[0].state, "suspended");
+  assert.equal(eventsB.length, 1);
+
+  // 2. Async resume settles -> notifies A as running; A unsubscribes B mid-dispatch.
+  resolveResume();
+  await Promise.resolve();
+  assert.equal(eventsA.length, 2);
+  assert.equal(eventsA[1].state, "running");
+  assert.equal(eventsB.length, 1, "Unsubscribing B mid-notification must skip B");
+
+  // 3. Re-invoking resume while running does not emit duplicate running notification.
+  lifecycle.resume();
+  assert.equal(eventsA.length, 2);
+
+  // 4. Transition out of running and back via statechange re-notifies running.
+  contexts[0].emitStateChange("interrupted");
+  assert.equal(eventsA.length, 2);
+  contexts[0].emitStateChange("running");
+  assert.equal(eventsA.length, 3);
+  assert.equal(eventsA[2].state, "running");
+
+  // 5. replaceContext detaches statechange, closes old context, and creates fresh one.
+  resumeAsync = false;
+  const next = await lifecycle.replaceContext({ latencyHint: "interactive" });
+  assert.equal(contexts.length, 2);
+  assert.equal(contexts[0].closed, true);
+  assert.equal(contexts[0].listeners.get("statechange")?.size ?? 0, 0);
+  assert.equal(next, contexts[1]);
+  assert.equal(lifecycle.getLatencyHint(), "interactive");
+  assert.equal(eventsA.length, 4);
+  assert.equal(eventsA[3].context, contexts[1]);
+  assert.equal(eventsA[3].state, "running");
+
+  // 6. Unsubscribe is idempotent; close clears context and detaches listener.
+  unsubA();
+  unsubA();
+  await lifecycle.close();
+  assert.equal(contexts[1].closed, true);
+  assert.equal(contexts[1].listeners.get("statechange")?.size ?? 0, 0);
+  assert.equal(lifecycle.getContext(), null);
+  assert.equal(eventsA.length, 4);
+});
+
+test("Player Engine removes createAudioContextManager and consumes Audio Lifecycle for adoption and mode replacement", async () => {
+  assert.equal(
+    "createAudioContextManager" in playerEngine,
+    false,
+    "createAudioContextManager must be removed without a deprecated re-export",
+  );
+
+  const instance = await WebAssembly.instantiate(wasmModule, {});
+  const contexts = [];
+  class LifecycleContext {
+    constructor(options) {
+      this.options = options;
+      this.sampleRate = 48000;
+      this.state = "suspended";
+      this.closed = false;
+      this.listeners = new Map();
+      this.resumes = 0;
+      contexts.push(this);
+    }
+    addEventListener(type, fn) {
+      if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+      this.listeners.get(type).add(fn);
+    }
+    removeEventListener(type, fn) {
+      this.listeners.get(type)?.delete(fn);
+    }
+    resume() {
+      this.resumes++;
+      this.state = "running";
+      return Promise.resolve();
+    }
+    close() {
+      this.closed = true;
+      this.state = "closed";
+      return Promise.resolve();
+    }
+  }
+
+  const lifecycle = createAudioLifecycle({
+    window: { AudioContext: LifecycleContext },
+    latencyHint: "playback",
+  });
+  const preUnlocked = lifecycle.unlock();
+  assert.equal(contexts.length, 1);
+
+  const player = createWorkbenchPlayer({
+    wasm: instance.exports,
+    wasmModule,
+    rawSources: { "wizball.asm": wizballSource },
+    audioLifecycle: lifecycle,
+    latencyHint: "playback",
+  });
+
+  player.prepareAudio();
+  assert.equal(contexts.length, 1, "Player must adopt the lifecycle's active context");
+  assert.equal(player.getAudioContext(), preUnlocked);
+  assert.equal(preUnlocked.listeners.get("statechange")?.size, 2);
+
+  player.play();
+  assert.equal(contexts.length, 1);
+  assert.equal(player.getAudioContext(), preUnlocked);
+
+  await player.setLatencyMode("interactive");
+  assert.equal(contexts.length, 2);
+  assert.equal(preUnlocked.closed, true);
+  assert.equal(preUnlocked.listeners.get("statechange")?.size ?? 0, 0);
+  assert.equal(player.getAudioContext(), contexts[1]);
+  assert.equal(lifecycle.getContext(), contexts[1]);
+  assert.equal(lifecycle.getLatencyHint(), "interactive");
 });
 
 test("player builds its own AudioContext from the window when no factory is injected", async () => {

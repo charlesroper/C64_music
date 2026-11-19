@@ -234,7 +234,17 @@ export function createBrowserHarness({
     }
 
     dispatchEvent(type, extra = {}) {
-      for (const fn of this.listeners[type] || []) {
+      const captureEvt = {
+        type,
+        target: this,
+        currentTarget: globalThis.document,
+        preventDefault() {},
+        ...extra,
+      };
+      for (const entry of [...(docListeners[type] || [])]) {
+        if (entry.capture) entry.fn(captureEvt);
+      }
+      for (const fn of [...(this.listeners[type] || [])]) {
         fn({ currentTarget: this, target: this, preventDefault() {}, ...extra });
       }
     }
@@ -601,13 +611,20 @@ export function createBrowserHarness({
     createDocumentFragment: () => new MockElement("fragment"),
     querySelector: (sel) => allElements.find((el) => matchesSelector(el, sel)) || null,
     querySelectorAll: (sel) => allElements.filter((el) => matchesSelector(el, sel)),
-    addEventListener: (t, fn) => {
+    addEventListener: (t, fn, opts) => {
+      if (typeof fn !== "function") return;
+      const capture = typeof opts === "boolean" ? opts : Boolean(opts?.capture);
       if (!docListeners[t]) docListeners[t] = [];
-      docListeners[t].push(fn);
+      if (!docListeners[t].some((entry) => entry.fn === fn && entry.capture === capture)) {
+        docListeners[t].push({ fn, capture });
+      }
     },
-    removeEventListener: (t, fn) => {
+    removeEventListener: (t, fn, opts) => {
+      const capture = typeof opts === "boolean" ? opts : Boolean(opts?.capture);
       if (docListeners[t]) {
-        docListeners[t] = docListeners[t].filter((f) => f !== fn);
+        docListeners[t] = docListeners[t].filter(
+          (entry) => entry.fn !== fn || entry.capture !== capture,
+        );
       }
     },
     dispatchEvent: (type, extra = {}) => {
@@ -618,8 +635,8 @@ export function createBrowserHarness({
         preventDefault() {},
         ...extra,
       };
-      for (const fn of docListeners[type] || []) {
-        fn(evt);
+      for (const entry of [...(docListeners[type] || [])]) {
+        entry.fn(evt);
       }
     },
     contains: (node) => {
