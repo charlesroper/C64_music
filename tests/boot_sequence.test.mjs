@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createAudioLifecycle } from "../src/audio_lifecycle.js";
+import { createBootHandoff, FIRST_FRAME_TIMEOUT_MS } from "../src/boot_handoff.js";
 import {
   BOOT_FADE_MS,
   BOOT_LOADER_MS,
@@ -53,6 +54,8 @@ function createClock() {
     setInterval: (fn, ms) => add(fn, ms, true),
     clearInterval: cancel,
     advance,
+    now: () => now,
+    activeCount: () => timers.size,
   };
 }
 
@@ -377,6 +380,110 @@ test("gate completion waits for waitBeforeFade callback before revealing workben
   }
 });
 
+test("destroy during waitBeforeFade invokes returned cancel handle and prevents late reveal or fade", async () => {
+  const harness = createBrowserHarness();
+  try {
+    let releaseFade = null;
+    let cancelCalls = 0;
+    const { boot, clock, completions } = createBoot({
+      waitBeforeFade: (ready) => {
+        releaseFade = ready;
+        return () => {
+          cancelCalls++;
+        };
+      },
+    });
+    const overlay = harness.elementsById.get("boot-sequence");
+
+    boot.start();
+    clock.advance(120);
+    clock.advance(600);
+    clock.advance(6 * 80 + 300);
+    globalThis.document.dispatchEvent("pointerdown");
+    boot.setReady();
+    clock.advance(BOOT_LOADER_MS + 300 + BOOT_READY_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(completions.length, 1);
+    assert.equal(cancelCalls, 0);
+    assert.equal(globalThis.document.body.dataset.bootState, "booting");
+
+    boot.destroy();
+    assert.equal(cancelCalls, 1, "destroy() must invoke cancel() returned by waitBeforeFade");
+    assert.equal(globalThis.document.body.dataset.bootState, undefined);
+    assert.ok(overlay.classList.contains("hidden"));
+
+    releaseFade();
+    assert.ok(
+      !overlay.classList.contains("bootSequence-isFading"),
+      "Late ready() after destroy() must not start fade",
+    );
+    assert.ok(overlay.classList.contains("hidden"));
+  } finally {
+    harness.restoreGlobals();
+  }
+
+  // Calling ready() asynchronously clears the handle so later destroy() skips cancel().
+  const harnessAsync = createBrowserHarness();
+  try {
+    let releaseAsync = null;
+    let cancelAfterFadeCalls = 0;
+    const asyncCase = createBoot({
+      waitBeforeFade: (ready) => {
+        releaseAsync = ready;
+        return () => {
+          cancelAfterFadeCalls++;
+        };
+      },
+    });
+    asyncCase.boot.start();
+    asyncCase.clock.advance(120 + 600 + 6 * 80 + 300);
+    globalThis.document.dispatchEvent("pointerdown");
+    asyncCase.boot.setReady();
+    asyncCase.clock.advance(BOOT_LOADER_MS + 300 + BOOT_READY_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    releaseAsync();
+    asyncCase.boot.destroy();
+    assert.equal(cancelAfterFadeCalls, 0, "startFade() must clear pending cancel handle");
+  } finally {
+    harnessAsync.restoreGlobals();
+  }
+
+  // Synchronous ready() inside waitBeforeFade invokes returned cancel() immediately.
+  const harnessSync = createBrowserHarness();
+  try {
+    let syncCancelCalls = 0;
+    const syncCase = createBoot({
+      waitBeforeFade: (ready) => {
+        ready();
+        return () => {
+          syncCancelCalls++;
+        };
+      },
+    });
+    syncCase.boot.start();
+    syncCase.clock.advance(120 + 600 + 6 * 80 + 300);
+    globalThis.document.dispatchEvent("pointerdown");
+    syncCase.boot.setReady();
+    syncCase.clock.advance(BOOT_LOADER_MS + 300 + BOOT_READY_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(
+      syncCancelCalls,
+      1,
+      "Returned cancel handle must be invoked immediately when reveal already started",
+    );
+    syncCase.boot.destroy();
+    assert.equal(syncCancelCalls, 1);
+  } finally {
+    harnessSync.restoreGlobals();
+  }
+});
+
 function createFakeAudioEnv({ initiallyActivated = false } = {}) {
   const bytes = new Uint8Array([1, 2, 3, 4]).buffer;
   let userActivation = initiallyActivated;
@@ -614,5 +721,404 @@ test("tape loading sound ignores duplicate start() across synchronous resume and
     closeLifecycle.destroy();
   } finally {
     harness.restoreGlobals();
+  }
+});
+
+function createHandoffDoubles({
+  pendingPlayOnBoot = false,
+  audioBackend = "in-thread",
+  telemetry = null,
+} = {}) {
+  const calls = [];
+  let audioCtx = null;
+  let currentTelemetry = telemetry;
+  let readyCalls = 0;
+
+  const boot = {
+    setReady() {
+      readyCalls++;
+      calls.push(["boot.setReady"]);
+    },
+  };
+
+  const view = {
+    setRenderingPaused(paused) {
+      calls.push(["view.setRenderingPaused", paused]);
+    },
+    selectGameAndTrack(gameId, trackId, autoPlay) {
+      calls.push(["view.selectGameAndTrack", gameId, trackId, autoPlay]);
+    },
+    setPlaying(playing) {
+      calls.push(["view.setPlaying", playing]);
+    },
+    renderTelemetry(snapshot) {
+      calls.push(["view.renderTelemetry", snapshot.frameCount]);
+    },
+    isPendingPlayOnBoot() {
+      return pendingPlayOnBoot;
+    },
+  };
+
+  const player = {
+    prepareAudio() {
+      calls.push(["player.prepareAudio"]);
+      audioCtx = { state: "running", audioWorklet: audioBackend === "worklet" ? {} : null };
+    },
+    getAudioContext() {
+      return audioCtx;
+    },
+    setAudioContext(ctx) {
+      audioCtx = ctx;
+    },
+    getState() {
+      return { audioBackend };
+    },
+    getTelemetry() {
+      return currentTelemetry;
+    },
+    setTelemetry(next) {
+      currentTelemetry = next;
+    },
+  };
+
+  return {
+    calls,
+    boot,
+    view,
+    player,
+    getReadyCalls: () => readyCalls,
+  };
+}
+
+test("Boot Handoff joins prewarm-before-gate and gate-before-prewarm orderings without WASM", async () => {
+  assert.equal(FIRST_FRAME_TIMEOUT_MS, 3000);
+  const target = { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" };
+
+  // 1. Prewarm finishes before gate activation (Audio Lifecycle notifies at gate).
+  {
+    const harness = createBrowserHarness();
+    try {
+      const lifecycle = createAudioLifecycle({
+        document: globalThis.document,
+        createContext: () => ({ state: "running", resume: () => Promise.resolve() }),
+      });
+      const doubles = createHandoffDoubles();
+      let resolvePrewarm = null;
+      const prewarm = new Promise((resolve) => {
+        resolvePrewarm = resolve;
+      });
+      const handoff = createBootHandoff({ audioLifecycle: lifecycle });
+      handoff.attachBoot(doubles.boot);
+      handoff.attachView(doubles.view);
+      handoff.attachPlayer(doubles.player, prewarm);
+
+      assert.deepEqual(doubles.calls, [["view.setRenderingPaused", true]]);
+
+      resolvePrewarm(true);
+      await Promise.resolve();
+      await Promise.resolve();
+      assert.equal(doubles.getReadyCalls(), 1);
+      assert.ok(
+        !doubles.calls.some(([name]) => name === "view.selectGameAndTrack"),
+        "Prewarm before gate must wait for gate before loading track",
+      );
+      assert.ok(
+        !doubles.calls.some(([name]) => name === "player.prepareAudio"),
+        "Prewarm before gate must not prepare audio before user gesture",
+      );
+
+      globalThis.document.dispatchEvent("pointerdown");
+      handoff.handleGate({ target });
+      assert.deepEqual(doubles.calls.slice(1), [
+        ["boot.setReady"],
+        ["player.prepareAudio"],
+        ["view.selectGameAndTrack", "wizball.asm", "wiz-title", false],
+      ]);
+
+      handoff.handleComplete({ target, autoPlay: true, reason: "gate" });
+      assert.deepEqual(doubles.calls.slice(4), [
+        ["view.setRenderingPaused", false],
+        ["view.setPlaying", true],
+      ]);
+      handoff.destroy();
+      lifecycle.destroy();
+    } finally {
+      harness.restoreGlobals();
+    }
+  }
+
+  // 2. Gate activates before player attaches or prewarm finishes.
+  {
+    const harness = createBrowserHarness();
+    try {
+      const lifecycle = createAudioLifecycle({
+        document: globalThis.document,
+        createContext: () => ({ state: "running", resume: () => Promise.resolve() }),
+      });
+      const doubles = createHandoffDoubles();
+      let resolvePrewarm = null;
+      const prewarm = new Promise((resolve) => {
+        resolvePrewarm = resolve;
+      });
+      const handoff = createBootHandoff({ audioLifecycle: lifecycle });
+      handoff.attachBoot(doubles.boot);
+      handoff.attachView(doubles.view);
+
+      // Early gate unlock before player exists.
+      globalThis.document.dispatchEvent("pointerdown");
+      handoff.handleGate({ target });
+      handoff.attachPlayer(doubles.player, prewarm);
+      assert.deepEqual(doubles.calls, [["view.setRenderingPaused", true]]);
+
+      resolvePrewarm(true);
+      await Promise.resolve();
+      await Promise.resolve();
+      assert.deepEqual(doubles.calls.slice(1), [
+        ["view.selectGameAndTrack", "wizball.asm", "wiz-title", false],
+        ["player.prepareAudio"],
+        ["boot.setReady"],
+      ]);
+
+      handoff.handleComplete({ target, autoPlay: true, reason: "gate" });
+      assert.deepEqual(doubles.calls.slice(4), [
+        ["view.setRenderingPaused", false],
+        ["view.setPlaying", true],
+      ]);
+      handoff.destroy();
+      lifecycle.destroy();
+    } finally {
+      harness.restoreGlobals();
+    }
+  }
+});
+
+test("Boot Handoff handles skipBoot, reducedMotion, and pendingPlayOnBoot across attachment orders", async () => {
+  const target = { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" };
+
+  // 1. skipBoot with isPendingPlayOnBoot() === false loads paused.
+  {
+    const doubles = createHandoffDoubles({ pendingPlayOnBoot: false });
+    const handoff = createBootHandoff();
+    handoff.attachBoot(doubles.boot);
+    handoff.handleComplete({ target, autoPlay: false, reason: "skip" });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player, Promise.resolve(true));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.deepEqual(doubles.calls, [
+      ["view.setRenderingPaused", false],
+      ["boot.setReady"],
+      ["view.selectGameAndTrack", "wizball.asm", "wiz-title", false],
+    ]);
+    handoff.destroy();
+  }
+
+  // 2. reducedMotion with isPendingPlayOnBoot() === true auto-plays once player & prewarm settle.
+  {
+    const doubles = createHandoffDoubles({ pendingPlayOnBoot: true });
+    let resolvePrewarm = null;
+    const prewarm = new Promise((resolve) => {
+      resolvePrewarm = resolve;
+    });
+    const handoff = createBootHandoff();
+    handoff.attachBoot(doubles.boot);
+    handoff.handleComplete({ target, autoPlay: false, reason: "reduced-motion" });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player, prewarm);
+
+    assert.deepEqual(doubles.calls, [["view.setRenderingPaused", false]]);
+
+    resolvePrewarm(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.deepEqual(doubles.calls, [
+      ["view.setRenderingPaused", false],
+      ["boot.setReady"],
+      ["view.selectGameAndTrack", "wizball.asm", "wiz-title", true],
+    ]);
+    handoff.destroy();
+  }
+
+  // 3. View attached after player & prewarm settle still resolves pending bootOutcome.
+  {
+    const doubles = createHandoffDoubles({ pendingPlayOnBoot: false });
+    const handoff = createBootHandoff();
+    handoff.attachBoot(doubles.boot);
+    handoff.attachPlayer(doubles.player, Promise.resolve(true));
+    await Promise.resolve();
+    await Promise.resolve();
+    handoff.handleComplete({ target, autoPlay: true, reason: "skip" });
+    handoff.attachView(doubles.view);
+
+    assert.deepEqual(doubles.calls, [
+      ["boot.setReady"],
+      ["view.setRenderingPaused", false],
+      ["view.selectGameAndTrack", "wizball.asm", "wiz-title", true],
+    ]);
+    handoff.destroy();
+  }
+});
+
+test("Boot Handoff waitBeforeFade resolves immediately, polls worklet telemetry, falls back on timeout, and cancels cleanly", () => {
+  // 1. Immediate ready when frameCount > 0 (renders telemetry before ready, zero timers).
+  {
+    const clock = createClock();
+    const doubles = createHandoffDoubles({
+      audioBackend: "worklet",
+      telemetry: { frameCount: 4 },
+    });
+    doubles.player.setAudioContext({ state: "running", audioWorklet: {} });
+    const handoff = createBootHandoff({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      now: clock.now,
+    });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player);
+
+    let readyCalls = 0;
+    const cancelWait = handoff.waitBeforeFade(() => {
+      doubles.calls.push(["ready"]);
+      readyCalls++;
+    });
+    assert.equal(typeof cancelWait, "function");
+    assert.equal(readyCalls, 1);
+    assert.equal(clock.activeCount(), 0);
+    assert.deepEqual(doubles.calls.slice(1), [["view.renderTelemetry", 4], ["ready"]]);
+    handoff.destroy();
+  }
+
+  // 2. Immediate ready on in-thread backend (and non-running worklet context), zero timers.
+  for (const setup of [
+    { audioBackend: "in-thread", ctx: { state: "running", audioWorklet: null } },
+    { audioBackend: "worklet", ctx: { state: "suspended", audioWorklet: {} } },
+  ]) {
+    const clock = createClock();
+    const doubles = createHandoffDoubles({
+      audioBackend: setup.audioBackend,
+      telemetry: { frameCount: 0 },
+    });
+    doubles.player.setAudioContext(setup.ctx);
+    const handoff = createBootHandoff({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      now: clock.now,
+    });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player);
+
+    let readyCalls = 0;
+    handoff.waitBeforeFade(() => {
+      readyCalls++;
+    });
+    assert.equal(readyCalls, 1);
+    assert.equal(clock.activeCount(), 0);
+    handoff.destroy();
+  }
+
+  // 3. Running worklet waits for frameCount > 0, renders telemetry before ready, leaves zero timers.
+  {
+    const clock = createClock();
+    const doubles = createHandoffDoubles({
+      audioBackend: "worklet",
+      telemetry: { frameCount: 0 },
+    });
+    doubles.player.setAudioContext({ state: "running", audioWorklet: {} });
+    const handoff = createBootHandoff({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      now: clock.now,
+      pollIntervalMs: 16,
+      firstFrameTimeoutMs: 200,
+    });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player);
+
+    let readyCalls = 0;
+    handoff.waitBeforeFade(() => {
+      doubles.calls.push(["ready"]);
+      readyCalls++;
+    });
+    assert.equal(readyCalls, 0);
+    assert.equal(clock.activeCount(), 1);
+
+    clock.advance(16);
+    assert.equal(readyCalls, 0);
+    assert.equal(clock.activeCount(), 1);
+
+    doubles.player.setTelemetry({ frameCount: 9 });
+    clock.advance(16);
+    assert.equal(readyCalls, 1);
+    assert.equal(clock.activeCount(), 0);
+    assert.deepEqual(doubles.calls.slice(1), [["view.renderTelemetry", 9], ["ready"]]);
+    handoff.destroy();
+  }
+
+  // 4. Timeout fallback at firstFrameTimeoutMs renders current telemetry and invokes ready().
+  {
+    const clock = createClock();
+    const doubles = createHandoffDoubles({
+      audioBackend: "worklet",
+      telemetry: { frameCount: 0 },
+    });
+    doubles.player.setAudioContext({ state: "running", audioWorklet: {} });
+    const handoff = createBootHandoff({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      now: clock.now,
+      pollIntervalMs: 16,
+      firstFrameTimeoutMs: 64,
+    });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player);
+
+    let readyCalls = 0;
+    handoff.waitBeforeFade(() => {
+      doubles.calls.push(["ready"]);
+      readyCalls++;
+    });
+    clock.advance(48);
+    assert.equal(readyCalls, 0);
+
+    clock.advance(16);
+    assert.equal(readyCalls, 1);
+    assert.equal(clock.activeCount(), 0);
+    assert.deepEqual(doubles.calls.slice(1), [["view.renderTelemetry", 0], ["ready"]]);
+    handoff.destroy();
+  }
+
+  // 5. Explicit cancel() handle and destroy() leave zero timers and never invoke ready().
+  for (const useDestroy of [false, true]) {
+    const clock = createClock();
+    const doubles = createHandoffDoubles({
+      audioBackend: "worklet",
+      telemetry: { frameCount: 0 },
+    });
+    doubles.player.setAudioContext({ state: "running", audioWorklet: {} });
+    const handoff = createBootHandoff({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      now: clock.now,
+      pollIntervalMs: 16,
+      firstFrameTimeoutMs: 100,
+    });
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player);
+
+    let readyCalls = 0;
+    const cancelWait = handoff.waitBeforeFade(() => {
+      readyCalls++;
+    });
+    assert.equal(clock.activeCount(), 1);
+
+    if (useDestroy) handoff.destroy();
+    else cancelWait();
+
+    assert.equal(clock.activeCount(), 0, "Cancellation must clear the poll timer immediately");
+    clock.advance(200);
+    assert.equal(readyCalls, 0, "Cancelled waitBeforeFade must never invoke ready()");
+    assert.equal(clock.activeCount(), 0);
+    handoff.destroy();
   }
 });
