@@ -724,6 +724,82 @@ test("tape loading sound ignores duplicate start() across synchronous resume and
   }
 });
 
+test("tape loading sound start() -> stop() -> start() during pending decode starts only one BufferSource", async () => {
+  const bytes = new Uint8Array([1, 2, 3, 4]).buffer;
+  const sources = [];
+  let finishDecode = null;
+  const ctx = {
+    state: "running",
+    currentTime: 10,
+    destination: {},
+    decodeAudioData() {
+      return new Promise((resolve) => {
+        finishDecode = () => resolve({ duration: 9.0 });
+      });
+    },
+    createGain() {
+      return {
+        gain: { value: 1, setTargetAtTime() {} },
+        connect(dest) {
+          return dest;
+        },
+      };
+    },
+    createBufferSource() {
+      const src = {
+        buffer: null,
+        loop: false,
+        startedAt: null,
+        stoppedAt: null,
+        connect(dest) {
+          return dest;
+        },
+        start(at) {
+          src.startedAt = at;
+        },
+        stop(at) {
+          src.stoppedAt = at;
+        },
+      };
+      sources.push(src);
+      return src;
+    },
+  };
+  const lifecycle = createAudioLifecycle({ createContext: () => ctx });
+  lifecycle.unlock();
+  const tape = createTapeLoadingSound({
+    audioLifecycle: lifecycle,
+    fetchFn: async () => ({
+      ok: true,
+      async arrayBuffer() {
+        return bytes;
+      },
+    }),
+  });
+
+  tape.start();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(typeof finishDecode, "function");
+
+  tape.stop();
+  tape.start();
+  finishDecode();
+  await new Promise((r) => setTimeout(r, 10));
+
+  assert.equal(
+    sources.length,
+    1,
+    "start() -> stop() -> start() during decode must create only one BufferSource",
+  );
+  assert.equal(sources[0].loop, true);
+  assert.equal(sources[0].startedAt, 0);
+  assert.equal(sources[0].stoppedAt, null);
+
+  tape.stop();
+  assert.ok(sources[0].stoppedAt > 10, "Final stop() must cleanly stop the single BufferSource");
+  lifecycle.destroy();
+});
+
 function createHandoffDoubles({
   pendingPlayOnBoot = false,
   audioBackend = "in-thread",
@@ -889,6 +965,59 @@ test("Boot Handoff joins prewarm-before-gate and gate-before-prewarm orderings w
     } finally {
       harness.restoreGlobals();
     }
+  }
+});
+
+test("Boot Handoff prepares player audio at the gate when Audio Lifecycle already holds a context before attachPlayer", async () => {
+  const target = { gameId: "wizball.asm", trackId: "wiz-title", title: "WIZBALL" };
+  const harness = createBrowserHarness();
+  try {
+    const lifecycle = createAudioLifecycle({
+      document: globalThis.document,
+      createContext: () => ({ state: "running", resume: () => Promise.resolve() }),
+    });
+    // Pre-unlock Audio Lifecycle before attachPlayer() and before prewarm settles.
+    lifecycle.unlock();
+    assert.equal(lifecycle.getContext()?.state, "running");
+
+    const doubles = createHandoffDoubles();
+    let resolvePrewarm = null;
+    const prewarm = new Promise((resolve) => {
+      resolvePrewarm = resolve;
+    });
+    const handoff = createBootHandoff({ audioLifecycle: lifecycle });
+    handoff.attachBoot(doubles.boot);
+    handoff.attachView(doubles.view);
+    handoff.attachPlayer(doubles.player, prewarm);
+
+    resolvePrewarm(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.ok(
+      !doubles.calls.some(([name]) => name === "player.prepareAudio"),
+      "Prewarm before gate must still wait for gate before preparing audio",
+    );
+
+    handoff.handleGate({ target });
+    assert.deepEqual(doubles.calls.slice(1), [
+      ["boot.setReady"],
+      ["view.selectGameAndTrack", "wizball.asm", "wiz-title", false],
+      ["player.prepareAudio"],
+    ]);
+    assert.ok(
+      doubles.player.getAudioContext(),
+      "Gate must prepare player audio from pre-unlocked lifecycle",
+    );
+
+    handoff.handleComplete({ target, autoPlay: true, reason: "gate" });
+    assert.deepEqual(doubles.calls.slice(4), [
+      ["view.setRenderingPaused", false],
+      ["view.setPlaying", true],
+    ]);
+    handoff.destroy();
+    lifecycle.destroy();
+  } finally {
+    harness.restoreGlobals();
   }
 });
 
@@ -1120,5 +1249,54 @@ test("Boot Handoff waitBeforeFade resolves immediately, polls worklet telemetry,
     assert.equal(readyCalls, 0, "Cancelled waitBeforeFade must never invoke ready()");
     assert.equal(clock.activeCount(), 0);
     handoff.destroy();
+  }
+
+  // 6. Continues polling without document or dataset.bootState until telemetry arrives or cancel() runs.
+  {
+    assert.equal(globalThis.document, undefined);
+    const prevDocument = globalThis.document;
+    try {
+      const clock = createClock();
+      const doubles = createHandoffDoubles({
+        audioBackend: "worklet",
+        telemetry: { frameCount: 0 },
+      });
+      doubles.player.setAudioContext({ state: "running", audioWorklet: {} });
+      const handoff = createBootHandoff({
+        schedule: clock.schedule,
+        cancel: clock.cancel,
+        now: clock.now,
+        pollIntervalMs: 16,
+        firstFrameTimeoutMs: 200,
+      });
+      handoff.attachView(doubles.view);
+      handoff.attachPlayer(doubles.player);
+
+      let readyCalls = 0;
+      const cancelWait = handoff.waitBeforeFade(() => {
+        readyCalls++;
+      });
+      assert.equal(clock.activeCount(), 1);
+
+      globalThis.document = { body: { dataset: { bootState: "booting" } } };
+      clock.advance(16);
+      assert.equal(readyCalls, 0);
+      assert.equal(clock.activeCount(), 1);
+
+      delete globalThis.document.body.dataset.bootState;
+      clock.advance(16);
+      assert.equal(readyCalls, 0);
+      assert.equal(clock.activeCount(), 1);
+
+      doubles.player.setTelemetry({ frameCount: 5 });
+      clock.advance(16);
+      assert.equal(readyCalls, 1);
+      assert.equal(clock.activeCount(), 0);
+      cancelWait();
+      handoff.destroy();
+    } finally {
+      if (prevDocument === undefined) delete globalThis.document;
+      else globalThis.document = prevDocument;
+    }
   }
 });

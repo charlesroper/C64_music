@@ -36,6 +36,17 @@ export function createBootHandoff({
     }
   }
 
+  function preparePlayerAudio() {
+    if (destroyed || !player) return;
+    if (!audioPrepared && !player.getAudioContext?.()) {
+      audioPrepared = true;
+      player.prepareAudio?.();
+    }
+    if (player.getAudioContext?.()) {
+      clearAudioSubscription();
+    }
+  }
+
   function loadBootTargetPaused() {
     if (destroyed || !bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
     bootTargetLoaded = true;
@@ -79,13 +90,7 @@ export function createBootHandoff({
     if (audioLifecycle && typeof audioLifecycle.subscribe === "function") {
       unsubscribeAudio = audioLifecycle.subscribe(({ context }) => {
         if (destroyed || player !== playerInstance || !context) return;
-        if (!audioPrepared && !player.getAudioContext?.()) {
-          audioPrepared = true;
-          player.prepareAudio?.();
-        }
-        if (player.getAudioContext?.()) {
-          clearAudioSubscription();
-        }
+        preparePlayerAudio();
       });
     }
 
@@ -93,9 +98,8 @@ export function createBootHandoff({
       if (destroyed || player !== playerInstance) return;
       prewarmDone = true;
       loadBootTargetPaused();
-      if (gateActive && !audioPrepared && !player.getAudioContext?.()) {
-        audioPrepared = true;
-        player.prepareAudio?.();
+      if (gateActive) {
+        preparePlayerAudio();
       }
       boot?.setReady?.();
       applyBootOutcome();
@@ -113,9 +117,8 @@ export function createBootHandoff({
     gateActive = true;
     if (target) bootTarget = target;
     loadBootTargetPaused();
-    if (!audioLifecycle && prewarmDone && player && !audioPrepared && !player.getAudioContext?.()) {
-      audioPrepared = true;
-      player.prepareAudio?.();
+    if (prewarmDone && (!audioLifecycle || audioLifecycle.getContext?.())) {
+      preparePlayerAudio();
     }
   }
 

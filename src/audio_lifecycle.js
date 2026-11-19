@@ -45,21 +45,29 @@ export function createAudioLifecycle({
     }
   }
 
+  function tryWithOptions(factory, opts) {
+    try {
+      return { ctx: factory(opts), usedHint: opts.latencyHint };
+    } catch (_) {
+      return { ctx: factory(), usedHint: null };
+    }
+  }
+
   function buildContext(hint) {
     const opts = { sampleRate: 48000, latencyHint: hint };
     if (typeof createContext === "function") {
-      try {
-        return { ctx: createContext(opts), usedHint: hint };
-      } catch (_) {
-        return { ctx: createContext(), usedHint: null };
-      }
+      return tryWithOptions(createContext, opts);
     }
     const AudioCtx = win?.AudioContext || win?.webkitAudioContext || null;
     if (!AudioCtx) return { ctx: null, usedHint: null };
-    try {
-      return { ctx: new AudioCtx(opts), usedHint: hint };
-    } catch (_) {
-      return { ctx: new AudioCtx(), usedHint: null };
+    return tryWithOptions((options) => (options ? new AudioCtx(options) : new AudioCtx()), opts);
+  }
+
+  function attachGestureListeners() {
+    if (listenersAttached || destroyed || typeof doc?.addEventListener !== "function") return;
+    listenersAttached = true;
+    for (const type of GESTURE_EVENTS) {
+      doc.addEventListener(type, handleGesture, true);
     }
   }
 
@@ -133,6 +141,7 @@ export function createAudioLifecycle({
       }
       return;
     }
+    attachGestureListeners();
     if (notifiedContext !== activeContext) {
       notifiedContext = activeContext;
       notifiedRunning = false;
@@ -180,15 +189,7 @@ export function createAudioLifecycle({
   }
 
   function unlock() {
-    if (destroyed) return null;
-    configureAudioSession();
-    if (!activeContext || activeContext.state === "closed") {
-      activateContext(activeHint);
-    }
-    if (activeContext) {
-      resumeContext(activeContext);
-    }
-    return getContext();
+    return ensureContext();
   }
 
   function ensureContext(options) {
@@ -251,12 +252,7 @@ export function createAudioLifecycle({
     unlock();
   }
 
-  if (typeof doc?.addEventListener === "function") {
-    listenersAttached = true;
-    for (const type of GESTURE_EVENTS) {
-      doc.addEventListener(type, handleGesture, true);
-    }
-  }
+  attachGestureListeners();
 
   function destroy() {
     destroyed = true;

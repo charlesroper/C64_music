@@ -12,6 +12,7 @@ export function createTapeLoadingSound({
   let source = null;
   let active = false;
   let playing = false;
+  let startToken = 0;
   let unsubscribe = null;
 
   function resolveFetch() {
@@ -69,6 +70,7 @@ export function createTapeLoadingSound({
   function stop() {
     active = false;
     playing = false;
+    startToken++;
     disarmSubscription();
     const ctx = context;
     const master = gain;
@@ -106,46 +108,46 @@ export function createTapeLoadingSound({
     });
   }
 
+  function resolveRunningContext() {
+    let ctx = audioLifecycle?.getContext?.() || null;
+    if (!ctx || ctx.state === "closed") return null;
+    if (ctx.state !== "running") {
+      audioLifecycle?.resume?.();
+      ctx = audioLifecycle?.getContext?.() || null;
+      if (ctx?.state !== "running") return null;
+    }
+    return ctx;
+  }
+
   function tryStartPlayback() {
     if (!active || playing) return;
-    let ctx = audioLifecycle?.getContext?.() || null;
-    if (!ctx || ctx.state === "closed") {
+    const ctx = resolveRunningContext();
+    if (!active || playing) return;
+    if (!ctx) {
       fetchBytes();
       armSubscription();
       return;
     }
-    if (ctx.state !== "running") {
-      audioLifecycle?.resume?.();
-      if (!active || playing) return;
-      ctx = audioLifecycle?.getContext?.() || null;
-      if (ctx?.state !== "running") {
-        fetchBytes();
-        armSubscription();
-        return;
-      }
-    }
     disarmSubscription();
     playing = true;
+    const token = ++startToken;
     loadBuffer(ctx).then((buffer) => {
-      if (!active || !buffer) {
-        playing = false;
-        if (!buffer) active = false;
-        return;
-      }
-      let targetCtx = audioLifecycle?.getContext?.() || null;
-      if (!targetCtx || targetCtx.state === "closed") {
-        playing = false;
-        if (active) armSubscription();
-        return;
-      }
-      if (targetCtx.state !== "running") {
-        audioLifecycle?.resume?.();
-        targetCtx = audioLifecycle?.getContext?.() || null;
-        if (targetCtx?.state !== "running") {
+      if (token !== startToken || !active || !buffer) {
+        if (token === startToken) {
           playing = false;
-          if (active) armSubscription();
-          return;
+          if (!buffer) active = false;
         }
+        return;
+      }
+      const targetCtx = resolveRunningContext();
+      if (token !== startToken || !active) {
+        if (token === startToken) playing = false;
+        return;
+      }
+      if (!targetCtx) {
+        playing = false;
+        armSubscription();
+        return;
       }
       if (targetCtx !== ctx) {
         playing = false;
