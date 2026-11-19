@@ -17,7 +17,9 @@
     "bump": "node scripts/bump_version.mjs",
     "deploy": "node scripts/deploy.mjs",
     "deploy:verify": "node scripts/verify_deploy.mjs",
-    "issue:close": "node scripts/close_issue.mjs"
+    "issue:close": "node scripts/close_issue.mjs",
+    "worktree:add": "node scripts/worktree.mjs add",
+    "worktree:remove": "node scripts/worktree.mjs remove"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",

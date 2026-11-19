@@ -15,6 +15,7 @@ import {
 } from "../scripts/deploy.mjs";
 import { installHooks, isVersionOnlyDiff } from "../scripts/install_hooks.mjs";
 import { verifyDeploy } from "../scripts/verify_deploy.mjs";
+import { addWorktree, linkWorktreeDependencies, removeWorktree } from "../scripts/worktree.mjs";
 import { extractStylesheetLinks, parseStylesheet } from "./helpers/stylesheets.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -620,6 +621,136 @@ test("agent steering pointers resolve to existing docs", () => {
       fs.existsSync(path.join(ROOT, pointer)),
       `AGENTS.md points at missing doc "${pointer}"`,
     );
+  }
+});
+
+const RETIRED_PUBLIC_SYMBOLS = [
+  "createAudioContextManager",
+  "startTapeSound",
+  "onFirstInteraction",
+];
+
+function findRetiredSymbolViolations(documentName, text, symbols = RETIRED_PUBLIC_SYMBOLS) {
+  const violations = [];
+  for (const symbol of symbols) {
+    if (new RegExp(`\\b${symbol}\\b`).test(text)) {
+      violations.push(
+        `${documentName} must not cite retired symbol "${symbol}". Document the replacement seam instead.`,
+      );
+    }
+  }
+  return violations;
+}
+
+function findBehavioralSourceReadViolations(relPath, text) {
+  const violations = [];
+  const pattern = /\b(?:readFileSync|readFile)\s*\([^;\n]*?src\/[^"')\s]+\.js\b/g;
+  for (const match of text.matchAll(pattern)) {
+    violations.push(
+      `${relPath} inspects JS source directly (${match[0].trim()}); assert observable behaviour through module seams instead.`,
+    );
+  }
+  return violations;
+}
+
+test("current documentation avoids retired public symbols and behavioural tests avoid reading src/*.js", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  const narrative = fs.readFileSync(path.join(ROOT, "NARRATIVE.md"), "utf8");
+  const blogStart = narrative.indexOf("## 8. Development blog");
+  assert.ok(blogStart > -1, "NARRATIVE.md must keep the Section 8 heading");
+  const narrativeCurrent = narrative.slice(0, blogStart);
+
+  const docViolations = [
+    ...findRetiredSymbolViolations("README.md", readme),
+    ...findRetiredSymbolViolations("NARRATIVE.md sections 1 to 7", narrativeCurrent),
+  ];
+  assert.deepEqual(docViolations, [], docViolations.join("\n"));
+
+  const negativeDoc = findRetiredSymbolViolations(
+    "README.md",
+    "Uses createAudioContextManager and onFirstInteraction.",
+  );
+  assert.equal(negativeDoc.length, 2, "Retired symbol check must reject stale public symbols");
+
+  const testsDir = path.join(ROOT, "tests");
+  const testFiles = fs
+    .readdirSync(testsDir)
+    .filter((file) => file.endsWith(".test.mjs") && file !== "repo_rules.test.mjs")
+    .sort();
+  assert.ok(testFiles.length > 0);
+
+  const sourceReadViolations = [];
+  for (const file of testFiles) {
+    const relPath = `tests/${file}`;
+    const content = fs.readFileSync(path.join(testsDir, file), "utf8");
+    sourceReadViolations.push(...findBehavioralSourceReadViolations(relPath, content));
+  }
+  assert.deepEqual(sourceReadViolations, [], sourceReadViolations.join("\n"));
+
+  const negativeTest = findBehavioralSourceReadViolations(
+    "tests/example.test.mjs",
+    'const code = fs.readFileSync(path.join(ROOT, "src/app.js"), "utf8");',
+  );
+  assert.equal(negativeTest.length, 1, "Source-read guardrail must reject JS source inspection");
+});
+
+test("worktree helper links root node_modules entries as a directory and cleans up before removal", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-worktree-"));
+  const rootDir = path.join(tmpDir, "repo");
+  const wtDir = path.join(tmpDir, "wt-114");
+  try {
+    fs.mkdirSync(path.join(rootDir, "node_modules", ".bin"), { recursive: true });
+    fs.mkdirSync(path.join(rootDir, "node_modules", "@biomejs"), { recursive: true });
+    fs.writeFileSync(path.join(rootDir, "node_modules", ".package-lock.json"), "{}");
+
+    const gitCalls = [];
+    const fakeExec = (cmd, args) => {
+      gitCalls.push([cmd, ...args]);
+      if (args[0] === "worktree" && args[1] === "add") {
+        fs.mkdirSync(args[2], { recursive: true });
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        assert.equal(
+          fs.existsSync(path.join(args[2], "node_modules")),
+          false,
+          "node_modules must be removed before git worktree remove runs",
+        );
+        fs.rmSync(args[2], { recursive: true, force: true });
+      }
+      return "";
+    };
+
+    const added = addWorktree({
+      rootDir,
+      worktreePath: wtDir,
+      branch: "ticket-114-test",
+      base: "main",
+      execFile: fakeExec,
+      log: () => {},
+    });
+    assert.deepEqual(added.linked.sort(), [".bin", ".package-lock.json", "@biomejs"]);
+    const wtModules = path.join(wtDir, "node_modules");
+    assert.equal(fs.lstatSync(wtModules).isDirectory(), true);
+    assert.equal(fs.lstatSync(wtModules).isSymbolicLink(), false);
+    assert.equal(fs.lstatSync(path.join(wtModules, "@biomejs")).isSymbolicLink(), true);
+    assert.equal(fs.lstatSync(path.join(wtModules, ".package-lock.json")).isSymbolicLink(), true);
+
+    // Re-running linkWorktreeDependencies refreshes existing links cleanly.
+    const relinked = linkWorktreeDependencies({ rootDir, worktreePath: wtDir });
+    assert.equal(relinked.length, 3);
+
+    removeWorktree({
+      rootDir,
+      worktreePath: wtDir,
+      execFile: fakeExec,
+      log: () => {},
+    });
+    assert.deepEqual(gitCalls, [
+      ["git", "worktree", "add", wtDir, "-b", "ticket-114-test", "main"],
+      ["git", "worktree", "remove", wtDir],
+    ]);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
