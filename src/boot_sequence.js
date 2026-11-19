@@ -94,6 +94,7 @@ export function createBootSequence({
   let loaderMinimumElapsed = false;
   let destroyed = false;
   let revealStarted = false;
+  let cancelWaitBeforeFade = null;
 
   const state = {
     phase: BOOT_PHASES.IDLE,
@@ -338,9 +339,17 @@ export function createBootSequence({
     later(() => complete({ autoPlay: true, reason: "gate" }), 0);
   }
 
+  function cancelFadeWait() {
+    if (typeof cancelWaitBeforeFade !== "function") return;
+    const cancelWait = cancelWaitBeforeFade;
+    cancelWaitBeforeFade = null;
+    cancelWait();
+  }
+
   function startFade() {
     if (revealStarted || destroyed) return;
     revealStarted = true;
+    cancelWaitBeforeFade = null;
     delete doc.body.dataset.bootState;
     overlay.style.transitionDuration = `${BOOT_FADE_MS}ms`;
     overlay.classList.add("bootSequence-isFading");
@@ -364,7 +373,11 @@ export function createBootSequence({
     } finally {
       if (reason === "gate") {
         if (typeof waitBeforeFade === "function") {
-          waitBeforeFade(startFade);
+          const cancelWait = waitBeforeFade(startFade);
+          if (typeof cancelWait === "function") {
+            if (destroyed || revealStarted) cancelWait();
+            else cancelWaitBeforeFade = cancelWait;
+          }
         } else {
           startFade();
         }
@@ -446,6 +459,7 @@ export function createBootSequence({
 
   function destroy() {
     destroyed = true;
+    cancelFadeWait();
     if (state.completed) {
       clearTimers();
       hideOverlay();

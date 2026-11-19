@@ -6,8 +6,17 @@ import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { createAudioDiagnosticsOverlay } from "../src/audio_diagnostics.js";
+import { BOOT_LOADER_MS, BOOT_READY_MS } from "../src/boot_sequence.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
+import {
+  packTelemetry,
+  TELEMETRY_BORDER_BYTES,
+  TELEMETRY_BUFFER_BYTES,
+  TELEMETRY_RAM_BYTES,
+  TELEMETRY_SCOPE_SAMPLES,
+  TELEMETRY_SID_BYTES,
+} from "../src/telemetry_buffer.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1820,6 +1829,244 @@ test("skipping or destroying boot before unlock leaves tape sound silent on late
     );
   } finally {
     harness.restoreGlobals();
+  }
+});
+
+test("bootWorkbench reducedMotion reveals immediately, supports pendingPlayOnBoot, and returns lifecycle and handoff", async () => {
+  // 1. Immediate reveal paused on reducedMotion: true
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const booted = await bootWorkbench({ reducedMotion: true });
+    assert.ok(booted.audioLifecycle, "bootWorkbench must return audioLifecycle");
+    assert.ok(booted.handoff, "bootWorkbench must return handoff");
+    assert.equal(globalThis.document.body.dataset.bootState, undefined);
+    assert.ok(harness.elementsById.get("boot-sequence").classList.contains("hidden"));
+    assert.match(harness.elementsById.get("now-playing-pill").textContent, /Wizball/);
+    assert.equal(booted.player.getState().isPlaying, false);
+
+    booted.handoff.destroy();
+    booted.audioLifecycle.destroy();
+    booted.view.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+
+  // 2. reducedMotion with delayed fetch and early PLAY tap starts playing on ready
+  const delayedHarness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  try {
+    const origFetch = globalThis.fetch;
+    let releaseFetch = null;
+    const fetchGate = new Promise((resolve) => {
+      releaseFetch = resolve;
+    });
+    globalThis.fetch = async (url) => {
+      await fetchGate;
+      return origFetch(url);
+    };
+
+    const bootPromise = bootWorkbench({ reducedMotion: true });
+    await new Promise((r) => setTimeout(r, 10));
+
+    assert.equal(globalThis.document.body.dataset.bootState, undefined);
+    assert.ok(delayedHarness.elementsById.get("boot-sequence").classList.contains("hidden"));
+
+    delayedHarness.elementsById.get("btn-play").click();
+    assert.equal(delayedHarness.elementsById.get("play-label").textContent, "Loading...");
+    assert.equal(delayedHarness.audioState.ctx?.state, "running");
+
+    releaseFetch();
+    const booted = await bootPromise;
+    assert.equal(booted.view.isPendingPlayOnBoot(), true);
+    assert.equal(booted.player.getState().isPlaying, true);
+    assert.equal(delayedHarness.elementsById.get("play-label").textContent, "Pause");
+
+    booted.handoff.destroy();
+    booted.audioLifecycle.destroy();
+    booted.view.destroy();
+  } finally {
+    delayedHarness.restoreGlobals();
+  }
+});
+
+test("bootWorkbench waits for AudioWorklet telemetry frameCount > 0 and renders scopes before fading", async () => {
+  const installWorkletEnvironment = () => {
+    const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+    const clock = createBootClock();
+    const prevWorkletNode = globalThis.AudioWorkletNode;
+    const nodes = [];
+
+    class FakeAudioWorkletNode {
+      constructor(context, name, options) {
+        this.context = context;
+        this.name = name;
+        this.options = options;
+        this.port = {
+          messages: [],
+          onmessage: null,
+          postMessage: (message) => this.port.messages.push(message),
+        };
+        nodes.push(this);
+      }
+      connect() {}
+      disconnect() {}
+    }
+
+    globalThis.AudioWorkletNode = FakeAudioWorkletNode;
+    const OrigCtx = globalThis.window.AudioContext;
+    globalThis.window.AudioContext = class WorkletAudioContext extends OrigCtx {
+      constructor(opts) {
+        super(opts);
+        this.audioWorklet = {
+          addModule: async () => {},
+        };
+      }
+    };
+
+    return {
+      harness,
+      clock,
+      nodes,
+      restore() {
+        globalThis.AudioWorkletNode = prevWorkletNode;
+        harness.restoreGlobals();
+      },
+    };
+  };
+
+  // 1. Waits for worklet telemetry frameCount > 0 and renders scopes before fading.
+  const env1 = installWorkletEnvironment();
+  try {
+    const booted = await bootWorkbench({
+      schedule: env1.clock.schedule,
+      cancel: env1.clock.cancel,
+      setIntervalFn: env1.clock.setIntervalFn,
+      clearIntervalFn: env1.clock.clearIntervalFn,
+      tapeSound: { preload() {}, start() {}, stop() {} },
+    });
+    const overlay = env1.harness.elementsById.get("boot-sequence");
+
+    env1.clock.advance(1600);
+    globalThis.document.dispatchEvent("pointerdown");
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(env1.nodes.length, 1, "Worklet node must construct after gate unlock");
+
+    env1.nodes[0].port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
+    assert.equal(booted.player.getState().audioBackend, "worklet");
+
+    env1.clock.advance(BOOT_LOADER_MS + 300 + BOOT_READY_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(booted.boot.getState().completed, true);
+    assert.equal(booted.player.getState().isPlaying, true);
+    assert.equal(
+      globalThis.document.body.dataset.bootState,
+      "booting",
+      "Overlay must hold until first worklet Telemetry Snapshot arrives",
+    );
+    assert.ok(!overlay.classList.contains("bootSequence-isFading"));
+
+    await new Promise((r) => setTimeout(r, 35));
+    assert.equal(
+      globalThis.document.body.dataset.bootState,
+      "booting",
+      "Boot state must remain while worklet frameCount is still 0",
+    );
+
+    const buffer = packTelemetry(
+      {
+        frameCount: 12,
+        cpuPc: 0x1234,
+        d418: 0,
+        morseIndex: -1,
+        sidRegs: new Uint8Array(TELEMETRY_SID_BYTES),
+        scopeData: new Float32Array(TELEMETRY_SCOPE_SAMPLES),
+        scanlineBorder: new Uint8Array(TELEMETRY_BORDER_BYTES),
+        ram: new Uint8Array(TELEMETRY_RAM_BYTES),
+        voices: [
+          { freq: 0, pw: 0, ctrl: 0, env: 0 },
+          { freq: 0, pw: 0, ctrl: 0, env: 0 },
+          { freq: 0, pw: 0, ctrl: 0, env: 0 },
+        ],
+        filter: { fc: 0, res: 0, rout: 0, mode: 0, vol: 0 },
+      },
+      new ArrayBuffer(TELEMETRY_BUFFER_BYTES),
+    );
+    env1.nodes[0].port.onmessage({ data: { type: "telemetry", buffer } });
+
+    const deadline = Date.now() + 500;
+    while (globalThis.document.body.dataset.bootState === "booting" && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+
+    assert.equal(globalThis.document.body.dataset.bootState, undefined);
+    assert.ok(overlay.classList.contains("bootSequence-isFading"));
+    assert.equal(
+      String(env1.harness.elementsById.get("tel-frame").textContent),
+      "12",
+      "First worklet telemetry frame must render before fade starts",
+    );
+
+    booted.boot.destroy();
+    booted.handoff.destroy();
+    booted.audioLifecycle.destroy();
+    booted.view.destroy();
+  } finally {
+    env1.restore();
+  }
+
+  // 2. Destroying boot while waiting for worklet telemetry cancels cleanly without DOM polling.
+  assert.equal(
+    fs.readFileSync(path.join(ROOT, "src/app.js"), "utf8").includes("dataset.bootState"),
+    false,
+    "src/app.js must have zero references to dataset.bootState",
+  );
+  assert.equal(
+    fs.readFileSync(path.join(ROOT, "src/boot_handoff.js"), "utf8").includes("dataset.bootState"),
+    false,
+    "src/boot_handoff.js must have zero references to dataset.bootState",
+  );
+
+  const env2 = installWorkletEnvironment();
+  try {
+    const booted = await bootWorkbench({
+      schedule: env2.clock.schedule,
+      cancel: env2.clock.cancel,
+      setIntervalFn: env2.clock.setIntervalFn,
+      clearIntervalFn: env2.clock.clearIntervalFn,
+      tapeSound: { preload() {}, start() {}, stop() {} },
+    });
+    const overlay = env2.harness.elementsById.get("boot-sequence");
+    env2.clock.advance(1600);
+    globalThis.document.dispatchEvent("pointerdown");
+    await new Promise((r) => setTimeout(r, 10));
+    env2.nodes[0].port.onmessage({ data: { type: "ready", sampleRate: 48000 } });
+
+    env2.clock.advance(BOOT_LOADER_MS + 300 + BOOT_READY_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(globalThis.document.body.dataset.bootState, "booting");
+
+    let clearedTimers = 0;
+    const origClearTimeout = globalThis.clearTimeout;
+    globalThis.clearTimeout = (id) => {
+      clearedTimers++;
+      return origClearTimeout(id);
+    };
+    booted.boot.destroy();
+    assert.equal(
+      clearedTimers,
+      1,
+      "boot.destroy() must cancel waitBeforeFade poll timer immediately",
+    );
+    assert.ok(overlay.classList.contains("hidden"));
+    assert.ok(!overlay.classList.contains("bootSequence-isFading"));
+
+    booted.handoff.destroy();
+    booted.audioLifecycle.destroy();
+    booted.view.destroy();
+  } finally {
+    env2.restore();
   }
 });
 
