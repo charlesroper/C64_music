@@ -46,20 +46,10 @@ export async function bootWorkbench(options = {}) {
   const tapeSound =
     options.tapeSound ||
     createTapeLoadingSound({
-      getContext: () => audioLifecycle.getContext(),
+      audioLifecycle,
       fetchFn,
     });
   if (!skipBoot && !reducedMotion) tapeSound.preload?.();
-
-  // Touch pointerdown does not grant user activation in mobile browsers, so keep
-  // listening across pointerup, touchend and click until the context runs.
-  const gestureEvents = ["pointerdown", "pointerup", "touchend", "click", "keydown"];
-  const addGestureListeners = (fn) => {
-    for (const type of gestureEvents) doc.addEventListener(type, fn, true);
-  };
-  const removeGestureListeners = (fn) => {
-    for (const type of gestureEvents) doc.removeEventListener(type, fn, true);
-  };
 
   function loadBootTargetPaused() {
     if (!bootTarget || !view || !player || !prewarmDone || bootTargetLoaded) return;
@@ -133,7 +123,6 @@ export async function bootWorkbench(options = {}) {
       applyBootOutcome();
     },
   });
-  audioLifecycle.subscribe(() => boot?.startTapeSound?.());
   boot.start();
 
   const fileNames = [
@@ -198,14 +187,11 @@ export async function bootWorkbench(options = {}) {
   });
   view.setDiagnostics(diagnostics);
 
-  const prepareAudio = () => {
-    player.prepareAudio();
-    boot.startTapeSound();
-    if (player.getAudioContext()?.state === "running") {
-      removeGestureListeners(prepareAudio);
+  audioLifecycle.subscribe(({ context }) => {
+    if (context && player && !player.getAudioContext()) {
+      player.prepareAudio();
     }
-  };
-  addGestureListeners(prepareAudio);
+  });
 
   const led = view.elements.get("status-led");
   if (led) led.classList.add("topBar-led-isReady");
@@ -213,7 +199,7 @@ export async function bootWorkbench(options = {}) {
   prewarm.finally(() => {
     prewarmDone = true;
     loadBootTargetPaused();
-    if (boot.getState().gateActive) prepareAudio();
+    if (boot.getState().gateActive) player.prepareAudio();
     boot.setReady();
     applyBootOutcome();
   });
