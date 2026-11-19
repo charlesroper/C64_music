@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createAudioLifecycle } from "../src/audio_lifecycle.js";
 import {
   BOOT_FADE_MS,
   BOOT_LOADER_MS,
@@ -167,21 +168,20 @@ test("boot sequence reaches the gate, waits for readiness and completes with Wiz
   }
 });
 
-test("tape sound retries once audio is ready after an early gate tap", () => {
+test("boot sequence omits startTapeSound and does not re-trigger tape sound on setReady", () => {
   const harness = createBrowserHarness();
   try {
-    const tape = { starts: 0, contextReady: false, playing: false };
+    const tape = { starts: 0 };
     const { boot, clock } = createBoot({
       tapeSound: {
         start() {
           tape.starts++;
-          if (tape.contextReady) tape.playing = true;
         },
-        stop() {
-          tape.playing = false;
-        },
+        stop() {},
       },
     });
+    assert.equal(boot.startTapeSound, undefined);
+
     boot.start();
     clock.advance(120);
     clock.advance(600);
@@ -190,12 +190,9 @@ test("tape sound retries once audio is ready after an early gate tap", () => {
 
     globalThis.document.dispatchEvent("pointerdown");
     assert.equal(tape.starts, 1);
-    assert.equal(tape.playing, false, "The gate tap cannot play tape sound without audio");
 
-    tape.contextReady = true;
     boot.setReady();
-    assert.equal(tape.starts, 2, "Audio readiness must retry the tape sound");
-    assert.equal(tape.playing, true);
+    assert.equal(tape.starts, 1, "setReady must not call tapeSound.start() a second time");
   } finally {
     harness.restoreGlobals();
   }
@@ -284,8 +281,10 @@ test("tape loading sound preloads, loops recording at balanced gain, and skips s
       return src;
     },
   };
+  const lifecycle = createAudioLifecycle({ createContext: () => ctx });
+  lifecycle.unlock();
   const tape = createTapeLoadingSound({
-    getContext: () => ctx,
+    audioLifecycle: lifecycle,
     fetchFn: async (url) => {
       fetchedUrl = url;
       return {
@@ -321,8 +320,10 @@ test("tape loading sound preloads, loops recording at balanced gain, and skips s
       });
     },
   };
+  const slowLifecycle = createAudioLifecycle({ createContext: () => slowCtx });
+  slowLifecycle.unlock();
   const slowTape = createTapeLoadingSound({
-    getContext: () => slowCtx,
+    audioLifecycle: slowLifecycle,
     fetchFn: async () => ({
       ok: true,
       async arrayBuffer() {
@@ -371,6 +372,246 @@ test("gate completion waits for waitBeforeFade callback before revealing workben
 
     clock.advance(BOOT_FADE_MS);
     assert.ok(overlay.classList.contains("hidden"));
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+function createFakeAudioEnv({ initiallyActivated = false } = {}) {
+  const bytes = new Uint8Array([1, 2, 3, 4]).buffer;
+  let userActivation = initiallyActivated;
+  let fetchCount = 0;
+  const sources = [];
+
+  function createContext() {
+    const ctx = {
+      state: userActivation ? "running" : "suspended",
+      currentTime: 0,
+      destination: {},
+      resume() {
+        if (userActivation) ctx.state = "running";
+        return Promise.resolve();
+      },
+      async decodeAudioData() {
+        return { duration: 9.0 };
+      },
+      createGain() {
+        return {
+          gain: { value: 1, setTargetAtTime() {} },
+          connect(dest) {
+            return dest;
+          },
+        };
+      },
+      createBufferSource() {
+        const src = {
+          buffer: null,
+          loop: false,
+          startedAt: null,
+          stoppedAt: null,
+          connect(dest) {
+            return dest;
+          },
+          start(at) {
+            src.startedAt = at;
+          },
+          stop(at) {
+            src.stoppedAt = at;
+          },
+        };
+        sources.push(src);
+        return src;
+      },
+    };
+    return ctx;
+  }
+
+  const fetchFn = async () => {
+    fetchCount++;
+    return {
+      ok: true,
+      async arrayBuffer() {
+        return bytes;
+      },
+    };
+  };
+
+  return {
+    createContext,
+    fetchFn,
+    sources,
+    getFetchCount: () => fetchCount,
+    setUserActivation: (value) => {
+      userActivation = value;
+    },
+  };
+}
+
+test("tape loading sound warms bytes and plays once Audio Lifecycle unlocks across pointerdown to pointerup or click", async () => {
+  const harness = createBrowserHarness();
+  try {
+    // Subcase A: start() before any context exists, then pointerdown (suspended), then pointerup (running)
+    const envA = createFakeAudioEnv({ initiallyActivated: false });
+    const lifecycleA = createAudioLifecycle({
+      document: globalThis.document,
+      createContext: envA.createContext,
+    });
+    const tapeA = createTapeLoadingSound({
+      audioLifecycle: lifecycleA,
+      fetchFn: envA.fetchFn,
+    });
+
+    tapeA.start();
+    assert.equal(envA.getFetchCount(), 1, "start() before unlock must warm tape audio bytes");
+    assert.equal(envA.sources.length, 0);
+
+    globalThis.document.dispatchEvent("pointerdown", { pointerType: "touch" });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(lifecycleA.getContext().state, "suspended");
+    assert.equal(envA.sources.length, 0, "Suspended context must not start BufferSource");
+
+    envA.setUserActivation(true);
+    globalThis.document.dispatchEvent("pointerup", { pointerType: "touch" });
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(envA.sources.length, 1, "Unlock on pointerup must trigger armed tape playback");
+    assert.equal(envA.sources[0].loop, true);
+    tapeA.stop();
+    lifecycleA.destroy();
+
+    // Subcase B: pointerdown creates suspended context first, then start() is called, then click activates
+    const envB = createFakeAudioEnv({ initiallyActivated: false });
+    const lifecycleB = createAudioLifecycle({
+      document: globalThis.document,
+      createContext: envB.createContext,
+    });
+    const tapeB = createTapeLoadingSound({
+      audioLifecycle: lifecycleB,
+      fetchFn: envB.fetchFn,
+    });
+
+    globalThis.document.dispatchEvent("pointerdown", { pointerType: "touch" });
+    assert.equal(lifecycleB.getContext().state, "suspended");
+    tapeB.start();
+    assert.equal(envB.getFetchCount(), 1, "start() while suspended must warm tape audio bytes");
+    assert.equal(envB.sources.length, 0);
+
+    envB.setUserActivation(true);
+    globalThis.document.dispatchEvent("click", { pointerType: "touch" });
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(envB.sources.length, 1, "Unlock on click must trigger armed tape playback");
+    tapeB.stop();
+    lifecycleB.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("tape loading sound stop() before unlock disarms and unsubscribes immediately", async () => {
+  const harness = createBrowserHarness();
+  try {
+    const env = createFakeAudioEnv({ initiallyActivated: false });
+    const lifecycle = createAudioLifecycle({
+      document: globalThis.document,
+      createContext: env.createContext,
+    });
+    let activeSubscriptions = 0;
+    const trackedLifecycle = {
+      ...lifecycle,
+      subscribe(listener) {
+        activeSubscriptions++;
+        const unsub = lifecycle.subscribe(listener);
+        let removed = false;
+        return () => {
+          if (!removed) {
+            removed = true;
+            activeSubscriptions--;
+          }
+          unsub();
+        };
+      },
+    };
+    const tape = createTapeLoadingSound({
+      audioLifecycle: trackedLifecycle,
+      fetchFn: env.fetchFn,
+    });
+
+    tape.start();
+    assert.equal(activeSubscriptions, 1, "start() before unlock must subscribe to Audio Lifecycle");
+
+    tape.stop();
+    assert.equal(activeSubscriptions, 0, "stop() must unsubscribe immediately before any unlock");
+
+    env.setUserActivation(true);
+    globalThis.document.dispatchEvent("pointerup", { pointerType: "touch" });
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(env.sources.length, 0, "Later unlock must produce zero BufferSource playback");
+    lifecycle.destroy();
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("tape loading sound ignores duplicate start() across synchronous resume and handles closed/replaced contexts during decode", async () => {
+  const harness = createBrowserHarness();
+  try {
+    // 1. Re-entrant synchronous resume on repeated start() creates only one BufferSource
+    const env = createFakeAudioEnv({ initiallyActivated: false });
+    const lifecycle = createAudioLifecycle({
+      document: globalThis.document,
+      createContext: env.createContext,
+    });
+    const tape = createTapeLoadingSound({
+      audioLifecycle: lifecycle,
+      fetchFn: env.fetchFn,
+    });
+
+    globalThis.document.dispatchEvent("pointerdown", { pointerType: "touch" });
+    tape.start();
+    env.setUserActivation(true);
+    tape.start();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(env.sources.length, 1, "Synchronous resume during start() must not play twice");
+    tape.stop();
+    lifecycle.destroy();
+
+    // 2. Closing context during decode prevents BufferSource creation
+    let finishCloseDecode = null;
+    const closeSources = [];
+    const closeCtx = {
+      ...createFakeAudioEnv({ initiallyActivated: true }).createContext(),
+      decodeAudioData() {
+        return new Promise((resolve) => {
+          finishCloseDecode = () => resolve({ duration: 9.0 });
+        });
+      },
+      createBufferSource() {
+        const src = {
+          connect: (d) => d,
+          start() {},
+          stop() {},
+        };
+        closeSources.push(src);
+        return src;
+      },
+    };
+    const closeLifecycle = createAudioLifecycle({ createContext: () => closeCtx });
+    closeLifecycle.unlock();
+    const closeTape = createTapeLoadingSound({
+      audioLifecycle: closeLifecycle,
+      fetchFn: env.fetchFn,
+    });
+    closeTape.start();
+    await new Promise((r) => setTimeout(r, 0));
+    await closeLifecycle.close();
+    finishCloseDecode();
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(
+      closeSources.length,
+      0,
+      "Closed context during decode must not start BufferSource",
+    );
+    closeTape.stop();
+    closeLifecycle.destroy();
   } finally {
     harness.restoreGlobals();
   }

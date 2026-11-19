@@ -1,5 +1,5 @@
 export function createTapeLoadingSound({
-  getContext,
+  audioLifecycle,
   fetchFn = null,
   url = "./assets/c64_loading_noise.m4a",
 } = {}) {
@@ -10,7 +10,9 @@ export function createTapeLoadingSound({
   let context = null;
   let gain = null;
   let source = null;
-  let started = false;
+  let active = false;
+  let playing = false;
+  let unsubscribe = null;
 
   function resolveFetch() {
     if (typeof fetchFn === "function") return fetchFn;
@@ -65,8 +67,9 @@ export function createTapeLoadingSound({
   }
 
   function stop() {
-    if (!started) return;
-    started = false;
+    active = false;
+    playing = false;
+    disarmSubscription();
     const ctx = context;
     const master = gain;
     const activeSource = source;
@@ -82,47 +85,96 @@ export function createTapeLoadingSound({
     } catch (_) {}
   }
 
-  function resumeContext(ctx) {
-    if (!ctx || ctx.state === "running" || ctx.state === "closed") return;
-    try {
-      ctx.resume?.();
-    } catch (_) {}
+  function disarmSubscription() {
+    if (typeof unsubscribe === "function") {
+      const unsub = unsubscribe;
+      unsubscribe = null;
+      unsub();
+    }
   }
 
-  function start() {
-    const initialContext = context || (getContext ? getContext() : null);
-    resumeContext(initialContext);
-    if (started) return;
-    if (!initialContext || initialContext.state === "closed") return;
-    started = true;
-    loadBuffer(initialContext).then((buffer) => {
-      if (!started || !buffer) {
-        if (!buffer) started = false;
+  function armSubscription() {
+    if (unsubscribe || typeof audioLifecycle?.subscribe !== "function") return;
+    unsubscribe = audioLifecycle.subscribe(({ context: nextCtx, state }) => {
+      if (!active) {
+        disarmSubscription();
         return;
       }
-      const activeCtx = (getContext ? getContext() : null) || initialContext;
-      if (!activeCtx || activeCtx.state === "closed") {
-        started = false;
+      if (nextCtx && state === "running") {
+        tryStartPlayback();
+      }
+    });
+  }
+
+  function tryStartPlayback() {
+    if (!active || playing) return;
+    let ctx = audioLifecycle?.getContext?.() || null;
+    if (!ctx || ctx.state === "closed") {
+      fetchBytes();
+      armSubscription();
+      return;
+    }
+    if (ctx.state !== "running") {
+      audioLifecycle?.resume?.();
+      if (!active || playing) return;
+      ctx = audioLifecycle?.getContext?.() || null;
+      if (ctx?.state !== "running") {
+        fetchBytes();
+        armSubscription();
         return;
       }
-      resumeContext(activeCtx);
+    }
+    disarmSubscription();
+    playing = true;
+    loadBuffer(ctx).then((buffer) => {
+      if (!active || !buffer) {
+        playing = false;
+        if (!buffer) active = false;
+        return;
+      }
+      let targetCtx = audioLifecycle?.getContext?.() || null;
+      if (!targetCtx || targetCtx.state === "closed") {
+        playing = false;
+        if (active) armSubscription();
+        return;
+      }
+      if (targetCtx.state !== "running") {
+        audioLifecycle?.resume?.();
+        targetCtx = audioLifecycle?.getContext?.() || null;
+        if (targetCtx?.state !== "running") {
+          playing = false;
+          if (active) armSubscription();
+          return;
+        }
+      }
+      if (targetCtx !== ctx) {
+        playing = false;
+        tryStartPlayback();
+        return;
+      }
       try {
-        context = activeCtx;
-        gain = activeCtx.createGain();
+        context = targetCtx;
+        gain = targetCtx.createGain();
         gain.gain.value = 0.35;
 
-        source = activeCtx.createBufferSource();
+        source = targetCtx.createBufferSource();
         source.buffer = buffer;
         source.loop = true;
-        source.connect(gain).connect(activeCtx.destination);
+        source.connect(gain).connect(targetCtx.destination);
         source.start(0);
       } catch (_) {
-        started = false;
+        playing = false;
+        active = false;
         context = null;
         gain = null;
         source = null;
       }
     });
+  }
+
+  function start() {
+    active = true;
+    tryStartPlayback();
   }
 
   return { preload, start, stop };

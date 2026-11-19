@@ -1618,12 +1618,12 @@ function createBootClock() {
   };
 }
 
-test("gate tap after prewarm retries tape sound once audio is prepared", async () => {
+test("gate tap after prewarm starts tape sound once and prepares player audio via Audio Lifecycle", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
   const clock = createBootClock();
   try {
     const tape = { starts: 0, stops: 0 };
-    await bootWorkbench({
+    const booted = await bootWorkbench({
       schedule: clock.schedule,
       cancel: clock.cancel,
       setIntervalFn: clock.setIntervalFn,
@@ -1637,13 +1637,17 @@ test("gate tap after prewarm retries tape sound once audio is prepared", async (
         },
       },
     });
+    assert.equal(booted.boot.startTapeSound, undefined);
+
     const live = harness.elementsById.get("boot-live");
     clock.advance(1600);
     assert.equal(live.textContent, "Press play on tape to start Wizball");
     assert.equal(tape.starts, 0, "Tape sound must wait for the gate");
 
     globalThis.document.dispatchEvent("pointerdown");
-    assert.equal(tape.starts, 2, "The gate start must be retried once audio is prepared");
+    assert.equal(tape.starts, 1, "Gate tap must start tape sound exactly once");
+    assert.ok(booted.player.getAudioContext(), "Audio Lifecycle must prepare player audio");
+    assert.equal(booted.player.getAudioContext().state, "running");
   } finally {
     harness.restoreGlobals();
   }
@@ -1757,6 +1761,63 @@ test("touch gate tap unlocks audio on pointerup when pointerdown has no user act
       await new Promise((r) => setTimeout(r, 10));
     }
     assert.equal(harness.audioState.bufferSources, 1, "Tape sound buffer source must be running");
+  } finally {
+    harness.restoreGlobals();
+  }
+});
+
+test("skipping or destroying boot before unlock leaves tape sound silent on later gesture unlock", async () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 48000 });
+  const clock = createBootClock();
+  try {
+    let userActivationActive = false;
+    const OrigCtx = globalThis.window.AudioContext;
+    globalThis.window.AudioContext = class TouchGatedAudioContext extends OrigCtx {
+      constructor(opts) {
+        super(opts);
+        if (userActivationActive) this.state = "running";
+      }
+      resume() {
+        if (userActivationActive) this.state = "running";
+        return Promise.resolve();
+      }
+    };
+
+    const { boot } = await bootWorkbench({
+      schedule: clock.schedule,
+      cancel: clock.cancel,
+      setIntervalFn: clock.setIntervalFn,
+      clearIntervalFn: clock.clearIntervalFn,
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    clock.advance(1600);
+    assert.equal(
+      harness.elementsById.get("boot-live").textContent,
+      "Press play on tape to start Wizball",
+    );
+
+    // Touch pointerdown enters loading and arms tape sound while context is suspended.
+    userActivationActive = false;
+    globalThis.document.dispatchEvent("pointerdown", { pointerType: "touch" });
+    assert.equal(harness.audioState.ctx?.state, "suspended");
+    assert.equal(harness.audioState.bufferSources, 0);
+
+    // Skip/destroy boot before pointerup unlocks audio.
+    boot.skip();
+    boot.destroy();
+
+    // Later user gesture unlocks audio; tape sound must remain silent.
+    userActivationActive = true;
+    globalThis.document.dispatchEvent("pointerup", { pointerType: "touch" });
+    globalThis.document.dispatchEvent("click", { pointerType: "touch" });
+    await new Promise((r) => setTimeout(r, 40));
+
+    assert.equal(harness.audioState.ctx?.state, "running");
+    assert.equal(
+      harness.audioState.bufferSources,
+      0,
+      "Skipping or destroying boot before unlock must prevent delayed tape noise",
+    );
   } finally {
     harness.restoreGlobals();
   }
