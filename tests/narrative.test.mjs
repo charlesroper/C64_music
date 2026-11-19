@@ -36,11 +36,39 @@ test("NARRATIVE.md renders cleanly for the overlay", () => {
   const md = read("NARRATIVE.md");
   const html = renderMarkdownToHtml(md);
   assert.ok(!md.includes("\u2014"), "no em-dashes");
-  assert.ok(!/\]\(http/.test(html), "no raw markdown links left in HTML");
+  assert.ok(!/\]\(/.test(html), "no raw markdown links left in HTML");
   assert.match(html, /href="https:\/\/github\.com\/MartinGalway\/C64_music"/);
   assert.match(html, /href="https:\/\/github\.com\/charlesroper\/C64_music"/);
   assert.ok(!/<p>\s*[*-] /.test(html), "no unparsed bullet paragraphs");
   assert.ok(!/\bC13\b|NARRATIFE/.test(md));
+
+  const lines = md.split("\n");
+  let inCode = false;
+  const isBlockStart = (line) => /^(#{1,6}\s|```|>|---|\s*([*-]|\d+\.)\s|$)/.test(line);
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line.startsWith("```")) {
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode) continue;
+    assert.ok(!/^#{4,}\s/.test(line), `disallowed H4+ heading on line ${i + 1}: ${line}`);
+    if (i > 0 && !lines[i - 1].startsWith("```")) {
+      assert.ok(
+        isBlockStart(lines[i - 1]) || isBlockStart(line),
+        `wrapped multi-line paragraph at line ${i + 1}: ${line}`,
+      );
+    }
+    const stripped = line
+      .replace(/`[^`]+`/g, "")
+      .replace(/\*\*[^*]+\*\*/g, "")
+      .replace(/\*[^*]+\*/g, "")
+      .replace(/^\s*\*\s+/, "");
+    assert.ok(!/\*/.test(stripped), `unescaped '*' outside code span on line ${i + 1}: ${line}`);
+  }
+
+  assert.equal(renderMarkdownToHtml("#### Too deep"), "<p>#### Too deep</p>");
+  assert.equal(renderMarkdownToHtml("[rel](docs/x.md)"), "<p>[rel](docs/x.md)</p>");
 });
 
 test("every quotation in NARRATIVE.md appears verbatim in Galway's sources", () => {

@@ -61,6 +61,16 @@ export async function verifyDeploy(options = {}) {
   const shortSha = headSha.slice(0, 7);
   const expectedVersion = parseAppVersion(fs.readFileSync(versionPath, "utf8"));
 
+  if (
+    !process.env.NODE_USE_ENV_PROXY &&
+    (process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy)
+  ) {
+    process.env.NODE_USE_ENV_PROXY = "1";
+  }
+
   let matchedRun = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const rawRuns = execFile("gh", [

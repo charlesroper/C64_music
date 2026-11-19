@@ -18,7 +18,8 @@ Read the shipped labels before describing a control:
 | `README.md` introduction, architecture, capabilities and developer workflow | `on-writing-well`. Keep the voice human and enticing. |
 | `README.md` install, build and command instructions | `on-writing-well` for voice, then `ste-80` for the steps: one action per step, one meaning per term, explicit outcome. Do not flatten the surrounding prose. |
 | UI copy and catalogue descriptions | `on-writing-well` and `guardian-style-guide`. |
-| `NARRATIVE.md` | `project-narrative`, then the eight-section rules below. |
+| `NARRATIVE.md` Sections 1 to 7 | `on-writing-well` (`Web & Content Design`: Bite/Snack/Meal screen structure, short screen paragraphs, question-answering headings), then the eight-section rules below. |
+| `NARRATIVE.md` Section 8 (dev blog) | `project-narrative`, then the eight-section rules below. |
 | `AGENTS.md` and skill files | `writing-for-agents`. |
 | Commit messages | `cbeams-git-commit-messages`. |
 

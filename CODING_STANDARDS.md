@@ -24,7 +24,7 @@ Martin Galway's original Commodore 64 assembly source files and directives are h
 
 ## 2. Typography and Prose Rules
 
-**Rule 2.1 (Zero Em-Dashes)**: Never use literal em-dash characters (Unicode U+2014) anywhere in this repository. This applies without exception across markdown documentation, source code, comments, commit messages, and HTML. Use commas, colons, parentheses, or periods instead.
+**Rule 2.1 (Zero Em-Dashes)**: Never use literal em-dash characters (Unicode U+2014) anywhere in this repository. This applies without exception across markdown documentation, source code, comments, commit messages, and HTML. En-dashes (U+2013) are allowed in Markdown prose; otherwise use commas, colons, parentheses, or periods.
 **Rule 2.2 (William Zinsser Prose)**: Keep all documentation concise, active, and direct. Avoid marketing hype, jargon, buzzwords, and redundant filler.
 
 ---

@@ -888,6 +888,33 @@ test("verifyDeploy polls Pages workflow, verifies live version, and pushes deplo
         }),
       /Live version mismatch: expected 2026\.11\.17\.1, got 2026\.11\.17/,
     );
+
+    const prevProxy = process.env.HTTPS_PROXY;
+    const prevEnvProxyFlag = process.env.NODE_USE_ENV_PROXY;
+    try {
+      process.env.HTTPS_PROXY = "http://127.0.0.1:8888";
+      delete process.env.NODE_USE_ENV_PROXY;
+      await verifyDeploy({
+        execFile: fakeExecFile,
+        fetchImpl: async () => {
+          assert.equal(process.env.NODE_USE_ENV_PROXY, "1");
+          return {
+            ok: true,
+            text: async () => 'export const APP_VERSION = "2026.11.17.1";\n',
+          };
+        },
+        sleep: async () => {},
+        log: () => {},
+        versionPath: versionFile,
+        maxAttempts: 3,
+        pollIntervalMs: 1,
+      });
+    } finally {
+      if (prevProxy === undefined) delete process.env.HTTPS_PROXY;
+      else process.env.HTTPS_PROXY = prevProxy;
+      if (prevEnvProxyFlag === undefined) delete process.env.NODE_USE_ENV_PROXY;
+      else process.env.NODE_USE_ENV_PROXY = prevEnvProxyFlag;
+    }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

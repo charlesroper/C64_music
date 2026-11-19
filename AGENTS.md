@@ -13,7 +13,7 @@ Keep always-loaded guidance minimal. Engineering and review rules live in `CODIN
 - **Prose and narrative:** Read `docs/agents/prose-and-narrative.md` before editing `README.md`, `NARRATIVE.md`, UI copy, or catalogue descriptions. Add `NARRATIVE.md` Section 8 entries only at parent-spec wrap-up or on request, linking already-committed SHAs (`CODING_STANDARDS.md` Section 7).
 - **Bug fixes:** Start with a failing test or repeatable visual check before writing fix code (`CODING_STANDARDS.md` Rule 9.1).
 - **Pre-commit and verification scope:** Install local hooks with `npm run hooks:install` (`CODING_STANDARDS.md` Section 8). Run `npm run format` then `npm run check:lint` before tests. Use `npm run worktree:add -- <path> <branch> [base]` and `npm run worktree:remove -- <path>` for worktrees so `node_modules/` resolves ESM dependencies cleanly. When edits touch only `tests/*.test.mjs` and docs, run the touched test file during iteration and skip baseline Chromium runs (matching `scripts/install_hooks.mjs`).
-- **Commit policy:** Chris Beams style (capitalised imperative, <=50 chars, no Conventional Commits prefix, zero em-dashes); enforced by `.git/hooks/commit-msg`.
+- **Commit policy:** Chris Beams style (capitalised imperative, <=50 chars, no Conventional Commits prefix, zero em-dashes); enforced by `.git/hooks/commit-msg`. If a server restart leaves a stale `.git/index.lock` with no active `git` process running, remove `.git/index.lock` before staging.
 
 ## Agent skills and pointers
 
