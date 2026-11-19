@@ -175,7 +175,6 @@ export function createWorkbenchView({
   assets = null,
   elements = null,
   latencyHint = AUDIO_MODE_DEFAULT,
-  onFirstInteraction = null,
 } = {}) {
   const win = doc?.defaultView || (typeof window !== "undefined" ? window : globalThis);
   const registry = createDomRegistry(doc, elements);
@@ -1383,9 +1382,6 @@ export function createWorkbenchView({
     if (btnPlay) {
       addListener(btnPlay, "click", () => {
         if (!state.player) {
-          if (onFirstInteraction) {
-            onFirstInteraction();
-          }
           state.pendingPlayOnBoot = !state.pendingPlayOnBoot;
           const playLabel = getEl("play-label");
           if (playLabel) {

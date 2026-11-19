@@ -2586,6 +2586,66 @@ test("workbench view mounts behind focused interface and importing modules cause
   }
 });
 
+test("Workbench View ignores onFirstInteraction while harness dispatches document capture listeners before target clicks", () => {
+  const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
+  const order = [];
+  let legacyCallbackCalls = 0;
+
+  const onCapture = (event) => {
+    order.push([
+      "capture",
+      event.type,
+      event.target.id,
+      event.currentTarget === globalThis.document,
+    ]);
+    globalThis.document.removeEventListener("click", onCapture, true);
+  };
+  const onBubble = () => {
+    order.push(["bubble"]);
+  };
+
+  globalThis.document.addEventListener("click", onCapture, true);
+  globalThis.document.addEventListener("click", onBubble, false);
+
+  const view = createWorkbenchView({
+    document: globalThis.document,
+    elements: harness.elementsById,
+    player: null,
+    onFirstInteraction: () => {
+      legacyCallbackCalls++;
+    },
+  });
+
+  try {
+    const playBtn = view.elements.get("btn-play");
+    playBtn.addEventListener("click", () => {
+      order.push(["target"]);
+    });
+
+    playBtn.click();
+    assert.equal(
+      legacyCallbackCalls,
+      0,
+      "createWorkbenchView must ignore legacy onFirstInteraction callback",
+    );
+    assert.equal(view.isPendingPlayOnBoot(), true);
+    assert.equal(view.elements.get("play-label").textContent, "Loading...");
+    assert.deepEqual(
+      order,
+      [["capture", "click", "btn-play", true], ["target"]],
+      "Capture-phase document listener must run before element target listener",
+    );
+
+    playBtn.click();
+    assert.equal(order.length, 3, "Removed capture listener must not fire on second click");
+  } finally {
+    globalThis.document.removeEventListener("click", onCapture, true);
+    globalThis.document.removeEventListener("click", onBubble, false);
+    view.destroy();
+    harness.restoreGlobals();
+  }
+});
+
 test("telemetry change guards eliminate redundant DOM writes and morse re-renders on identical frames", async () => {
   const harness = createBrowserHarness({ hardwareSampleRate: 44100 });
   const player = createFakePlayer();
