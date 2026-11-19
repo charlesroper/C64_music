@@ -46,6 +46,23 @@ Galway's sources show him working around those limits:
   * **PAL timing.** The workbench runs the PAL machine: 50Hz, 985.2kHz and 312 lines. The engine and player still support NTSC, but the switch is retired because these PAL compositions run about 20% fast and unevenly. Wizball waits for PAL line 266; on a 263-line NTSC frame the fourth refresh lands at line 10 of the next frame. The SID frequency table is also the PAL table, so NTSC raises pitch by about 4%. The 50Hz VIC-II IRQ harnesses in `arkadrum.asm` and `gameover.asm` require PAL timing.
   * **Drum boost (`$D418`).** Adjust the volume boost (0.0x to 2.5x, default 1.3x) for Galway's 4-bit digital-to-analogue percussion on register `$D418`. Tracks using pure three-voice SID synthesis (such as Wizball, Green Beret and Rambo) set the master volume once and never modulate `$D418`, so the slider has no effect. It alters drum levels only on pieces with dedicated percussion routines: the hybrid Arkanoid Digi-Drums (`arkadrum.asm`) and Game Over (`gameover.asm`). Setting the slider to 0.0x silences the drums, while 2.5x boosts them over the musical chords.
 
+### Why the monitor looks like a crash
+
+At first glance, the flickering symbols on the C64 Monitor look like corrupted text from a crashed computer. Those glyphs are live numbers from Martin Galway's music program.
+
+A Commodore 64 text screen has 25 rows and 40 columns (1,000 slots). Each slot holds one number from `0` to `255`, and the video chip turns each number into a symbol on the screen: a letter, a digit, a graphic shape or an inverted light-on-dark character. While the music plays, Galway's program tracks hundreds of values, including note timers, volume levels, pitch settings and song positions. To watch those values live, he copied them straight into the 1,000 screen slots. Because the video chip draws every number as a character, a timer counting up looks like a letter stepping from `A` to `B` to `C`, and a pitch value looks like shifting shapes.
+
+The Commodore 64 was too slow to convert more than 200 numbers into readable text 50 times a second, and multi-digit numbers would have taken two or three slots each and overflowed the single screen. Copying one raw number into one screen slot was fast and kept the music on time.
+
+Galway read the symbols through a fixed layout, visual motion and slow-motion stepping:
+
+* **Row 0.** Main timers and song pointers from Zero Page, the computer's fast workspace. At the top right, he converted the song speed into a readable number and printed `Y` or `N` for each of the three voices.
+* **Rows 3, 6 and 9.** Instrument settings for Voice 1, Voice 2 and Voice 3.
+* **Rows 15, 17 and 19.** Live playing state for Voice 1, Voice 2 and Voice 3.
+* **Rows 12 and 21.** Sound filter settings.
+* **Movement rather than spelling.** A slot that cycles through `@`, `A`, `B` and `C` is a working timer, a slot that freezes shows that a part of the music has stopped and a slot that flashes between normal and inverted colours shows an on/off switch flipping.
+* **Slow-motion inspection.** In Wizball, Arkanoid and Game Over, pressing the `*` key slows the music to a crawl so each symbol change can be watched one step at a time.
+
 A short glossary for the sections below:
 
 * **6502 / 6510.** The processor family in the Commodore 64.
