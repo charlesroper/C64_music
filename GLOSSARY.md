@@ -6,8 +6,12 @@ Commodore 64 6502-SID music workbench and live assembly player for Martin Galway
 ## Core Concepts
 
 **Player Engine**:
-The main-thread module that assembles Galway's 6502 routines, owns Audio Mode resolution and browser audio lifecycle, holds playback and hardware state and sends commands to the Engine Core.
+The main-thread module that assembles Galway's 6502 routines, owns Audio Mode resolution, holds playback and hardware state, and sends commands to the Engine Core using the active Audio Lifecycle.
 _Avoid_: Audio service, emulator backend
+
+**Audio Lifecycle**:
+The browser audio session owner that unlocks, resumes, shares, and replaces the active Web Audio context across user gestures, tape audio, and Audio Mode switches.
+_Avoid_: Context manager, unlock helper
 
 **Engine Core**:
 The module that owns the WebAssembly emulator, runs Loader Adapters, renders audio, and fills Telemetry Snapshots, either on the real-time audio thread or in-thread for tests.
@@ -118,6 +122,10 @@ _Avoid_: Boot game, startup track
 **Press Play Gate**:
 The user gesture in the Boot Sequence that unlocks browser audio and starts the tape load.
 _Avoid_: Autoplay prompt, start button
+
+**Boot Handoff**:
+The startup coordinator that joins Boot Sequence progress, background assembly prewarm, first-frame telemetry readiness, and initial Load Target playback in the Workbench View.
+_Avoid_: Boot glue, startup flags
 
 **Source Files Panel**:
 Section 1 of the workbench, listing Galway's original `.asm` source files alongside the assembly status badge.
