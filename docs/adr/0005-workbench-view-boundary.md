@@ -24,3 +24,5 @@ Element lookups move behind a unified element registry. Automated UI tests drive
 ## Consequences
 
 Importing `src/workbench_view.js` and `src/app.js` produces zero top-level side effects. Browser bootstrapping is decoupled from presentation logic, allowing UI tests to mount and exercise view behaviors deterministically in milliseconds.
+
+Update (ADR-0012): the `onFirstInteraction` callback on `createWorkbenchView` is superseded by **Audio Lifecycle** (`src/audio_lifecycle.js`), which owns session-wide capture-phase gesture listeners (`pointerdown`, `pointerup`, `touchend`, `click`, `keydown`).
