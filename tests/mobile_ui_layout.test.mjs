@@ -3,7 +3,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { createWorkbenchView } from "../src/workbench_view.js";
 import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
 import {
@@ -12,8 +11,7 @@ import {
   parseStylesheet,
 } from "./helpers/stylesheets.mjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 function loadLinkedRules() {
   return parseStylesheet(loadLinkedStylesheets().cssText);
@@ -967,55 +965,52 @@ test("oscilloscope card footers use a fixed 2x2 grid with tabular-nums so live r
 });
 
 test("loadLinkedStylesheets discovers and concatenates all linked CSS files from entry HTML in cascade order", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-css-links-"));
-  try {
-    fs.mkdirSync(path.join(dir, "src/styles"), { recursive: true });
-    fs.writeFileSync(path.join(dir, "src/styles/a.css"), ".panel { color: red; }", "utf8");
-    fs.writeFileSync(path.join(dir, "src/styles/b.css"), ".panel { color: blue; }", "utf8");
-    const htmlPath = path.join(dir, "index.html");
-    fs.writeFileSync(
-      htmlPath,
-      [
-        "<!doctype html><html><head>",
-        '<link rel="icon" href="./favicon.ico">',
-        '<link rel="stylesheet" href="./src/styles/a.css?v=2026.11.17">',
-        "<link href='./src/styles/b.css?v=2026.11.17' rel='stylesheet'>",
-        "</head></html>",
-      ].join("\n"),
-      "utf8",
-    );
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-css-links-"));
+  const dir = tmp.path;
+  fs.mkdirSync(path.join(dir, "src/styles"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "src/styles/a.css"), ".panel { color: red; }", "utf8");
+  fs.writeFileSync(path.join(dir, "src/styles/b.css"), ".panel { color: blue; }", "utf8");
+  const htmlPath = path.join(dir, "index.html");
+  fs.writeFileSync(
+    htmlPath,
+    [
+      "<!doctype html><html><head>",
+      '<link rel="icon" href="./favicon.ico">',
+      '<link rel="stylesheet" href="./src/styles/a.css?v=2026.11.17">',
+      "<link href='./src/styles/b.css?v=2026.11.17' rel='stylesheet'>",
+      "</head></html>",
+    ].join("\n"),
+    "utf8",
+  );
 
-    const loaded = loadLinkedStylesheets({ htmlPath });
-    assert.deepEqual(
-      loaded.links.map((link) => link.path),
-      ["./src/styles/a.css", "./src/styles/b.css"],
-    );
-    assert.equal(
-      computeStyleForExactSelectors(parseStylesheet(loaded.cssText), [".panel"], {
-        width: 1440,
-        height: 900,
-      }).color,
-      "blue",
-    );
+  const loaded = loadLinkedStylesheets({ htmlPath });
+  assert.deepEqual(
+    loaded.links.map((link) => link.path),
+    ["./src/styles/a.css", "./src/styles/b.css"],
+  );
+  assert.equal(
+    computeStyleForExactSelectors(parseStylesheet(loaded.cssText), [".panel"], {
+      width: 1440,
+      height: 900,
+    }).color,
+    "blue",
+  );
 
-    fs.writeFileSync(path.join(dir, "empty.html"), "<html><head></head></html>", "utf8");
-    assert.throws(
-      () => loadLinkedStylesheets({ htmlPath: path.join(dir, "empty.html") }),
-      /No stylesheet/,
-    );
+  fs.writeFileSync(path.join(dir, "empty.html"), "<html><head></head></html>", "utf8");
+  assert.throws(
+    () => loadLinkedStylesheets({ htmlPath: path.join(dir, "empty.html") }),
+    /No stylesheet/,
+  );
 
-    fs.writeFileSync(
-      path.join(dir, "missing.html"),
-      '<link rel="stylesheet" href="./src/styles/missing.css">',
-      "utf8",
-    );
-    assert.throws(
-      () => loadLinkedStylesheets({ htmlPath: path.join(dir, "missing.html") }),
-      /Missing linked stylesheet/,
-    );
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  fs.writeFileSync(
+    path.join(dir, "missing.html"),
+    '<link rel="stylesheet" href="./src/styles/missing.css">',
+    "utf8",
+  );
+  assert.throws(
+    () => loadLinkedStylesheets({ htmlPath: path.join(dir, "missing.html") }),
+    /Missing linked stylesheet/,
+  );
 });
 
 test("parseStylesheet traverses @layer statements and blocks alongside @media and applies layer cascade precedence", () => {

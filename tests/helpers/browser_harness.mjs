@@ -1,12 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { assembleOceanSource } from "../../src/ocean_assembler.js";
 import { buildSessionDescriptor } from "../../src/player_engine.js";
 import { GAME_FILES } from "../../src/tracks_catalog.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "../..");
+const ROOT = path.resolve(import.meta.dirname, "../..");
 
 export function matchesSelector(el, sel) {
   if (!el || !sel) return false;

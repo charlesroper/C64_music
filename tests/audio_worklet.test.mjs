@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { createAudioLifecycle } from "../src/audio_lifecycle.js";
 import { createC64ProcessorClass } from "../src/audio_worklet.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
@@ -11,8 +11,7 @@ import { AUDIO_MODE_STORAGE_KEY, createWorkbenchPlayer } from "../src/player_eng
 import { TELEMETRY_BUFFER_BYTES } from "../src/telemetry_buffer.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 const wasmModule = await WebAssembly.compile(
   fs.readFileSync(path.join(ROOT, "wasm/c64_engine.wasm")),
@@ -100,7 +99,7 @@ async function waitForMessage(port, type, timeoutMs = 2000) {
   while (Date.now() < deadline) {
     const found = port.messages.find((message) => message.type === type);
     if (found) return found;
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await delay(5);
   }
   throw new Error(`Timed out waiting for ${type} message`);
 }
@@ -1027,7 +1026,7 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.equal(player.getState().isPlaying, true);
 
     resolveModule();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await delay(0);
     assert.equal(nodes.length, 1);
 
     const node = nodes[0];
@@ -1065,7 +1064,7 @@ test("player queues play until the worklet is ready and then dispatches the acti
     assert.equal(player.getAudioDiagnostics().applyGainPeakUs, 50);
 
     await player.setLatencyMode("interactive");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await delay(0);
     assert.equal(nodes.length, 2, "Restart must create a new worklet node");
     const restartedNode = nodes[1];
     restartedNode.port.onmessage({ data: { type: "ready", sampleRate: 48000 } });

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 import { resolveBrowserEngine } from "./browser_engines.mjs";
 import { createStaticServer } from "./browser_harness.mjs";
 
@@ -108,14 +109,14 @@ async function waitForApp(send) {
       "Boolean(window.__workbenchState?.player && document.querySelector('.tunesPanel-item'))",
     );
     if (ready) return;
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await delay(100);
   }
   throw new Error("The workbench did not appear within 30 seconds.");
 }
 
 async function openPanel(send, id) {
   await evaluate(send, `document.getElementById("${id}-help-trigger").click()`);
-  await new Promise((resolve) => setTimeout(resolve, 180));
+  await delay(180);
 }
 
 async function closePanel(send, id, expectedBorder) {
@@ -135,7 +136,7 @@ async function closePanel(send, id, expectedBorder) {
     );
     if (settled.expanded === "false" && !settled.expandedClass && settled.border === expectedBorder)
       return;
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await delay(50);
   }
   throw new Error(`${id} help trigger did not settle after close`);
 }
@@ -319,7 +320,7 @@ async function checkKeyboard({ client, appUrl }) {
     windowsVirtualKeyCode: 13,
     nativeVirtualKeyCode: 13,
   });
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await delay(150);
   let state = await evaluate(
     client.send,
     `({
@@ -380,7 +381,7 @@ async function checkKeyboard({ client, appUrl }) {
 
   await openPanel(client.send, "latency-mode");
   await evaluate(client.send, 'document.getElementById("latency-mode-help-close").click()');
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await delay(120);
   state = await evaluate(
     client.send,
     `({

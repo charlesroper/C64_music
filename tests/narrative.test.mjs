@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { formatMarkdownInline, renderMarkdownToHtml } from "../src/markdown.js";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "latin1").replace(/\r/g, "");
 
 test("markdown renderer handles links, nested and numbered lists, and code spans", () => {

@@ -7,7 +7,6 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { computeNextVersion, updateHtmlVersion } from "../scripts/bump_version.mjs";
 import {
   deploy,
@@ -20,7 +19,7 @@ import { verifyDeploy } from "../scripts/verify_deploy.mjs";
 import { addWorktree, linkWorktreeDependencies, removeWorktree } from "../scripts/worktree.mjs";
 import { extractStylesheetLinks, parseStylesheet } from "./helpers/stylesheets.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 test("computeNextVersion refuses to lower version when package.json holds a future date", () => {
   const mockDate = new Date("2026-10-30T12:00:00Z");
@@ -111,8 +110,8 @@ test("deploy preflight aborts when fork remote is missing", () => {
 });
 
 test("deploy preflight executes preflight, lint, test, push, and reports pushed SHA", () => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-deploy-ok-"));
-  const narrativePath = path.join(tmpDir, "NARRATIVE.md");
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-deploy-ok-"));
+  const narrativePath = path.join(tmp.path, "NARRATIVE.md");
   fs.writeFileSync(
     narrativePath,
     [
@@ -134,88 +133,80 @@ test("deploy preflight executes preflight, lint, test, push, and reports pushed 
     return "";
   };
   const logs = [];
-  try {
-    const result = deploy({
-      exec: fakeExec,
-      remote: "fork",
-      branch: "main",
-      log: (msg) => logs.push(msg),
-      narrativePath,
-    });
+  const result = deploy({
+    exec: fakeExec,
+    remote: "fork",
+    branch: "main",
+    log: (msg) => logs.push(msg),
+    narrativePath,
+  });
 
-    assert.equal(result.commit, "58f4f4f");
-    assert.deepEqual(executed, [
-      "git status --porcelain",
-      "git remote get-url fork",
-      "npm run check:lint",
-      "npm test",
-      "npm run check:help-popovers",
-      "npm run check:layout",
-      "git push fork main",
-      "git rev-parse --short HEAD",
-    ]);
-    assert.ok(logs.some((l) => l.includes("Successfully pushed commit 58f4f4f to fork/main.")));
+  assert.equal(result.commit, "58f4f4f");
+  assert.deepEqual(executed, [
+    "git status --porcelain",
+    "git remote get-url fork",
+    "npm run check:lint",
+    "npm test",
+    "npm run check:help-popovers",
+    "npm run check:layout",
+    "git push fork main",
+    "git rev-parse --short HEAD",
+  ]);
+  assert.ok(logs.some((l) => l.includes("Successfully pushed commit 58f4f4f to fork/main.")));
 
-    const failingExec = (cmd) => {
-      if (cmd === "git status --porcelain") return "";
-      if (cmd === "git remote get-url fork") {
-        return "git@github.com:charlesroper/C64_music.git\n";
-      }
-      if (cmd === "git push fork main") throw new Error("Connection refused");
-      return "";
-    };
-    assert.throws(
-      () => deploy({ exec: failingExec, log: () => {}, narrativePath }),
-      /Connection refused/,
-    );
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
+  const failingExec = (cmd) => {
+    if (cmd === "git status --porcelain") return "";
+    if (cmd === "git remote get-url fork") {
+      return "git@github.com:charlesroper/C64_music.git\n";
+    }
+    if (cmd === "git push fork main") throw new Error("Connection refused");
+    return "";
+  };
+  assert.throws(
+    () => deploy({ exec: failingExec, log: () => {}, narrativePath }),
+    /Connection refused/,
+  );
 });
 
 test("deploy preflight aborts when latest NARRATIVE.md Section 8 entry lacks a commit link", () => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-deploy-narrative-"));
-  const narrativePath = path.join(tmpDir, "NARRATIVE.md");
-  try {
-    fs.writeFileSync(
-      narrativePath,
-      [
-        "## 8. Development blog",
-        "",
-        "### 16 November 2026: example change",
-        "",
-        "Body without a commit link.",
-      ].join("\n"),
-    );
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-deploy-narrative-"));
+  const narrativePath = path.join(tmp.path, "NARRATIVE.md");
+  fs.writeFileSync(
+    narrativePath,
+    [
+      "## 8. Development blog",
+      "",
+      "### 16 November 2026: example change",
+      "",
+      "Body without a commit link.",
+    ].join("\n"),
+  );
 
-    assert.throws(
-      () => verifyNarrativeCommitLinks(narrativePath),
-      /Latest NARRATIVE\.md Section 8 entry has no commit link/,
-    );
-    assert.throws(
-      () =>
-        deploy({
-          exec: (cmd) => (cmd === "git status --porcelain" ? "" : "git@example.com:repo.git\n"),
-          log: () => {},
-          narrativePath,
-        }),
-      /Latest NARRATIVE\.md Section 8 entry has no commit link/,
-    );
+  assert.throws(
+    () => verifyNarrativeCommitLinks(narrativePath),
+    /Latest NARRATIVE\.md Section 8 entry has no commit link/,
+  );
+  assert.throws(
+    () =>
+      deploy({
+        exec: (cmd) => (cmd === "git status --porcelain" ? "" : "git@example.com:repo.git\n"),
+        log: () => {},
+        narrativePath,
+      }),
+    /Latest NARRATIVE\.md Section 8 entry has no commit link/,
+  );
 
-    fs.writeFileSync(
-      narrativePath,
-      [
-        "## 8. Development blog",
-        "",
-        "### 16 November 2026: example change",
-        "",
-        "Commit [2e91223](https://github.com/charlesroper/C64_music/commit/2e91223) carries the change.",
-      ].join("\n"),
-    );
-    assert.doesNotThrow(() => verifyNarrativeCommitLinks(narrativePath));
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
+  fs.writeFileSync(
+    narrativePath,
+    [
+      "## 8. Development blog",
+      "",
+      "### 16 November 2026: example change",
+      "",
+      "Commit [2e91223](https://github.com/charlesroper/C64_music/commit/2e91223) carries the change.",
+    ].join("\n"),
+  );
+  assert.doesNotThrow(() => verifyNarrativeCommitLinks(narrativePath));
 });
 
 test("no em-dash (U+2014) characters exist in repository prose, markdown, or code", () => {
@@ -430,40 +421,37 @@ test("current documentation avoids retired domain terms", () => {
 });
 
 test("hook installer writes an executable commit-msg hook enforcing Chris Beams rules", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-hooks-"));
-  try {
-    installHooks({ exec: () => dir, log: () => {} });
-    const hook = path.join(dir, "commit-msg");
-    assert.ok(fs.existsSync(hook), "installer must create commit-msg hook");
-    assert.ok(fs.statSync(hook).mode & 0o111, "commit-msg hook must be executable");
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-hooks-"));
+  const dir = tmp.path;
+  installHooks({ exec: () => dir, log: () => {} });
+  const hook = path.join(dir, "commit-msg");
+  assert.ok(fs.existsSync(hook), "installer must create commit-msg hook");
+  assert.ok(fs.statSync(hook).mode & 0o111, "commit-msg hook must be executable");
 
-    const checkMsg = (text) => {
-      const msgFile = path.join(dir, "MSG");
-      fs.writeFileSync(msgFile, text, "utf8");
-      execFileSync(hook, [msgFile], { stdio: "pipe" });
-    };
+  const checkMsg = (text) => {
+    const msgFile = path.join(dir, "MSG");
+    fs.writeFileSync(msgFile, text, "utf8");
+    execFileSync(hook, [msgFile], { stdio: "pipe" });
+  };
 
-    checkMsg("Release 2026.11.16\n# Ignore comment lines\n");
-    checkMsg("Fix pulse width jitter\n\nKeep footer columns aligned within 72 columns per line.\n");
+  checkMsg("Release 2026.11.16\n# Ignore comment lines\n");
+  checkMsg("Fix pulse width jitter\n\nKeep footer columns aligned within 72 columns per line.\n");
 
-    assert.throws(() => checkMsg("lowercase subject\n"), /capital letter/);
-    assert.throws(() => checkMsg("Trailing period.\n"), /end with a period/);
-    assert.throws(
-      () => checkMsg("This commit subject exceeds fifty characters easily and should fail\n"),
-      /exceeds 50 chars/,
-    );
-    assert.throws(() => checkMsg("Valid subject\nMissing blank line\n"), /blank line/);
-    assert.throws(
-      () =>
-        checkMsg(
-          "Valid subject\n\nThis body line deliberately exceeds seventy two characters in width right here.\n",
-        ),
-      /exceeds 72 chars/,
-    );
-    assert.throws(() => checkMsg("Valid subject \u2014 bad\n"), /em-dashes/);
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  assert.throws(() => checkMsg("lowercase subject\n"), /capital letter/);
+  assert.throws(() => checkMsg("Trailing period.\n"), /end with a period/);
+  assert.throws(
+    () => checkMsg("This commit subject exceeds fifty characters easily and should fail\n"),
+    /exceeds 50 chars/,
+  );
+  assert.throws(() => checkMsg("Valid subject\nMissing blank line\n"), /blank line/);
+  assert.throws(
+    () =>
+      checkMsg(
+        "Valid subject\n\nThis body line deliberately exceeds seventy two characters in width right here.\n",
+      ),
+    /exceeds 72 chars/,
+  );
+  assert.throws(() => checkMsg("Valid subject \u2014 bad\n"), /em-dashes/);
 });
 
 test("lint runs through a script name that harness proxies leave alone", () => {
@@ -491,54 +479,51 @@ test("lint runs through a script name that harness proxies leave alone", () => {
 });
 
 test("hook installer writes an executable pre-commit hook with the safe lint script", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-hooks-"));
-  try {
-    const target = installHooks({ exec: () => dir, log: () => {} });
-    assert.equal(target, path.join(dir, "pre-commit"), "installer must target the hooks directory");
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-hooks-"));
+  const dir = tmp.path;
+  const target = installHooks({ exec: () => dir, log: () => {} });
+  assert.equal(target, path.join(dir, "pre-commit"), "installer must target the hooks directory");
 
-    const content = fs.readFileSync(target, "utf8");
-    assert.match(content, /^#!\/bin\/sh/, "hook must start with a POSIX shebang");
-    assert.match(content, /npm run check:lint/, "hook must lint through check:lint");
-    assert.doesNotMatch(content, /npm run lint/, "hook must not call the removed lint script");
-    assert.match(
-      content,
-      /node --test \$TEST_FILES/,
-      "hook must run only the staged test files for test-only commits",
-    );
-    assert.match(
-      content,
-      /tests\/helpers\//,
-      "hook must fall back to the full suite for helper changes",
-    );
-    assert.match(
-      content,
-      /tests\/repo_rules\.test\.mjs/,
-      "hook must run repo_rules.test.mjs when Markdown docs are staged",
-    );
-    assert.match(
-      content,
-      /grep -vE 'HIGH CHURN/,
-      "hook must hide churn warnings from the fixed-threshold project memory check",
-    );
-    assert.match(
-      content,
-      /possibly-stale memor/,
-      "hook must hide fixed-threshold stale-memory spam while keeping failed attempts and open issues",
-    );
-    assert.match(
-      content,
-      /isVersionOnlyDiff/,
-      "hook must support fast repo_rules check on version-only release commits",
-    );
-    assert.match(
-      content,
-      /Pre-commit: version-only diff/,
-      "hook must announce the version-only fast path so silent fallbacks stay visible",
-    );
-    assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  const content = fs.readFileSync(target, "utf8");
+  assert.match(content, /^#!\/bin\/sh/, "hook must start with a POSIX shebang");
+  assert.match(content, /npm run check:lint/, "hook must lint through check:lint");
+  assert.doesNotMatch(content, /npm run lint/, "hook must not call the removed lint script");
+  assert.match(
+    content,
+    /node --test \$TEST_FILES/,
+    "hook must run only the staged test files for test-only commits",
+  );
+  assert.match(
+    content,
+    /tests\/helpers\//,
+    "hook must fall back to the full suite for helper changes",
+  );
+  assert.match(
+    content,
+    /tests\/repo_rules\.test\.mjs/,
+    "hook must run repo_rules.test.mjs when Markdown docs are staged",
+  );
+  assert.match(
+    content,
+    /grep -vE 'HIGH CHURN/,
+    "hook must hide churn warnings from the fixed-threshold project memory check",
+  );
+  assert.match(
+    content,
+    /possibly-stale memor/,
+    "hook must hide fixed-threshold stale-memory spam while keeping failed attempts and open issues",
+  );
+  assert.match(
+    content,
+    /isVersionOnlyDiff/,
+    "hook must support fast repo_rules check on version-only release commits",
+  );
+  assert.match(
+    content,
+    /Pre-commit: version-only diff/,
+    "hook must announce the version-only fast path so silent fallbacks stay visible",
+  );
+  assert.ok(fs.statSync(target).mode & 0o111, "hook must be executable");
 
   assert.equal(
     isVersionOnlyDiff(
@@ -612,7 +597,13 @@ test("browser release gates stay out of CI workflow", () => {
   );
 });
 
-test("CI workflows and package engines target Node 24", () => {
+function findLegacyDirnameViolations(relPath, text) {
+  return /\bfileURLToPath\s*\(\s*import\.meta\.url\s*\)/.test(text)
+    ? [`${relPath} uses fileURLToPath on import.meta.url; use import.meta.dirname on Node 26`]
+    : [];
+}
+
+test("CI workflows and package engines target Node 26", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const checksWorkflow = fs.readFileSync(path.join(ROOT, ".github/workflows/checks.yml"), "utf8");
   const closeGuardWorkflow = fs.readFileSync(
@@ -620,11 +611,27 @@ test("CI workflows and package engines target Node 24", () => {
     "utf8",
   );
 
-  assert.equal(pkg.engines?.node, ">=24.14.0");
+  assert.equal(pkg.engines?.node, ">=26.0.0");
   assert.match(checksWorkflow, /uses:\s*actions\/checkout@v7\b/);
   assert.match(checksWorkflow, /uses:\s*actions\/setup-node@v7\b/);
-  assert.match(checksWorkflow, /node-version:\s*24\b/);
+  assert.match(checksWorkflow, /node-version:\s*26\b/);
   assert.match(closeGuardWorkflow, /uses:\s*actions\/github-script@v9\b/);
+
+  const nodeModules = fs.globSync("{scripts,tests}/**/*.mjs", { cwd: ROOT }).sort();
+  assert.ok(nodeModules.length > 0);
+  const violations = [];
+  for (const relPath of nodeModules) {
+    const source = fs.readFileSync(path.join(ROOT, relPath), "utf8");
+    violations.push(...findLegacyDirnameViolations(relPath, source));
+  }
+  assert.deepEqual(violations, [], violations.join("\n"));
+  assert.equal(
+    findLegacyDirnameViolations(
+      "tests/example.test.mjs",
+      `const dir = path.dirname(${"fileURLToPath"}(import.meta.url));`,
+    ).length,
+    1,
+  );
 });
 
 test("agent steering pointers resolve to existing docs", () => {
@@ -650,7 +657,7 @@ const RETIRED_PUBLIC_SYMBOLS = [
 function findRetiredSymbolViolations(documentName, text, symbols = RETIRED_PUBLIC_SYMBOLS) {
   const violations = [];
   for (const symbol of symbols) {
-    if (new RegExp(`\\b${symbol}\\b`).test(text)) {
+    if (new RegExp(`\\b${RegExp.escape(symbol)}\\b`).test(text)) {
       violations.push(
         `${documentName} must not cite retired symbol "${symbol}". Document the replacement seam instead.`,
       );
@@ -712,63 +719,59 @@ test("current documentation avoids retired public symbols and behavioural tests 
 });
 
 test("worktree helper links root node_modules entries as a directory and cleans up before removal", () => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-worktree-"));
-  const rootDir = path.join(tmpDir, "repo");
-  const wtDir = path.join(tmpDir, "wt-114");
-  try {
-    fs.mkdirSync(path.join(rootDir, "node_modules", ".bin"), { recursive: true });
-    fs.mkdirSync(path.join(rootDir, "node_modules", "@biomejs"), { recursive: true });
-    fs.writeFileSync(path.join(rootDir, "node_modules", ".package-lock.json"), "{}");
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-worktree-"));
+  const rootDir = path.join(tmp.path, "repo");
+  const wtDir = path.join(tmp.path, "wt-114");
+  fs.mkdirSync(path.join(rootDir, "node_modules", ".bin"), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, "node_modules", "@biomejs"), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, "node_modules", ".package-lock.json"), "{}");
 
-    const gitCalls = [];
-    const fakeExec = (cmd, args) => {
-      gitCalls.push([cmd, ...args]);
-      if (args[0] === "worktree" && args[1] === "add") {
-        fs.mkdirSync(args[2], { recursive: true });
-      }
-      if (args[0] === "worktree" && args[1] === "remove") {
-        assert.equal(
-          fs.existsSync(path.join(args[2], "node_modules")),
-          false,
-          "node_modules must be removed before git worktree remove runs",
-        );
-        fs.rmSync(args[2], { recursive: true, force: true });
-      }
-      return "";
-    };
+  const gitCalls = [];
+  const fakeExec = (cmd, args) => {
+    gitCalls.push([cmd, ...args]);
+    if (args[0] === "worktree" && args[1] === "add") {
+      fs.mkdirSync(args[2], { recursive: true });
+    }
+    if (args[0] === "worktree" && args[1] === "remove") {
+      assert.equal(
+        fs.existsSync(path.join(args[2], "node_modules")),
+        false,
+        "node_modules must be removed before git worktree remove runs",
+      );
+      fs.rmSync(args[2], { recursive: true, force: true });
+    }
+    return "";
+  };
 
-    const added = addWorktree({
-      rootDir,
-      worktreePath: wtDir,
-      branch: "ticket-114-test",
-      base: "main",
-      execFile: fakeExec,
-      log: () => {},
-    });
-    assert.deepEqual(added.linked.sort(), [".bin", ".package-lock.json", "@biomejs"]);
-    const wtModules = path.join(wtDir, "node_modules");
-    assert.equal(fs.lstatSync(wtModules).isDirectory(), true);
-    assert.equal(fs.lstatSync(wtModules).isSymbolicLink(), false);
-    assert.equal(fs.lstatSync(path.join(wtModules, "@biomejs")).isSymbolicLink(), true);
-    assert.equal(fs.lstatSync(path.join(wtModules, ".package-lock.json")).isSymbolicLink(), true);
+  const added = addWorktree({
+    rootDir,
+    worktreePath: wtDir,
+    branch: "ticket-114-test",
+    base: "main",
+    execFile: fakeExec,
+    log: () => {},
+  });
+  assert.deepEqual(added.linked.sort(), [".bin", ".package-lock.json", "@biomejs"]);
+  const wtModules = path.join(wtDir, "node_modules");
+  assert.equal(fs.lstatSync(wtModules).isDirectory(), true);
+  assert.equal(fs.lstatSync(wtModules).isSymbolicLink(), false);
+  assert.equal(fs.lstatSync(path.join(wtModules, "@biomejs")).isSymbolicLink(), true);
+  assert.equal(fs.lstatSync(path.join(wtModules, ".package-lock.json")).isSymbolicLink(), true);
 
-    // Re-running linkWorktreeDependencies refreshes existing links cleanly.
-    const relinked = linkWorktreeDependencies({ rootDir, worktreePath: wtDir });
-    assert.equal(relinked.length, 3);
+  // Re-running linkWorktreeDependencies refreshes existing links cleanly.
+  const relinked = linkWorktreeDependencies({ rootDir, worktreePath: wtDir });
+  assert.equal(relinked.length, 3);
 
-    removeWorktree({
-      rootDir,
-      worktreePath: wtDir,
-      execFile: fakeExec,
-      log: () => {},
-    });
-    assert.deepEqual(gitCalls, [
-      ["git", "worktree", "add", wtDir, "-b", "ticket-114-test", "main"],
-      ["git", "worktree", "remove", wtDir],
-    ]);
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
+  removeWorktree({
+    rootDir,
+    worktreePath: wtDir,
+    execFile: fakeExec,
+    log: () => {},
+  });
+  assert.deepEqual(gitCalls, [
+    ["git", "worktree", "add", wtDir, "-b", "ticket-114-test", "main"],
+    ["git", "worktree", "remove", wtDir],
+  ]);
 });
 
 test("calendar version is synchronized across all seven release locations", () => {
@@ -827,159 +830,169 @@ test("calendar version is synchronized across all seven release locations", () =
 });
 
 test("verifyDeploy polls Pages workflow, verifies live version, and pushes deploy tag", async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "galway-verify-deploy-"));
-  const versionFile = path.join(dir, "version.js");
+  using tmp = fs.mkdtempDisposableSync(path.join(os.tmpdir(), "galway-verify-deploy-"));
+  const versionFile = path.join(tmp.path, "version.js");
   fs.writeFileSync(versionFile, 'export const APP_VERSION = "2026.11.17.1";\n', "utf8");
   const headSha = "e55d478db30f70ff059e3c8d1ad5532a97dce79b";
   let listCalls = 0;
   const gitCalls = [];
 
-  try {
-    const fakeExecFile = (cmd, args) => {
-      if (cmd === "git") {
-        gitCalls.push(args);
-        if (args[0] === "rev-parse") return `${headSha}\n`;
-        if (args[0] === "tag" && args[1] === "-l") return "";
-        return "";
-      }
-      if (cmd === "gh" && args[1] === "list") {
-        listCalls += 1;
-        return JSON.stringify([
-          {
-            databaseId: 43997286625,
-            name: "pages build and deployment",
-            headSha,
-            status: listCalls === 1 ? "in_progress" : "completed",
-            conclusion: listCalls === 1 ? null : "success",
-          },
-        ]);
-      }
-      if (cmd === "gh" && args[1] === "view") {
-        return JSON.stringify({
+  const fakeExecFile = (cmd, args) => {
+    if (cmd === "git") {
+      gitCalls.push(args);
+      if (args[0] === "rev-parse") return `${headSha}\n`;
+      if (args[0] === "tag" && args[1] === "-l") return "";
+      return "";
+    }
+    if (cmd === "gh" && args[1] === "list") {
+      listCalls += 1;
+      return JSON.stringify([
+        {
+          databaseId: 43997286625,
+          name: "pages build and deployment",
           headSha,
-          status: "completed",
-          conclusion: "success",
-          jobs: [{ name: "deploy", status: "completed", conclusion: "success" }],
-        });
-      }
-      throw new Error(`Unexpected command: ${cmd} ${args.join(" ")}`);
-    };
-
-    const result = await verifyDeploy({
-      execFile: fakeExecFile,
-      fetchImpl: async () => ({
-        ok: true,
-        text: async () => 'export const APP_VERSION = "2026.11.17.1";\n',
-      }),
-      sleep: async () => {},
-      log: () => {},
-      versionPath: versionFile,
-      maxAttempts: 3,
-      pollIntervalMs: 1,
-    });
-
-    assert.equal(listCalls, 2);
-    assert.equal(result.version, "2026.11.17.1");
-    assert.equal(result.runId, "43997286625");
-    assert.equal(result.tagName, "deploy-v2026.11.17.1");
-    assert.deepEqual(gitCalls, [
-      ["rev-parse", "HEAD"],
-      ["tag", "-l", "deploy-v2026.11.17.1"],
-      ["tag", "deploy-v2026.11.17.1", headSha],
-      ["push", "fork", "deploy-v2026.11.17.1"],
-    ]);
-
-    await assert.rejects(
-      () =>
-        verifyDeploy({
-          execFile: fakeExecFile,
-          fetchImpl: async () => ({
-            ok: true,
-            text: async () => 'export const APP_VERSION = "2026.11.17";\n',
-          }),
-          sleep: async () => {},
-          log: () => {},
-          versionPath: versionFile,
-          maxAttempts: 3,
-          pollIntervalMs: 1,
-        }),
-      /Live version mismatch: expected 2026\.11\.17\.1, got 2026\.11\.17/,
-    );
-
-    const prevHttpProxy = process.env.HTTP_PROXY;
-    const prevHttpsProxy = process.env.HTTPS_PROXY;
-    const prevNoProxy = process.env.NO_PROXY;
-    const prevNoProxyLower = process.env.no_proxy;
-    const prevEnvProxyFlag = process.env.NODE_USE_ENV_PROXY;
-    const target = http.createServer((_req, res) => {
-      res.writeHead(200, { "content-type": "text/javascript" });
-      res.end('export const APP_VERSION = "2026.11.17.1";\n');
-    });
-    let connectCount = 0;
-    const proxy = http.createServer();
-    proxy.on("connect", (req, clientSocket, head) => {
-      connectCount += 1;
-      const [host, port] = req.url.split(":");
-      const upstream = net.connect(Number(port), host, () => {
-        clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
-        if (head.length > 0) upstream.write(head);
-        upstream.pipe(clientSocket);
-        clientSocket.pipe(upstream);
+          status: listCalls === 1 ? "in_progress" : "completed",
+          conclusion: listCalls === 1 ? null : "success",
+        },
+      ]);
+    }
+    if (cmd === "gh" && args[1] === "view") {
+      return JSON.stringify({
+        headSha,
+        status: "completed",
+        conclusion: "success",
+        jobs: [{ name: "deploy", status: "completed", conclusion: "success" }],
       });
-    });
-    try {
-      await new Promise((resolve) => target.listen(0, "127.0.0.1", resolve));
-      await new Promise((resolve) => proxy.listen(0, "127.0.0.1", resolve));
-      const targetPort = target.address().port;
-      const proxyPort = proxy.address().port;
-      process.env.HTTP_PROXY = `http://127.0.0.1:${proxyPort}`;
-      process.env.HTTPS_PROXY = `http://127.0.0.1:${proxyPort}`;
-      delete process.env.NO_PROXY;
-      delete process.env.no_proxy;
-      delete process.env.NODE_USE_ENV_PROXY;
+    }
+    throw new Error(`Unexpected command: ${cmd} ${args.join(" ")}`);
+  };
 
-      await verifyDeploy({
+  const result = await verifyDeploy({
+    execFile: fakeExecFile,
+    fetchImpl: async () => ({
+      ok: true,
+      text: async () => 'export const APP_VERSION = "2026.11.17.1";\n',
+    }),
+    sleep: async () => {},
+    log: () => {},
+    versionPath: versionFile,
+    maxAttempts: 3,
+    pollIntervalMs: 1,
+  });
+
+  assert.equal(listCalls, 2);
+  assert.equal(result.version, "2026.11.17.1");
+  assert.equal(result.runId, "43997286625");
+  assert.equal(result.tagName, "deploy-v2026.11.17.1");
+  assert.deepEqual(gitCalls, [
+    ["rev-parse", "HEAD"],
+    ["tag", "-l", "deploy-v2026.11.17.1"],
+    ["tag", "deploy-v2026.11.17.1", headSha],
+    ["push", "fork", "deploy-v2026.11.17.1"],
+  ]);
+
+  await assert.rejects(
+    () =>
+      verifyDeploy({
         execFile: fakeExecFile,
+        fetchImpl: async () => ({
+          ok: true,
+          text: async () => 'export const APP_VERSION = "2026.11.17";\n',
+        }),
         sleep: async () => {},
         log: () => {},
         versionPath: versionFile,
-        liveUrl: `http://127.0.0.1:${targetPort}/`,
         maxAttempts: 3,
         pollIntervalMs: 1,
-      });
-      assert.equal(
-        connectCount,
-        1,
-        "verifyDeploy must route live version fetch through HTTP_PROXY",
-      );
+      }),
+    /Live version mismatch: expected 2026\.11\.17\.1, got 2026\.11\.17/,
+  );
 
-      // Scoped proxy configuration must be restored once verifyDeploy completes.
-      await fetch(`http://127.0.0.1:${targetPort}/src/version.js`);
-      assert.equal(
-        connectCount,
-        1,
-        "verifyDeploy must restore global proxy settings after returning",
-      );
-    } finally {
-      proxy.closeAllConnections();
-      target.closeAllConnections();
-      await Promise.all([
-        new Promise((resolve) => proxy.close(resolve)),
-        new Promise((resolve) => target.close(resolve)),
-      ]);
-      if (prevHttpProxy === undefined) delete process.env.HTTP_PROXY;
-      else process.env.HTTP_PROXY = prevHttpProxy;
-      if (prevHttpsProxy === undefined) delete process.env.HTTPS_PROXY;
-      else process.env.HTTPS_PROXY = prevHttpsProxy;
-      if (prevNoProxy === undefined) delete process.env.NO_PROXY;
-      else process.env.NO_PROXY = prevNoProxy;
-      if (prevNoProxyLower === undefined) delete process.env.no_proxy;
-      else process.env.no_proxy = prevNoProxyLower;
-      if (prevEnvProxyFlag === undefined) delete process.env.NODE_USE_ENV_PROXY;
-      else process.env.NODE_USE_ENV_PROXY = prevEnvProxyFlag;
-    }
+  const prevHttpProxy = process.env.HTTP_PROXY;
+  const prevHttpsProxy = process.env.HTTPS_PROXY;
+  const prevNoProxy = process.env.NO_PROXY;
+  const prevNoProxyLower = process.env.no_proxy;
+  const prevEnvProxyFlag = process.env.NODE_USE_ENV_PROXY;
+  const target = http.createServer((_req, res) => {
+    res.writeHead(200, { "content-type": "text/javascript" });
+    res.end('export const APP_VERSION = "2026.11.17.1";\n');
+  });
+  let connectCount = 0;
+  const proxy = http.createServer((req, res) => {
+    connectCount += 1;
+    const targetUrl = new URL(req.url);
+    const upstreamReq = http.request(
+      {
+        hostname: targetUrl.hostname,
+        port: Number(targetUrl.port) || 80,
+        path: `${targetUrl.pathname}${targetUrl.search}`,
+        method: req.method,
+        headers: req.headers,
+        agent: false,
+      },
+      (upstreamRes) => {
+        res.writeHead(upstreamRes.statusCode ?? 200, upstreamRes.headers);
+        upstreamRes.pipe(res);
+      },
+    );
+    req.pipe(upstreamReq);
+  });
+  proxy.on("connect", (req, clientSocket, head) => {
+    connectCount += 1;
+    const [host, port] = req.url.split(":");
+    const upstream = net.connect(Number(port), host, () => {
+      clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+      if (head.length > 0) upstream.write(head);
+      upstream.pipe(clientSocket);
+      clientSocket.pipe(upstream);
+    });
+  });
+  try {
+    await new Promise((resolve) => target.listen(0, "127.0.0.1", resolve));
+    await new Promise((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+    const targetPort = target.address().port;
+    const proxyPort = proxy.address().port;
+    process.env.HTTP_PROXY = `http://127.0.0.1:${proxyPort}`;
+    process.env.HTTPS_PROXY = `http://127.0.0.1:${proxyPort}`;
+    delete process.env.NO_PROXY;
+    delete process.env.no_proxy;
+    delete process.env.NODE_USE_ENV_PROXY;
+
+    await verifyDeploy({
+      execFile: fakeExecFile,
+      sleep: async () => {},
+      log: () => {},
+      versionPath: versionFile,
+      liveUrl: `http://127.0.0.1:${targetPort}/`,
+      maxAttempts: 3,
+      pollIntervalMs: 1,
+    });
+    assert.equal(connectCount, 1, "verifyDeploy must route live version fetch through HTTP_PROXY");
+
+    // Scoped proxy configuration must be restored once verifyDeploy completes.
+    await fetch(`http://127.0.0.1:${targetPort}/src/version.js`);
+    assert.equal(
+      connectCount,
+      1,
+      "verifyDeploy must restore global proxy settings after returning",
+    );
   } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
+    proxy.closeAllConnections();
+    target.closeAllConnections();
+    await Promise.all([
+      new Promise((resolve) => proxy.close(resolve)),
+      new Promise((resolve) => target.close(resolve)),
+    ]);
+    if (prevHttpProxy === undefined) delete process.env.HTTP_PROXY;
+    else process.env.HTTP_PROXY = prevHttpProxy;
+    if (prevHttpsProxy === undefined) delete process.env.HTTPS_PROXY;
+    else process.env.HTTPS_PROXY = prevHttpsProxy;
+    if (prevNoProxy === undefined) delete process.env.NO_PROXY;
+    else process.env.NO_PROXY = prevNoProxy;
+    if (prevNoProxyLower === undefined) delete process.env.no_proxy;
+    else process.env.no_proxy = prevNoProxyLower;
+    if (prevEnvProxyFlag === undefined) delete process.env.NODE_USE_ENV_PROXY;
+    else process.env.NODE_USE_ENV_PROXY = prevEnvProxyFlag;
   }
 });
 

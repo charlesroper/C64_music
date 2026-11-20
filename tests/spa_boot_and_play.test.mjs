@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { computeNextVersion } from "../scripts/bump_version.mjs";
 import { bootWorkbench } from "../src/app.js";
 import { createAudioDiagnosticsOverlay } from "../src/audio_diagnostics.js";
@@ -19,8 +18,7 @@ import {
 } from "../src/telemetry_buffer.js";
 import { createWorkbenchView } from "../src/workbench_view.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 import { createBrowserHarness, createFakePlayer } from "./helpers/browser_harness.mjs";
 import { loadLinkedStylesheets } from "./helpers/stylesheets.mjs";

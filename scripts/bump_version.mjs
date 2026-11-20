@@ -22,9 +22,7 @@ export function computeNextVersion(currentVersion, date = new Date()) {
   if (!currentVersion?.startsWith(today)) {
     return today;
   }
-  const match = currentVersion.match(
-    new RegExp(`^${today.replace(/\./g, "\\.")}(?:\\.([0-9]+))?$`),
-  );
+  const match = currentVersion.match(new RegExp(`^${RegExp.escape(today)}(?:\\.([0-9]+))?$`));
   if (!match) {
     return today;
   }

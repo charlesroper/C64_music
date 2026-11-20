@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { assembleSources } from "../src/assembly_worker.js";
 import { createWorkbenchPlayer } from "../src/player_engine.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 const wasmBytes = fs.readFileSync(path.join(ROOT, "wasm/c64_engine.wasm"));
 const fileNames = [
   "wizball.asm",

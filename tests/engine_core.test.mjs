@@ -2,13 +2,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import { createEngineCore, GAME_LOADERS } from "../src/engine_core.js";
 import { assembleOceanSource } from "../src/ocean_assembler.js";
 import { GAME_FILES } from "../src/tracks_catalog.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 const wasmBytes = fs.readFileSync(path.join(ROOT, "wasm/c64_engine.wasm"));
 const rawSources = {};

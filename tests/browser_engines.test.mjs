@@ -4,7 +4,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
 import {
   keepEntriesForHost,
   planBrowserCleanup,
@@ -204,12 +203,7 @@ test("chromium falls back to a system browser on PATH", (t) => {
 
 test("browser check exits non-zero when an engine is missing", (t) => {
   const cacheDir = makeCache(t);
-  const cli = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "scripts",
-    "browsers.mjs",
-  );
+  const cli = path.resolve(import.meta.dirname, "..", "scripts", "browsers.mjs");
   const result = spawnSync(process.execPath, [cli, "check"], {
     encoding: "utf8",
     env: { ...process.env, PATH: "", PLAYWRIGHT_BROWSERS_PATH: cacheDir },
@@ -232,12 +226,7 @@ test("browser check reports ready engines from the configured cache", (t) => {
   touch(chromium);
   touch(firefox);
   touch(webkit);
-  const cli = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "scripts",
-    "browsers.mjs",
-  );
+  const cli = path.resolve(import.meta.dirname, "..", "scripts", "browsers.mjs");
   const result = spawnSync(process.execPath, [cli, "check"], {
     encoding: "utf8",
     env: {
@@ -260,12 +249,7 @@ test("clean command is a dry run until --yes", (t) => {
   const keepExecutable = path.join(cacheDir, "firefox-1572", "firefox", "firefox");
   touch(keepExecutable);
   touch(path.join(cacheDir, "firefox-9999", "firefox", "firefox"));
-  const cli = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "scripts",
-    "browsers.mjs",
-  );
+  const cli = path.resolve(import.meta.dirname, "..", "scripts", "browsers.mjs");
   const env = {
     ...process.env,
     PATH: "",

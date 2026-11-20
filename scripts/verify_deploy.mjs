@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { setTimeout as defaultSleep } from "node:timers/promises";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const REPO = "charlesroper/C64_music";
@@ -49,7 +50,7 @@ export async function verifyDeploy(options = {}) {
   const {
     execFile = defaultExecFile,
     fetchImpl = fetch,
-    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    sleep = defaultSleep,
     log = console.log,
     versionPath = path.join(ROOT, "src/version.js"),
     liveUrl = LIVE_URL,
