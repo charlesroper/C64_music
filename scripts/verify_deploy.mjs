@@ -3,10 +3,10 @@
 // Leaves known-good-v<CalVer> manual until the user confirms the live build; see docs/agents/deployment.md.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 const REPO = "charlesroper/C64_music";
 const LIVE_URL = "https://charlesroper.github.io/C64_music/";
 const PAGES_WORKFLOW = "pages build and deployment";
@@ -52,6 +52,7 @@ export async function verifyDeploy(options = {}) {
     sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     log = console.log,
     versionPath = path.join(ROOT, "src/version.js"),
+    liveUrl = LIVE_URL,
     remote = "fork",
     maxAttempts = 20,
     pollIntervalMs = 3000,
@@ -61,79 +62,83 @@ export async function verifyDeploy(options = {}) {
   const shortSha = headSha.slice(0, 7);
   const expectedVersion = parseAppVersion(fs.readFileSync(versionPath, "utf8"));
 
-  if (
-    !process.env.NODE_USE_ENV_PROXY &&
-    (process.env.HTTPS_PROXY ||
-      process.env.https_proxy ||
-      process.env.HTTP_PROXY ||
-      process.env.http_proxy)
-  ) {
-    process.env.NODE_USE_ENV_PROXY = "1";
-  }
+  let restoreProxy = null;
+  try {
+    const hasProxyEnv = Boolean(
+      process.env.HTTPS_PROXY ||
+        process.env.https_proxy ||
+        process.env.HTTP_PROXY ||
+        process.env.http_proxy,
+    );
+    if (process.env.NODE_USE_ENV_PROXY !== "1" && hasProxyEnv) {
+      restoreProxy = http.setGlobalProxyFromEnv();
+    }
+    let matchedRun = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const rawRuns = execFile("gh", [
+        "run",
+        "list",
+        "-R",
+        REPO,
+        "--branch",
+        "main",
+        "--limit",
+        "10",
+        "--json",
+        "databaseId,name,headSha,status,conclusion",
+      ]);
+      const runs = JSON.parse(rawRuns);
+      matchedRun = findMatchingPagesRun(runs, headSha);
+      if (matchedRun && matchedRun.status === "completed") break;
+      if (attempt < maxAttempts) await sleep(pollIntervalMs);
+    }
 
-  let matchedRun = null;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const rawRuns = execFile("gh", [
+    if (matchedRun?.status !== "completed") {
+      throw new Error(`Timed out waiting for "${PAGES_WORKFLOW}" on commit ${shortSha}.`);
+    }
+
+    const runId = String(matchedRun.databaseId);
+    const rawView = execFile("gh", [
       "run",
-      "list",
+      "view",
+      runId,
       "-R",
       REPO,
-      "--branch",
-      "main",
-      "--limit",
-      "10",
       "--json",
-      "databaseId,name,headSha,status,conclusion",
+      "headSha,status,conclusion,jobs",
     ]);
-    const runs = JSON.parse(rawRuns);
-    matchedRun = findMatchingPagesRun(runs, headSha);
-    if (matchedRun && matchedRun.status === "completed") break;
-    if (attempt < maxAttempts) await sleep(pollIntervalMs);
-  }
+    const runView = JSON.parse(rawView);
+    verifyPagesRunResult({ ...runView, databaseId: runId }, headSha);
 
-  if (matchedRun?.status !== "completed") {
-    throw new Error(`Timed out waiting for "${PAGES_WORKFLOW}" on commit ${shortSha}.`);
-  }
+    const versionUrl = new URL("src/version.js", liveUrl).href;
+    const response = await fetchImpl(versionUrl, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Live version check failed (${response.status}) at ${versionUrl}.`);
+    }
+    const liveVersion = parseAppVersion(await response.text());
+    if (liveVersion !== expectedVersion) {
+      throw new Error(`Live version mismatch: expected ${expectedVersion}, got ${liveVersion}.`);
+    }
 
-  const runId = String(matchedRun.databaseId);
-  const rawView = execFile("gh", [
-    "run",
-    "view",
-    runId,
-    "-R",
-    REPO,
-    "--json",
-    "headSha,status,conclusion,jobs",
-  ]);
-  const runView = JSON.parse(rawView);
-  verifyPagesRunResult({ ...runView, databaseId: runId }, headSha);
+    const tagName = `deploy-v${expectedVersion}`;
+    const existingTarget = execFile("git", ["tag", "-l", tagName]).trim();
+    if (!existingTarget) {
+      execFile("git", ["tag", tagName, headSha]);
+    }
+    execFile("git", ["push", remote, tagName]);
 
-  const versionUrl = `${LIVE_URL}src/version.js`;
-  const response = await fetchImpl(versionUrl, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Live version check failed (${response.status}) at ${versionUrl}.`);
+    log(`Live URL: ${liveUrl}`);
+    log(`CalVer: ${liveVersion}`);
+    log(`Commit: ${shortSha} (${headSha})`);
+    log(`Workflow run ID: ${runId}`);
+    log(`Deploy tag pushed: ${tagName} (${remote})`);
+    return { liveUrl, version: liveVersion, headSha, shortSha, runId, tagName };
+  } finally {
+    restoreProxy?.();
   }
-  const liveVersion = parseAppVersion(await response.text());
-  if (liveVersion !== expectedVersion) {
-    throw new Error(`Live version mismatch: expected ${expectedVersion}, got ${liveVersion}.`);
-  }
-
-  const tagName = `deploy-v${expectedVersion}`;
-  const existingTarget = execFile("git", ["tag", "-l", tagName]).trim();
-  if (!existingTarget) {
-    execFile("git", ["tag", tagName, headSha]);
-  }
-  execFile("git", ["push", remote, tagName]);
-
-  log(`Live URL: ${LIVE_URL}`);
-  log(`CalVer: ${liveVersion}`);
-  log(`Commit: ${shortSha} (${headSha})`);
-  log(`Workflow run ID: ${runId}`);
-  log(`Deploy tag pushed: ${tagName} (${remote})`);
-  return { liveUrl: LIVE_URL, version: liveVersion, headSha, shortSha, runId, tagName };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (import.meta.main) {
   verifyDeploy().catch((error) => {
     console.error(`Deploy verification failed: ${error.message}`);
     process.exit(1);

@@ -4,7 +4,7 @@
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import { pathToFileURL } from "node:url";
+import { parseArgs as parseNodeArgs } from "node:util";
 
 const CHECKBOX_RE = /^\s*[-*]\s+\[([ xX])\]\s+(.+)$/gm;
 const GH_ATTEMPTS = 3;
@@ -51,26 +51,36 @@ function usage() {
 }
 
 function parseArgs(argv) {
-  const args = {
-    number: null,
-    comment: null,
-    commentFile: null,
-    allowNoChecklist: false,
-    dryRun: false,
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === "--comment") args.comment = argv[++i];
-    else if (arg === "--comment-file") args.commentFile = argv[++i];
-    else if (arg === "--allow-no-checklist") args.allowNoChecklist = true;
-    else if (arg === "--dry-run") args.dryRun = true;
-    else if (!args.number && /^\d+$/.test(arg)) args.number = Number(arg);
-    else {
-      usage();
-      process.exit(2);
-    }
+  let parsed;
+  try {
+    parsed = parseNodeArgs({
+      args: argv,
+      options: {
+        comment: { type: "string" },
+        "comment-file": { type: "string" },
+        "allow-no-checklist": { type: "boolean", default: false },
+        "dry-run": { type: "boolean", default: false },
+      },
+      allowPositionals: true,
+    });
+  } catch {
+    usage();
+    process.exit(2);
   }
-  return args;
+
+  const { values, positionals } = parsed;
+  if (positionals.length !== 1 || !/^\d+$/.test(positionals[0])) {
+    usage();
+    process.exit(2);
+  }
+
+  return {
+    number: Number(positionals[0]),
+    comment: values.comment ?? null,
+    commentFile: values["comment-file"] ?? null,
+    allowNoChecklist: values["allow-no-checklist"],
+    dryRun: values["dry-run"],
+  };
 }
 
 function main(argv) {
@@ -110,6 +120,6 @@ function main(argv) {
   console.log(`Verified ${total} checked task item(s).`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   main(process.argv.slice(2));
 }

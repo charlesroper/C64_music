@@ -153,6 +153,6 @@ export function installHooks({ exec = execFileSync, log = console.log } = {}) {
   return target;
 }
 
-if (process.argv[1] && import.meta.url === `file://${path.resolve(process.argv[1])}`) {
+if (import.meta.main) {
   installHooks();
 }

@@ -6,9 +6,8 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 /** Symlink every entry from root node_modules into a worktree node_modules directory. */
 export function linkWorktreeDependencies({ rootDir = ROOT, worktreePath, fsImpl = fs } = {}) {
@@ -96,6 +95,6 @@ function main(argv) {
   process.exit(2);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   main(process.argv.slice(2));
 }

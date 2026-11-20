@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 export function getTodayCalVer(date = new Date()) {
   const y = date.getUTCFullYear();
@@ -88,7 +87,7 @@ export function applyVersion(nextVersion) {
   return { prevVersion, nextVersion };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (import.meta.main) {
   const custom = process.argv[2];
   const pkgPath = path.join(ROOT, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));

@@ -1,9 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const ROOT = path.resolve(import.meta.dirname, "..");
 
 export const MIME_TYPES = {
   ".asm": "text/plain",

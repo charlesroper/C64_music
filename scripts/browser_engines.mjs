@@ -7,7 +7,6 @@ import {
   readFileSync,
   statSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
@@ -170,14 +169,10 @@ export function resolveBrowserEngine(name, options = {}) {
 const BROWSER_ENTRY =
   /^(chromium|chromium_headless_shell|firefox|webkit|ffmpeg|winldd|android)-\d+$/;
 
-const require = createRequire(import.meta.url);
-
 function playwrightBrowserRevision(name) {
   try {
-    const packageFile = require.resolve("playwright-core/package.json");
-    const browsers = JSON.parse(
-      readFileSync(path.join(path.dirname(packageFile), "browsers.json"), "utf8"),
-    );
+    const packageUrl = import.meta.resolve("playwright-core/package.json");
+    const browsers = JSON.parse(readFileSync(new URL("./browsers.json", packageUrl), "utf8"));
     return browsers.browsers.find((browser) => browser.name === name)?.revision ?? null;
   } catch {
     return null;

@@ -2,9 +2,8 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 export function verifyCleanTree(exec = execSync) {
   const status = exec("git status --porcelain", { encoding: "utf8" }).toString().trim();
@@ -79,7 +78,7 @@ export function deploy(options = {}) {
   return { commit, remote, branch };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (import.meta.main) {
   try {
     deploy();
   } catch (err) {

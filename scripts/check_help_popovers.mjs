@@ -442,7 +442,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`FAIL ${error.message}`);
-  process.exitCode = 1;
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(`FAIL ${error.message}`);
+    process.exitCode = 1;
+  });
+}

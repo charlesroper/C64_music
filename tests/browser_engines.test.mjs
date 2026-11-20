@@ -284,3 +284,19 @@ test("clean command is a dry run until --yes", (t) => {
   assert.ok(!fs.existsSync(path.join(cacheDir, "firefox-9999")));
   assert.ok(fs.existsSync(path.join(cacheDir, "firefox-1572")));
 });
+
+test("browsers CLI rejects unknown flags and stays idle when imported", () => {
+  const cli = path.resolve(import.meta.dirname, "..", "scripts", "browsers.mjs");
+  const badFlag = spawnSync(process.execPath, [cli, "clean", "--yess"], { encoding: "utf8" });
+  assert.equal(badFlag.status, 1);
+  assert.match(badFlag.stderr, /--yess|Unknown option/i);
+
+  const imported = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", `await import(${JSON.stringify(`file://${cli}`)});`],
+    { encoding: "utf8" },
+  );
+  assert.equal(imported.status, 0);
+  assert.equal(imported.stdout, "");
+  assert.equal(imported.stderr, "");
+});

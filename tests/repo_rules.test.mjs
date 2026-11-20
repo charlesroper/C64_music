@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync, execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import http from "node:http";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -610,6 +612,21 @@ test("browser release gates stay out of CI workflow", () => {
   );
 });
 
+test("CI workflows and package engines target Node 24", () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const checksWorkflow = fs.readFileSync(path.join(ROOT, ".github/workflows/checks.yml"), "utf8");
+  const closeGuardWorkflow = fs.readFileSync(
+    path.join(ROOT, ".github/workflows/issue-close-guard.yml"),
+    "utf8",
+  );
+
+  assert.equal(pkg.engines?.node, ">=24.14.0");
+  assert.match(checksWorkflow, /uses:\s*actions\/checkout@v7\b/);
+  assert.match(checksWorkflow, /uses:\s*actions\/setup-node@v7\b/);
+  assert.match(checksWorkflow, /node-version:\s*24\b/);
+  assert.match(closeGuardWorkflow, /uses:\s*actions\/github-script@v9\b/);
+});
+
 test("agent steering pointers resolve to existing docs", () => {
   const agents = fs.readFileSync(path.join(ROOT, "AGENTS.md"), "utf8");
   const pointers = new Set(
@@ -889,29 +906,75 @@ test("verifyDeploy polls Pages workflow, verifies live version, and pushes deplo
       /Live version mismatch: expected 2026\.11\.17\.1, got 2026\.11\.17/,
     );
 
-    const prevProxy = process.env.HTTPS_PROXY;
+    const prevHttpProxy = process.env.HTTP_PROXY;
+    const prevHttpsProxy = process.env.HTTPS_PROXY;
+    const prevNoProxy = process.env.NO_PROXY;
+    const prevNoProxyLower = process.env.no_proxy;
     const prevEnvProxyFlag = process.env.NODE_USE_ENV_PROXY;
+    const target = http.createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "text/javascript" });
+      res.end('export const APP_VERSION = "2026.11.17.1";\n');
+    });
+    let connectCount = 0;
+    const proxy = http.createServer();
+    proxy.on("connect", (req, clientSocket, head) => {
+      connectCount += 1;
+      const [host, port] = req.url.split(":");
+      const upstream = net.connect(Number(port), host, () => {
+        clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+        if (head.length > 0) upstream.write(head);
+        upstream.pipe(clientSocket);
+        clientSocket.pipe(upstream);
+      });
+    });
     try {
-      process.env.HTTPS_PROXY = "http://127.0.0.1:8888";
+      await new Promise((resolve) => target.listen(0, "127.0.0.1", resolve));
+      await new Promise((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+      const targetPort = target.address().port;
+      const proxyPort = proxy.address().port;
+      process.env.HTTP_PROXY = `http://127.0.0.1:${proxyPort}`;
+      process.env.HTTPS_PROXY = `http://127.0.0.1:${proxyPort}`;
+      delete process.env.NO_PROXY;
+      delete process.env.no_proxy;
       delete process.env.NODE_USE_ENV_PROXY;
+
       await verifyDeploy({
         execFile: fakeExecFile,
-        fetchImpl: async () => {
-          assert.equal(process.env.NODE_USE_ENV_PROXY, "1");
-          return {
-            ok: true,
-            text: async () => 'export const APP_VERSION = "2026.11.17.1";\n',
-          };
-        },
         sleep: async () => {},
         log: () => {},
         versionPath: versionFile,
+        liveUrl: `http://127.0.0.1:${targetPort}/`,
         maxAttempts: 3,
         pollIntervalMs: 1,
       });
+      assert.equal(
+        connectCount,
+        1,
+        "verifyDeploy must route live version fetch through HTTP_PROXY",
+      );
+
+      // Scoped proxy configuration must be restored once verifyDeploy completes.
+      await fetch(`http://127.0.0.1:${targetPort}/src/version.js`);
+      assert.equal(
+        connectCount,
+        1,
+        "verifyDeploy must restore global proxy settings after returning",
+      );
     } finally {
-      if (prevProxy === undefined) delete process.env.HTTPS_PROXY;
-      else process.env.HTTPS_PROXY = prevProxy;
+      proxy.closeAllConnections();
+      target.closeAllConnections();
+      await Promise.all([
+        new Promise((resolve) => proxy.close(resolve)),
+        new Promise((resolve) => target.close(resolve)),
+      ]);
+      if (prevHttpProxy === undefined) delete process.env.HTTP_PROXY;
+      else process.env.HTTP_PROXY = prevHttpProxy;
+      if (prevHttpsProxy === undefined) delete process.env.HTTPS_PROXY;
+      else process.env.HTTPS_PROXY = prevHttpsProxy;
+      if (prevNoProxy === undefined) delete process.env.NO_PROXY;
+      else process.env.NO_PROXY = prevNoProxy;
+      if (prevNoProxyLower === undefined) delete process.env.no_proxy;
+      else process.env.no_proxy = prevNoProxyLower;
       if (prevEnvProxyFlag === undefined) delete process.env.NODE_USE_ENV_PROXY;
       else process.env.NODE_USE_ENV_PROXY = prevEnvProxyFlag;
     }

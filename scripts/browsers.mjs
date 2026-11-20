@@ -1,5 +1,6 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import {
   defaultBrowserCache,
   ENGINE_NAMES,
@@ -65,12 +66,44 @@ function clean(apply) {
   console.log(`Removed ${removed} revisions, freed ${formatBytes(plan.removeBytes)}.`);
 }
 
-const [action = "check", ...args] = process.argv.slice(2);
-if (action === "check") {
-  check();
-} else if (action === "clean") {
-  clean(args.includes("--yes"));
-} else {
-  console.error(`Unknown action "${action}". Use check or clean.`);
-  process.exitCode = 1;
+function main(argv) {
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args: argv,
+      options: {
+        yes: { type: "boolean", default: false },
+      },
+      allowPositionals: true,
+    });
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+    return;
+  }
+
+  const { values, positionals } = parsed;
+  const action = positionals[0] ?? "check";
+  if (positionals.length > 1) {
+    console.error(`Unexpected argument "${positionals[1]}". Use check or clean.`);
+    process.exitCode = 1;
+    return;
+  }
+  if (action === "check") {
+    if (values.yes) {
+      console.error("Option --yes applies only to clean.");
+      process.exitCode = 1;
+      return;
+    }
+    check();
+  } else if (action === "clean") {
+    clean(values.yes);
+  } else {
+    console.error(`Unknown action "${action}". Use check or clean.`);
+    process.exitCode = 1;
+  }
+}
+
+if (import.meta.main) {
+  main(process.argv.slice(2));
 }
