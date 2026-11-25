@@ -17,10 +17,10 @@
     },
     "chief-of-staff": {
       "source": "mattpocock/skills",
-      "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
+      "commit": "6f7f7831a625f040a8e06a0e7954826b87ce775a",
       "sourceType": "github",
       "skillPath": "skills/in-progress/chief-of-staff/SKILL.md",
-      "computedHash": "dc3348d0f641956ea78dafa037aea745154c516a286ed4156b0c2ec0cbcf581b"
+      "computedHash": "a429ec90dfd59d2fc00d1d6ebae34a315068856b5b4b64a9e2f6a1c9c86e7e0f"
     },
     "claude-handoff": {
       "source": "mattpocock/skills",
@@ -52,10 +52,10 @@
     },
     "domain-modeling": {
       "source": "mattpocock/skills",
-      "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
+      "commit": "6f7f7831a625f040a8e06a0e7954826b87ce775a",
       "sourceType": "github",
       "skillPath": "skills/engineering/domain-modeling/SKILL.md",
-      "computedHash": "b78689833404148c769077355e12dbe5ad996a158a1e21e58ddf169e439d9d8c"
+      "computedHash": "7d4453f798d7785c945972abe0871493caf884fa3ee82725cc71e783de6176ea"
     },
     "git-guardrails-claude-code": {
       "source": "mattpocock/skills",
