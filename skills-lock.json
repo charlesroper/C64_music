@@ -10,10 +10,10 @@
     },
     "cbeams-git-commit-messages": {
       "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
+      "commit": "b2e42ea9c437dee6a0c2a9c4c048587c0254ada4",
       "sourceType": "github",
       "skillPath": "cbeams-git-commit-messages/SKILL.md",
-      "computedHash": "12a658862f77f983c957bf940a1485954a097d5e7a82bb022acb9ce116f4a744"
+      "computedHash": "dcef15c0f695c9ce7a509a04b5f12f5551fc65b5bf4f319c84cce81297daae9c"
     },
     "chief-of-staff": {
       "source": "mattpocock/skills",
@@ -87,10 +87,10 @@
     },
     "guardian-style-guide": {
       "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
+      "commit": "b2e42ea9c437dee6a0c2a9c4c048587c0254ada4",
       "sourceType": "github",
       "skillPath": "guardian-style-guide/SKILL.md",
-      "computedHash": "ef5fee2a01c59edc69bc45d6a47a582a44ebc092d5839704c78e6e96487b877c"
+      "computedHash": "4d1332332ab0a4991ef92dc4722bc078fea14bb4c8a2bea8a751320dcb5fab83"
     },
     "handoff": {
       "source": "mattpocock/skills",

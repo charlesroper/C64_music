@@ -2,7 +2,7 @@
 
 Source: <https://www.theguardian.com/info/series/the-guardian-style-guide>
 
-Retrieved: 2026-10-25
+Retrieved: 2026-11-15
 
 ## Contents
 
@@ -315,9 +315,7 @@ Terms such as schizophrenic and psychotic should be used only in a medical conte
 
 Avoid writing “the mentally ill” – say mentally ill people, mental health patients or people with mental health problems
 
-If relevant, include helpline information at the end of articles or other content:
-
-*In the UK, Samaritans can be contacted on 116 123 or email [jo@samaritans.org](mailto:jo@samaritans.org). You can contact the mental health charity Mind by calling 0300 123 3393 or visiting [mind.org.uk](http://mind.org.uk/)*
+If relevant, include helpline information at the end of articles or other content *.* At the Guardian these listings are held in an internal document updated by production editors.
 
 **merchant navy**
 

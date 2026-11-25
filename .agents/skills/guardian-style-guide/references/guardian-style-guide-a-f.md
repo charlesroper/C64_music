@@ -2,7 +2,7 @@
 
 Source: <https://www.theguardian.com/info/series/the-guardian-style-guide>
 
-Retrieved: 2026-10-25
+Retrieved: 2026-11-15
 
 ## Contents
 
@@ -403,7 +403,7 @@ Here not only does the reader have to ask whether the Tories paid millions or we
 
 **America, Americans** — the country is generally the United States or US, although its citizens are Americans; we should remember that America includes all of North, Central and South America
 
-**“America first”** — A phrase [denounced by the Anti-Defamation League](http://www.adl.org/press-center/press-releases/anti-semitism-usa/adl-urges-donald-trump-to-reconsider-america-first.html?referrer=https://www.theguardian.com/us-news/live/2017/jan/20/donald-trump-inauguration-the-world-holds-its-breath-live-coverage?page=with:block-58827bebe4b01065cf598f5d#.WLf58zaLTAw) for its links to 1940s Nazi sympathisers
+**“America first”** — A phrase denounced by the Anti-Defamation League for its links to 1940s Nazi sympathisers
 
 **American Civil Liberties Union** — not American Civil Rights Union
 
@@ -643,7 +643,7 @@ The radical theatre group in the BBC TV comedy series The League of Gentlemen wa
 
 **artefact**
 
-**artificial intelligence** — [AI](https://www.theguardian.com/technology/artificialintelligenceai) is acceptable on first mention. An AI system is one able to improve from previous experiences or one created through training and learning rather than human coding or simple algorithms. Generative artificial intelligence is AI that is capable of generating original text, images etc. Can be abbreviated to generative AI or gen AI
+**artificial intelligence** — AI is acceptable on first mention. An AI system is one able to improve from previous experiences or one created through training and learning rather than human coding or simple algorithms. Generative artificial intelligence is AI that is capable of generating original text, images etc. Can be abbreviated to generative AI or gen AI
 
 **artist** — not artiste (except, possibly, in a historical context)
 
@@ -673,9 +673,7 @@ A common error that is quite easy to spot if you try to read it without the phra
 
 **Asio** — Australian Security and Intelligence Service, the country’s domestic counter-intelligence and security agency (the equivalent of Britain’s MI5)
 
-**Asperger syndrome** — but it is acceptable to call it Asperger’s for short. Some people dislike the name because of the association with Hans Asperger, or consider it outdated, so it is better to use the broader term “autistic” unless you know a person prefers to say they have Asperger’s, in which case you should respect that preference.
-
-Do not use such witticisms as “Asperger-ish men”, which had to be removed from our website
+**Asperger syndrome** — no longer used as a diagnostic term for autism, and considered controversial due to Hans Asperger’s Nazi associations. Some people who have received a diagnosis of Asperger syndrome continue to use it to refer to themselves, however. Where possible, ask how people prefer to be described
 
 **aspirin**
 
@@ -739,7 +737,7 @@ An asylum seeker can become an illegal immigrant only if he or she remains in Br
 
 **Australian Labor party** — not Labour
 
-**autism** — Autism is a neurodevelopmental condition, not an illness. Use only when referring to the condition, not as a term of abuse or in producing such witticisms as “mindless moral autism” and “Star Wars is a form of male autism”, both of which have appeared in the paper
+**autism** — a neurodevelopmental condition, not an illness. Use only when referring to the condition, not in formulations such as “mindless moral autism” and “Star Wars is a form of male autism”, both of which have appeared in the paper. Most autistic people do not view it as a disorder, so avoid this word unless specifically referring to a medical diagnosis of autism spectrum disorder (ASD)
 
 **autistic people** — largely regard autism as a fundamental part of who they are, so dislike being described as having autism, or being people with autism/living with autism. Whenever possible, ask a person how they prefer to be described. (Further reading: [National Autistic Society guidance on writing about autism](https://www.autism.org.uk/describingautism))
 
@@ -2249,7 +2247,7 @@ The one thing to avoid, unless you want people who care about such things to giv
 
 **congestion charge**
 
-**the Republic of the Congo** — also known as Congo-Brazzaville, it was the colony of French Congo until independence in 1960. Not to be confused with its neighbour, the Democratic Republic of the Congo (DR Congo). Both countries border the Congo river
+**the Republic of the Congo** — also known as Congo-Brazzaville, it was the colony of French Congo until independence in 1960. Not to be confused with its neighbour, the Democratic Republic of the Congo (DR Congo). Both countries border the Congo River
 
 **Congregational** — uc when referring to the Congregational Union of England and Wales, formed in 1832, which joined the Presbyterian Church of England in 1972 to form the United Reformed Church (please, not “Reform”)
 
@@ -2353,7 +2351,7 @@ The one thing to avoid, unless you want people who care about such things to giv
 
 **cortege** — no accent
 
-**cosmetic surgery** — is not the same as plastic surgery, which should be reserved for people treated for deformity or illness
+**cosmetic surgery** — is not the same as plastic surgery, which should be reserved for people treated for disfigurement or illness
 
 **Costa, António** — president of the European Council
 
