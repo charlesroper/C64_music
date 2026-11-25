@@ -129,7 +129,7 @@
     },
     "maintainable-css": {
       "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
+      "commit": "b2e42ea9c437dee6a0c2a9c4c048587c0254ada4",
       "sourceType": "github",
       "skillPath": "maintainable-css/SKILL.md",
       "computedHash": "0637e73d55d9e2b3f0a5fd9108c335e6d922d677bbac11b59120c1d07c95abf8"
