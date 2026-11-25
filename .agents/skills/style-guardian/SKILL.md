@@ -1,5 +1,5 @@
 ---
-name: guardian-style-guide
+name: style-guardian
 description: >-
   Copy-edit, proofread or write text to adhere to the Guardian and Observer style guide while preserving the author's original voice, structure and argument. Use when asked to convert, edit, sub-edit, proofread or draft text in Guardian style, or check copy against Guardian house rules and UK editorial standards.
 ---
@@ -10,9 +10,9 @@ Copy-edit, proofread or write text to adhere strictly to the Guardian and Observ
 
 ## Role in the Editorial Pipeline
 
-In the repository writing framework, `guardian-style-guide` operates in two capacities:
+In the repository writing framework, `style-guardian` operates in two capacities:
 - **Standalone copy-editing skill:** Directly invoked to convert, edit, proofread or draft copy in Guardian house style.
-- **Stage 2 Sub-Editor Gate:** Composable second stage of the **Editorial Pipeline**, running after Stage 1 drafting (`on-writing-well`, `ste-80`, `project-narrative`, `cbeams-git-commit-messages`) to enforce house orthography, typography, capitalisation and grammar while preserving the draft's structural design, argument and authorial voice.
+- **Stage 2 Sub-Editor Gate:** Composable second stage of the **Editorial Pipeline**, running after Stage 1 drafting (`writing-well`, `ste-80`, `project-narrative`, `cbeams-git-commit-messages`) to enforce house orthography, typography, capitalisation and grammar while preserving the draft's structural design, argument and authorial voice.
 
 ## Reference volumes and lookup strategy
 

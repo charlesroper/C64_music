@@ -26,16 +26,16 @@ Standard language models default to American English conventions, bureaucratic j
 This skill follows the open [Agent Skills](https://agentskills.io/) specification.
 
 ### Project installation
-Copy the `guardian-style-guide` directory into your project's agent skills directory (typically `.agents/skills/`):
+Copy the `style-guardian` directory into your project's agent skills directory (typically `.agents/skills/`):
 
 ```bash
 # Copy from a clone of this repository
-cp -r guardian-style-guide /path/to/project/.agents/skills/
+cp -r style-guardian /path/to/project/.agents/skills/
 
 # Or fetch only this skill using Git sparse checkout
 git clone --depth 1 --filter=blob:none --sparse https://github.com/charlesroper/skills.git /tmp/skills
-git -C /tmp/skills sparse-checkout set guardian-style-guide
-cp -r /tmp/skills/guardian-style-guide /path/to/project/.agents/skills/
+git -C /tmp/skills sparse-checkout set style-guardian
+cp -r /tmp/skills/style-guardian /path/to/project/.agents/skills/
 rm -rf /tmp/skills
 ```
 

@@ -16,7 +16,7 @@ Use `ste-80` for operational and machine-adjacent technical writing:
 - Error tables and troubleshooting steps
 - Pull request descriptions and code-review summaries
 
-Defer non-operational writing to `on-writing-well`:
+Defer non-operational writing to `writing-well`:
 - Conceptual overviews and architecture narratives
 - README introductions and motivation sections
 - Step-by-step beginner tutorials
@@ -25,7 +25,7 @@ Defer non-operational writing to `on-writing-well`:
 
 ## Procedure
 
-1. **Confirm operational scope.** Verify that the document belongs to operational writing. If the text requires conceptual exposition, narrative flow or personal voice, route to `on-writing-well`. *Completion: Operational scope is confirmed or routed to `on-writing-well`.*
+1. **Confirm operational scope.** Verify that the document belongs to operational writing. If the text requires conceptual exposition, narrative flow or personal voice, route to `writing-well`. *Completion: Operational scope is confirmed or routed to `writing-well`.*
 2. **Draft or rewrite under STE-80 mechanics.** Apply the sentence limits, active imperatives, 80% vocabulary rules and safety warning placements defined below. *Completion: Draft satisfies all structural limits, step rules and vocabulary constraints.*
 3. **Verify against checklist and deliver.** Check the draft against the 5-point verification checklist. Deliver the final text directly without meta-commentary, progress narration or conversational preamble. *Completion: Draft passes all five checklist points and is delivered directly.*
 

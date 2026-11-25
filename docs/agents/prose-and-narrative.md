@@ -15,10 +15,10 @@ Read the shipped labels before describing a control:
 
 | Surface | Skill |
 |---|---|
-| `README.md` introduction, architecture, capabilities and developer workflow | `on-writing-well`. Keep the voice human and enticing. |
-| `README.md` install, build and command instructions | `on-writing-well` for voice, then `ste-80` for the steps: one action per step, one meaning per term, explicit outcome. Do not flatten the surrounding prose. |
-| UI copy and catalogue descriptions | `on-writing-well` and `guardian-style-guide`. |
-| `NARRATIVE.md` Sections 1 to 7 | `on-writing-well` (`Web & Content Design`: Bite/Snack/Meal screen structure, short screen paragraphs, question-answering headings), then the eight-section rules below. |
+| `README.md` introduction, architecture, capabilities and developer workflow | `writing-well`. Keep the voice human and enticing. |
+| `README.md` install, build and command instructions | `writing-well` for voice, then `ste-80` for the steps: one action per step, one meaning per term, explicit outcome. Do not flatten the surrounding prose. |
+| UI copy and catalogue descriptions | `writing-well` and `style-guardian`. |
+| `NARRATIVE.md` Sections 1 to 7 | `writing-well` (`Web & Content Design`: Bite/Snack/Meal screen structure, short screen paragraphs, question-answering headings), then the eight-section rules below. |
 | `NARRATIVE.md` Section 8 (dev blog) | `project-narrative`, then the eight-section rules below. |
 | `AGENTS.md` and skill files | `writing-for-agents`. |
 | Commit messages | `cbeams-git-commit-messages`. |
@@ -27,7 +27,7 @@ Skills resolve by name. Repo copies live under `.agents/skills/`.
 
 ## Stage 2: sub-editor gate
 
-Pass drafted prose, UI copy and documentation through `guardian-style-guide` before delivery. Enforce British English, sentence case and the AI trope check. Commit messages are exempt, as are Martin Galway's verbatim quotations.
+Pass drafted prose, UI copy and documentation through `style-guardian` before delivery. Enforce British English, sentence case and the AI trope check. Commit messages are exempt, as are Martin Galway's verbatim quotations.
 
 ## House rules
 

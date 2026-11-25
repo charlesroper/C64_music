@@ -1,5 +1,5 @@
 ---
-name: on-writing-well
+name: writing-well
 description: >-
   Write and edit clear, concise, human-centred text free of AI writing tropes across four Surfaces: Longform Prose (essays, blog posts), Technical Docs & READMEs (guides, API docs, ADRs), Web & Content Design (landing pages, help pages) and UX & Microcopy (UI controls, CLI output, error messages).
 ---

@@ -82,8 +82,8 @@ Apply the repository's style guide. When the repository has no style guide, use 
 
 In the **Editorial Pipeline**, `project-narrative` serves as Stage 1 drafting. Refer to sibling skills as the single sources of truth:
 
-- **Prose discipline and tropes:** Follow `on-writing-well` for core Zinsser mechanics (humanity, clarity, unity, clutter removal) and trope elimination (no stock phrases, no false drama, no empty framing).
-- **British English and house style:** Follow `guardian-style-guide` as the Stage 2 Sub-Editor Gate for UK orthography (`-ise` endings, no Oxford comma), dates, numbers and spaced en-dashes (` – `).
+- **Prose discipline and tropes:** Follow `writing-well` for core Zinsser mechanics (humanity, clarity, unity, clutter removal) and trope elimination (no stock phrases, no false drama, no empty framing).
+- **British English and house style:** Follow `style-guardian` as the Stage 2 Sub-Editor Gate for UK orthography (`-ise` endings, no Oxford comma), dates, numbers and spaced en-dashes (` – `).
 
 ## Writing rules
 

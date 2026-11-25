@@ -85,13 +85,6 @@
       "skillPath": "skills/productivity/grilling/SKILL.md",
       "computedHash": "485451958784497cd4c4dbea13cb5bbb579da58fac0d0e45f3bcb310fab68ac7"
     },
-    "guardian-style-guide": {
-      "source": "charlesroper/skills",
-      "commit": "b2e42ea9c437dee6a0c2a9c4c048587c0254ada4",
-      "sourceType": "github",
-      "skillPath": "guardian-style-guide/SKILL.md",
-      "computedHash": "4d1332332ab0a4991ef92dc4722bc078fea14bb4c8a2bea8a751320dcb5fab83"
-    },
     "handoff": {
       "source": "mattpocock/skills",
       "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
@@ -134,13 +127,6 @@
       "skillPath": "maintainable-css/SKILL.md",
       "computedHash": "0637e73d55d9e2b3f0a5fd9108c335e6d922d677bbac11b59120c1d07c95abf8"
     },
-    "on-writing-well": {
-      "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
-      "sourceType": "github",
-      "skillPath": "on-writing-well/SKILL.md",
-      "computedHash": "d1532c95cacee429fad5a9bc104a22c8ae81a6dbd6fc5959bd1e0f4df1a51f3f"
-    },
     "pr": {
       "source": "mattpocock/skills",
       "commit": "5863806dd4e15c63174bee4e7515a4256792ecfa",
@@ -150,10 +136,10 @@
     },
     "project-narrative": {
       "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
+      "commit": "c7ba773b67c9c6f7a8ae3cdfcd927b411cc11587",
       "sourceType": "github",
       "skillPath": "project-narrative/SKILL.md",
-      "computedHash": "3c01750b20b8f4a8baf91cb4b6373b90aed346db4b5bcc99cbde00b3ca25cbd4"
+      "computedHash": "7cc9855197f178ec956db973e36685977fa33d141fbf6d7ce3f947bf4304d025"
     },
     "prototype": {
       "source": "mattpocock/skills",
@@ -199,10 +185,17 @@
     },
     "ste-80": {
       "source": "charlesroper/skills",
-      "commit": "65cb0d04cc3d997bf8d0f672137214b88e67c9bc",
+      "commit": "c7ba773b67c9c6f7a8ae3cdfcd927b411cc11587",
       "sourceType": "github",
       "skillPath": "ste-80/SKILL.md",
-      "computedHash": "2d1a61b4773b7690fff836a06a75647d7ff0c388d1456017b557f2de053d49d0"
+      "computedHash": "70dd1e85c38b53c64e12b08aa1b29a9363eff0b7782d6857557585fce85724dd"
+    },
+    "style-guardian": {
+      "source": "charlesroper/skills",
+      "commit": "c7ba773b67c9c6f7a8ae3cdfcd927b411cc11587",
+      "sourceType": "github",
+      "skillPath": "style-guardian/SKILL.md",
+      "computedHash": "6d9f2ec7d596c1b93eb09a09f997d5262dabf97f05c3ec814a1f6b43a775f8b7"
     },
     "tdd": {
       "source": "mattpocock/skills",
@@ -301,6 +294,13 @@
       "sourceType": "github",
       "skillPath": "skills/in-progress/writing-shape/SKILL.md",
       "computedHash": "7e06f4ca8a96c83b5b9a540c0279e998ba449e74586c77d44f9b8183c1bd8ef8"
+    },
+    "writing-well": {
+      "source": "charlesroper/skills",
+      "commit": "c7ba773b67c9c6f7a8ae3cdfcd927b411cc11587",
+      "sourceType": "github",
+      "skillPath": "writing-well/SKILL.md",
+      "computedHash": "384e3bd782a4b7c0ee6dc0cf9d42323babe7066f89dbc61e32372fb237b1afd9"
     }
   }
 }
